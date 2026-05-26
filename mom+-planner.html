@@ -54,6 +54,8 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 .color-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .param-row{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
 .param-label{flex:1;font-size:12px;}.param-label small{color:#9ca3af;display:block;font-size:10px;}
+.leg-item{padding:8px 10px;margin-bottom:7px;background:#f9fafb;border-left:3px solid #4f46e5;border-radius:5px;font-size:12.5px;color:#374151;line-height:1.55;}
+.leg-item strong{color:#1f2937;}
 .param-input{width:60px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 7px;font-size:13px;font-weight:700;text-align:center;}
 .param-input:focus{outline:none;border-color:#4f46e5;}
 .param-unit{font-size:11px;color:#9ca3af;width:55px;}
@@ -193,7 +195,8 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
   <button class="tab-btn" onclick="showTab('rooster',this)">📅 Rooster</button>
   <button class="tab-btn" onclick="showTab('team',this)">👥 Team</button>
   <button class="tab-btn" onclick="showTab('kosten',this)">💶 Kosten</button>
-  <button class="tab-btn" onclick="showTab('overleg',this)">🗣 Overleg</button>
+  <button class="tab-btn" onclick="showTab('verdoken',this)">🫥 Verdoken kosten</button>
+  <button class="tab-btn" onclick="showTab('legende',this)">📖 Legende</button>
   <button class="tab-btn" onclick="showTab('capp',this)">☕ Cappuccino</button>
   <button class="tab-btn" onclick="showTab('mix',this)">📋 Mix</button>
   <button class="tab-btn" onclick="showTab('cap',this)">📊 Capaciteit</button>
@@ -308,26 +311,80 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
   </div>
 </div>
 
-<div id="tab-overleg" class="tab-pane">
+<div id="tab-verdoken" class="tab-pane">
   <div class="card">
-    <div class="card-title">Overhead toepassen op afdrachten?</div>
-    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:12.5px">
-      <input type="checkbox" id="overleg-active" checked onchange="toggleOverlegOh(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#4f46e5">
-      <span><strong>Overlegoverhead actief</strong> — wanneer aan: het % niet-factureerbaar wordt afgetrokken van alle VZW-afdrachten en netto-inkomens in tab Financieel, Mix, Cappuccino, Capaciteit.</span>
-    </label>
-    <p class="note" id="overleg-status" style="margin-top:6px"></p>
+    <div class="card-title">🫥 Verdoken kosten</div>
+    <p class="note" style="margin-bottom:10px">Niet alles wat je inplant levert ook écht geld op. Vul hier in welk percentage van de geplande consultaties verloren gaat. <strong>Standaard staat alles op 0%</strong> — dan rekent de planner met een ideale situatie. Verhoog de cijfers om realistischer in te schatten.</p>
+    <div class="param-row">
+      <div class="param-label">No-show patiënten<small>Patiënten die niet komen opdagen of last-minute annuleren</small></div>
+      <input type="number" class="param-input" id="p-noshow" value="0" min="0" max="100" step="0.5" oninput="onVerdoken()">
+      <span class="param-unit">%</span>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Inefficiëntie<small>Tijd die geblokkeerd staat maar niet factureerbaar (gaten in agenda, administratie tijdens slot, technische problemen…)</small></div>
+      <input type="number" class="param-input" id="p-ineff" value="0" min="0" max="100" step="0.5" oninput="onVerdoken()">
+      <span class="param-unit">%</span>
+    </div>
+    <div class="param-row" style="border-top:1px solid #e5e7eb;padding-top:9px;margin-top:5px">
+      <div class="param-label" style="font-weight:700;color:#dc2626">Totaal verlies op bruto-inkomsten</div>
+      <span id="verdoken-totaal" style="font-weight:700;color:#dc2626;font-size:15px">0,0 %</span>
+    </div>
+    <p class="note" id="verdoken-uitleg" style="margin-top:10px;background:#f9fafb;padding:9px;border-radius:7px;line-height:1.5"></p>
   </div>
-  <div class="card"><div class="card-title">Overlegparameters per traject</div>
-    <div class="param-row"><div class="param-label">Opstart bespreking<small>1× bij aanvang</small></div><input type="number" class="param-input" id="p-opstart" value="15" min="0" max="120" oninput="onOverleg()"><span class="param-unit">min</span></div>
-    <div class="param-row"><div class="param-label">Trajectbesprekingen<small>Aantal per traject</small></div><input type="number" class="param-input" id="p-ntraject" value="2" min="0" max="20" oninput="onOverleg()"><span class="param-unit">×</span></div>
-    <div class="param-row"><div class="param-label">Duur trajectbespreking</div><input type="number" class="param-input" id="p-mintraject" value="15" min="5" max="90" oninput="onOverleg()"><span class="param-unit">min</span></div>
-    <div class="param-row"><div class="param-label">MDO frequentie<small>Om de N gesprekken</small></div><input type="number" class="param-input" id="p-mdofreq" value="5" min="1" max="20" oninput="onOverleg()"><span class="param-unit">gesprekken</span></div>
-    <div class="param-row"><div class="param-label">Duur MDO</div><input type="number" class="param-input" id="p-mdomin" value="15" min="5" max="90" oninput="onOverleg()"><span class="param-unit">min</span></div>
-    <div class="param-row"><div class="param-label">Trajectlengte<small>Totaal gesprekken</small></div><input type="number" class="param-input" id="p-trajlen" value="20" min="5" max="60" oninput="onOverleg()"><span class="param-unit">gesprekken</span></div>
-    <div class="param-row"><div class="param-label">Duur consultatie</div><input type="number" class="param-input" id="p-consdur" value="60" min="15" max="120" oninput="onOverleg()"><span class="param-unit">min</span></div>
+  <div class="card">
+    <div class="card-title">Voorbeeld-impact per teamlid</div>
+    <p class="note" style="margin-bottom:6px">Concreet hoeveel zou een teamlid verliezen door no-show + inefficiëntie:</p>
+    <table><thead><tr><th>Naam</th><th style="text-align:right">Bruto/mnd<small>zonder verlies</small></th><th style="text-align:right">Verlies/mnd</th><th style="text-align:right">Netto/mnd<small>na verlies</small></th></tr></thead><tbody id="verdoken-tbody"></tbody></table>
   </div>
-  <div class="card"><div class="card-title">Tijdsbalans per traject</div><div class="oh-wrap"><div style="display:flex;gap:12px;font-size:11px;margin-bottom:3px"><div class="leg"><div class="leg-sq" style="background:#10b981"></div>Factureerbaar</div><div class="leg"><div class="leg-sq" style="background:#f59e0b"></div>Overleg</div></div><div class="oh-bar" id="oh-bar"></div><div id="oh-summary" style="font-size:12px;line-height:1.6;color:#374151"></div></div></div>
-  <div class="card"><div class="card-title">Impact op afdracht per blok</div><table><thead><tr><th>Naam</th><th style="text-align:right">Zonder overhead</th><th style="text-align:right">Met overhead</th><th style="text-align:right">Verschil</th></tr></thead><tbody id="impact-tbody"></tbody></table></div>
+</div>
+
+<div id="tab-legende" class="tab-pane">
+  <div class="card">
+    <div class="card-title">📖 Wat doet elk tabblad?</div>
+    <p class="note" style="margin-bottom:10px">Korte uitleg in mensentaal. Je hoeft geen statistiek of techniek te kennen — gewoon zien wat waar staat en hoe je het kan aanpassen.</p>
+    <div class="leg-item"><strong>📊 Financieel</strong> — Het hoofdoverzicht. Je ziet bovenaan de maandkosten van het centrum, hoeveel geld er via de afdrachten binnenkomt, en of dat ruim genoeg is om de rekeningen te betalen ("Resultaat VZW"). Onder elk teamlid vind je hoeveel zij persoonlijk overhouden, hoeveel ze afdragen, en hun stukje uit de cappuccino-pool. Per teamlid kan je de afdracht-% met een schuifbalk fijnregelen.</div>
+    <div class="leg-item"><strong>📅 Rooster</strong> — Een wekelijks rooster waar je per teamlid aanvinkt op welke dagdelen ze werken. Een dagdeel is een blok van een halve dag: voormiddag (VM, 8:00–13:30), namiddag (NM, 14:00–19:30) of avond (Av, 19:30–24:00). Onderaan staat hoeveel bureaus tegelijk bezet zijn — handig om te zien of je niet boven je beschikbare ruimtes komt.</div>
+    <div class="leg-item"><strong>👥 Team</strong> — De ledenlijst. Voor elk teamlid noteer je: tarief per consultatie (€), aantal consultaties per blok, afdracht-% (= het deel van het inkomen dat naar de VZW gaat), aantal werkweken per jaar en het type (Z = zelfstandige, B = bediende). Als je een teamlid een mix van soorten consultaties laat doen (Mix-tab), worden de paarse velden automatisch ingevuld.</div>
+    <div class="leg-item"><strong>💶 Kosten</strong> — Alle vaste maandkosten van het centrum: huisvesting (huur of aankoop), inrichting/verbouwing als afschrijving, en losse kostenposten (admin, schoonmaak, verzekeringen, …). Wat je hier intikt, telt rechtstreeks mee in "Resultaat VZW".</div>
+    <div class="leg-item"><strong>🫥 Verdoken kosten</strong> — Hier zet je in dat niet elke geplande consultatie geld oplevert. <strong>No-show</strong> = patiënt komt niet opdagen → die € is weg. <strong>Inefficiëntie</strong> = tijd in de agenda die niet factureerbaar is (gaten, administratie tijdens een slot, technische problemen). Beide staan standaard op 0%; vul realistische cijfers in om je calculatie eerlijker te maken.</div>
+    <div class="leg-item"><strong>☕ Cappuccino</strong> — Het verdeelmodel voor het overschot van de VZW (alles wat overblijft na kosten, plus bepaalde "pool-bronnen" zoals MDO's). De pool wordt verdeeld in 5 lagen:
+      <ul style="margin:5px 0 5px 24px;font-size:11.5px;color:#4b5563">
+        <li><strong>L1 Espresso</strong> = aanwezigheid (wie veel dagdelen werkt, krijgt meer)</li>
+        <li><strong>L2 Melk</strong> = quota-bonus (wie zijn verwachte aantal consultaties haalt of overtreft)</li>
+        <li><strong>L3 Schuim</strong> = mandaten/extra rollen (coördinatie, supervisie, PhD …) × werkomvang</li>
+        <li><strong>L4 Kaneel</strong> = opleidingsniveau (bachelor, master, manama, eindverantwoordelijkheid …) × werkomvang</li>
+        <li><strong>L5 Reserve</strong> = blijft bij de VZW als spaarpot</li>
+      </ul>
+      Met de schuiven bovenaan bepaal je hoeveel % van de pool naar elke laag gaat. Je kan ook per teamlid een <strong>minimum afdracht</strong> instellen: zo voorkom je dat iemand via de pool meer terugkrijgt dan ze afdragen.
+    </div>
+    <div class="leg-item"><strong>📋 Mix</strong> — Per teamlid stel je in welke types consultaties ze doen en in welke verhouding (60% intake, 40% opvolging, …). Ook technische prestaties (zoals EEG) staan hier — die tellen <em>enkel overdag</em>, niet 's avonds. Onderaan kan je MDO's (multidisciplinaire besprekingen) per week ingeven, en administratieve handelingen. Voor avondblokken kan je een aparte afdracht-% instellen (leeg laten = zelfde als dag).</div>
+    <div class="leg-item"><strong>📊 Capaciteit</strong> — Een samenvattend overzicht: hoeveel consultaties/maand kan het team aan, hoeveel technische prestaties, hoeveel MDO's, en hoeveel nieuwe patiënten je gemiddeld kan opstarten per maand (op basis van een instelbare trajectlengte).</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔑 Veelgebruikte begrippen</div>
+    <div class="leg-item"><strong>Afdracht-%</strong> — Het percentage van het bruto-inkomen dat een zelfstandig teamlid afdraagt aan de VZW (voor huisvesting, kosten, gedeelde diensten). Voorbeeld: 20% afdracht op €100 betekent €20 naar de VZW, €80 voor het teamlid zelf.</div>
+    <div class="leg-item"><strong>Bruto vs. netto</strong> — Bruto = wat de patiënt betaalt. Netto = wat overblijft na de afdracht en de verdoken kosten (no-show, inefficiëntie).</div>
+    <div class="leg-item"><strong>VZW-afdracht</strong> — De som van alle afdrachten van zelfstandigen. Dit is de inkomstenbron van de VZW. Moet groot genoeg zijn om alle maandkosten te dekken (Resultaat VZW ≥ 0).</div>
+    <div class="leg-item"><strong>Cappuccino-pool</strong> — Een gemeenschappelijke spaarpot waar het VZW-overschot in komt, samen met bepaalde inkomsten (MDO, administratie, …). Wordt nadien herverdeeld onder de teamleden volgens de laag-instellingen.</div>
+    <div class="leg-item"><strong>Break-even</strong> — Het gemiddelde afdracht-% dat nodig is om net de maandkosten te dekken. Als het huidige gemiddelde hoger is, maak je winst (overschot voor de pool). Als het lager is, zit je in het rood.</div>
+    <div class="leg-item"><strong>Dagdeel / blok</strong> — Een halve werkdag van 5u30 (overdag) of 4u30 (avond). 1 teamlid werkt typisch 4–8 dagdelen per week.</div>
+    <div class="leg-item"><strong>Routing van een act</strong> — Hoe het geld van een handeling (consult, MDO, administratie) verdeeld wordt: "→ afdracht" gaat normaal via de afdracht-%, "→ ☕ pool" gaat rechtstreeks naar de cappuccino-pool.</div>
+    <div class="leg-item"><strong>MDO</strong> — Multidisciplinair overleg: een cliënt-bespreking met meerdere zorgverleners (vb. arts + psycholoog + verpleegkundige). Genereert inkomsten die naar de pool gaan.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💡 Hoe gebruik je deze planner praktisch?</div>
+    <ol style="margin-left:18px;font-size:12.5px;color:#374151;line-height:1.7">
+      <li>Begin in <strong>Team</strong> — voeg al je teamleden toe.</li>
+      <li>Open <strong>Rooster</strong> — vink aan wie wanneer werkt.</li>
+      <li>Vul <strong>Kosten</strong> in — huisvesting, vaste lasten, investeringen.</li>
+      <li>Ga naar <strong>Mix</strong> — stel per teamlid de soorten consultaties en frequenties in.</li>
+      <li>Open <strong>Financieel</strong> — bekijk of het centrum break-even draait. Speel met de afdracht-% sliders om scenario's te testen.</li>
+      <li>Eventueel <strong>Cappuccino</strong> — als je een poolverdeling wil gebruiken.</li>
+      <li>Bovenaan kan je via <strong>📚 Scenario's</strong> een instelling onder een naam bewaren en later terughalen. Handig om varianten te vergelijken.</li>
+    </ol>
+  </div>
 </div>
 
 <div id="tab-capp" class="tab-pane">
@@ -410,7 +467,8 @@ function nextId(prefix){let id;do{id=prefix+(idCtr++);}while(idExists(id));retur
 // MOM+ start volledig blanco — geen default-data. Frank vult zelf aan via de Team / Kosten / Mix tabs.
 const DEFAULT_TEAM=[];
 const DEFAULT_KOSTEN=[];
-const DEFAULT_OVERLEG={opstart:15,ntraject:2,mintraject:15,mdofreq:5,mdomin:15,trajlen:20,consdur:60};
+const DEFAULT_VERDOKEN={noShow:0,inefficientie:0};
+const DEFAULT_TRAJLEN=20; // gesprekken per traject — gebruikt in Capaciteit-tab voor 'nieuwe patiënten/mnd'
 const DEFAULT_HUISVESTING={type:'huur',maandhuur:0,aankoopprijs:0,eigenInbreng:0,registratie:12,leningJaren:25,rentevoet:3.5,verbouwingBedrag:0,verbouwingJaren:0};
 const DEFAULT_INVESTERINGEN=[];
 const DEFAULT_MANDATEN=[];
@@ -437,7 +495,8 @@ let mdoBlokken={}; // {pid: aantalMDOsPerWeek} — aantal MDO-sessies/cliëntbes
 let cappOptIn={}; // {pid: true/false} — deelname aan cappuccinopool. Default true voor zelfstandigen.
 let personMinAfdrachtPct={}; // {pid: pct|''} — minimum effectieve afdracht% (cap op pool-payout). Leeg = geen limit.
 let personAvondPct={};       // {pid: pct|''} — aparte afdracht% voor avondblokken. Leeg = zelfde als dag-pct.
-let overlegOhActief=true; // wanneer uit: overhead wordt op 0 gezet in alle berekeningen (Fin, Mix, Capp, ...).
+let verdokenKosten={...DEFAULT_VERDOKEN}; // {noShow, inefficientie} — beide in % (0-100). Werkt multiplicatief op alle bruto-inkomsten.
+let trajLen=DEFAULT_TRAJLEN; // gesprekken per traject (instelbaar in Capaciteit-tab)
 let cappKostendekking=false; // wanneer aan: pool-bronnen dekken eerst VZW-tekort vooraleer pool gevormd wordt
 let personActPct={}; // {pid:{actId:pct}} — per persoon override-afdracht% per specifieke act
 let finExpanded={}; // {pid:true} — UI-state: welke teamleden hebben hun sub-rijen open
@@ -500,9 +559,9 @@ function renderScenariosList(){
 }
 function copyJSON(){const ta=document.getElementById('modal-json');ta.select();try{document.execCommand('copy');}catch(e){navigator.clipboard&&navigator.clipboard.writeText(ta.value);}document.getElementById('copy-confirm').style.display='block';}
 
-function getOverlegFromDOM(){const g=id=>+(document.getElementById(id)?.value)||0;return{opstart:g('p-opstart')||15,ntraject:g('p-ntraject')||2,mintraject:g('p-mintraject')||15,mdofreq:g('p-mdofreq')||5,mdomin:g('p-mdomin')||15,trajlen:g('p-trajlen')||20,consdur:g('p-consdur')||60};}
+function getVerdokenFromDOM(){const ns=+(document.getElementById('p-noshow')?.value)||0,ie=+(document.getElementById('p-ineff')?.value)||0;return{noShow:Math.max(0,Math.min(100,ns)),inefficientie:Math.max(0,Math.min(100,ie))};}
 function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
-function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct))};}
+function buildState(){return{version:8,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),verdokenKosten:getVerdokenFromDOM(),trajLen:+trajLen||DEFAULT_TRAJLEN,bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct))};}
 function applyState(st){
   team=(st.team||DEFAULT_TEAM.map(p=>({...p}))).map(p=>({type:'zelfstandige',...p}));
   slots=st.slots||{};team.forEach(p=>{if(!slots[p.id])slots[p.id]=mkDef();});
@@ -544,14 +603,17 @@ function applyState(st){
   mdoBookings=Array.isArray(st.mdoBookings)?JSON.parse(JSON.stringify(st.mdoBookings)):[];
   mdoBlokken=st.mdoBlokken||{};
   cappOptIn=st.cappOptIn||{};
-  overlegOhActief=st.overlegOhActief!==undefined?!!st.overlegOhActief:true;
   cappKostendekking=st.cappKostendekking!==undefined?!!st.cappKostendekking:false;
   cappLockedLagen=Array.isArray(st.cappLockedLagen)?[...st.cappLockedLagen]:[];
   personActPct=st.personActPct||{};
   personMinAfdrachtPct=st.personMinAfdrachtPct||{};
   personAvondPct=st.personAvondPct||{};
-  const ov={...DEFAULT_OVERLEG,...(st.overleg||{})};
-  Object.entries(ov).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});
+  // Verdoken kosten (no-show + inefficiëntie). Migratie: oude state had 'overleg' + 'overlegOhActief' — die gooien we weg, beginnen op 0%.
+  verdokenKosten={...DEFAULT_VERDOKEN,...(st.verdokenKosten||{})};
+  const elNs=document.getElementById('p-noshow');if(elNs)elNs.value=verdokenKosten.noShow;
+  const elIe=document.getElementById('p-ineff');if(elIe)elIe.value=verdokenKosten.inefficientie;
+  trajLen=+st.trajLen||DEFAULT_TRAJLEN;
+  const elTl=document.getElementById('p-trajlen-cap');if(elTl)elTl.value=trajLen;
   if(st.bureauLimit){const bl=document.getElementById('bureau-limit');if(bl)bl.value=st.bureauLimit;}
   const sc=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
   sc('capp-overschot-manual',cappData.overschotManual||'');
@@ -563,12 +625,35 @@ function setStatus(t,c){const el=document.getElementById('save-status');if(el){e
 function onAnyChange(){lsAutoSave();setStatus('✓ Opgeslagen','saved');}
 function exportJSON(){document.getElementById('modal-json').value=JSON.stringify(buildState(),null,2);openModal();}
 function importJSON(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{applyState(JSON.parse(e.target.result));refreshAll();lsAutoSave();setStatus('✓ Geladen','saved');}catch(err){alert('Fout: '+err.message);}};r.readAsText(f);inp.value='';}
-function resetConfirm(){if(!confirm('Alles resetten naar standaard?'))return;team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));personMandaten={};personOpleiding={};werkelijkeCons={};cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};cappOptIn={};overlegOhActief=true;cappKostendekking=false;cappLockedLagen=[];personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};Object.entries(DEFAULT_OVERLEG).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;const om=document.getElementById('capp-overschot-manual');if(om)om.value='';refreshAll();lsAutoSave();setStatus('↺ Reset','saved');}
+function resetConfirm(){
+  if(!confirm('Alles resetten naar standaard?'))return;
+  team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());
+  kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};
+  investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));
+  mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));
+  personMandaten={};personOpleiding={};werkelijkeCons={};
+  cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};
+  cappOptIn={};cappKostendekking=false;cappLockedLagen=[];
+  personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};
+  acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};
+  verdokenKosten={...DEFAULT_VERDOKEN};trajLen=DEFAULT_TRAJLEN;
+  const elNs=document.getElementById('p-noshow');if(elNs)elNs.value=verdokenKosten.noShow;
+  const elIe=document.getElementById('p-ineff');if(elIe)elIe.value=verdokenKosten.inefficientie;
+  const elTl=document.getElementById('p-trajlen-cap');if(elTl)elTl.value=trajLen;
+  const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;
+  const om=document.getElementById('capp-overschot-manual');if(om)om.value='';
+  refreshAll();lsAutoSave();setStatus('↺ Reset','saved');
+}
 
 function clr(i){return COLORS[i%COLORS.length];}
 function fmt(n){return'€\u202F'+Math.round(n).toLocaleString('nl-BE');}
-function ohPct(){if(!overlegOhActief)return 0;const g=id=>+(document.getElementById(id)?.value)||0;const op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60,oh=op+nt*mt+Math.floor(tl/mf)*mm;return oh/(oh+tl*cd);}
-function ohPctRaw(){const g=id=>+(document.getElementById(id)?.value)||0;const op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60,oh=op+nt*mt+Math.floor(tl/mf)*mm;return oh/(oh+tl*cd);}
+// ohPct() = totale verlies-fractie op bruto-inkomsten (0..1). Multiplicatief gecombineerd: (1-ohPct) = (1-noShow/100)*(1-inefficientie/100)
+function ohPct(){
+  const ns=document.getElementById('p-noshow')?+(document.getElementById('p-noshow').value)||0:(+verdokenKosten.noShow||0);
+  const ie=document.getElementById('p-ineff')?+(document.getElementById('p-ineff').value)||0:(+verdokenKosten.inefficientie||0);
+  const keep=(1-Math.min(100,Math.max(0,ns))/100)*(1-Math.min(100,Math.max(0,ie))/100);
+  return 1-keep;
+}
 function wkPerMaand(p){return(p.wkjr||46)/12;}
 function dagdelen(p){return(slots[p.id]||[]).reduce((s,d)=>s+d.reduce((sb,b)=>sb+(b?1:0),0),0);}
 function avondDelen(p){return(slots[p.id]||[]).reduce((s,d)=>s+(d[2]?1:0),0);}
@@ -700,17 +785,21 @@ function mixCappIncome(){
 }
 function vzwActual(p){return(personMix[p.id]||[]).length>0?vzwPerMaandMixed(p):vzwPerMaand(p);}
 function nettoActual(p){return(personMix[p.id]||[]).length>0?persNettoMixed(p):persNettoPerMaand(p);}
-function brutoEurPerBlok(p,bi){
-  // Bruto-tariefopbrengst per blok (default = dagblok, bi=2 voor avond) van acts met routing='afdracht' (vóór afdracht-%, ná overhead).
-  const oh=1-ohPct(),isAv=bi===2;
+function brutoEurPerBlokRaw(p,bi){
+  // Bruto-tariefopbrengst per blok VÓÓR aftrek van verdoken kosten (no-show / inefficiëntie).
+  const isAv=bi===2;
   const mix=personMix[p.id]||[];
   if(mix.length>0){
     let tot=0;
     for(const m of mix){const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;if((act.routing||'afdracht')!=='afdracht')continue;tot+=(+m.pct/100)*cpbForAct(act,isAv?2:0)*(+act.tarief||0);}
-    return tot*oh;
+    return tot;
   }
   const cons=(+p.cons||0)*(isAv?avondShare():1);
-  return(+p.tarief||0)*cons*oh;
+  return(+p.tarief||0)*cons;
+}
+function brutoEurPerBlok(p,bi){
+  // Bruto-tariefopbrengst per blok ná aftrek van verdoken kosten (= effectief factureerbaar, vóór afdracht-%).
+  return brutoEurPerBlokRaw(p,bi)*(1-ohPct());
 }
 function afdrachtEurPerBlok(p){return brutoEurPerBlok(p,0)*((+p.pct||0)/100);}
 function afdrachtEurPerAvondBlok(p){
@@ -850,7 +939,7 @@ function renderFin(){
   const k=totalKosten(),vzw=totalVzw(),r=vzw-k;
   document.getElementById('fk').textContent=fmt(k);document.getElementById('fi').textContent=fmt(vzw);
   const el=document.getElementById('fr');el.textContent=(r>=0?'+':'')+fmt(r);el.className='sum-val '+(r>=0?'green':'red');
-  document.getElementById('fin-note').innerHTML=(overlegOhActief?'Overhead: '+(ohPct()*100).toFixed(1)+'% niet-factureerbaar (uit Overleg-tab).':'<span style="color:#dc2626">⚠ Overlegoverhead staat uit</span> — afdrachten worden niet gecorrigeerd voor overlegtijd. Schakel in via Overleg-tab.')+' ☕ pool-payout maandelijks uit cappuccino-verdeling.';
+  document.getElementById('fin-note').innerHTML='Verdoken kosten: <strong>'+(ohPct()*100).toFixed(1)+'%</strong> verlies op bruto (no-show + inefficiëntie). ☕ pool-payout maandelijks uit cappuccino-verdeling.';
   // Break-even indicator
   const beEl=document.getElementById('fin-breakeven');
   if(beEl){
@@ -976,7 +1065,7 @@ function renderRooster(){
   let h='<thead><tr><th class="name-corner" rowspan="2"></th>';DAYS.forEach(d=>{h+='<th class="day-th" colspan="3">'+d+'</th>';});h+='</tr><tr>';for(let di=0;di<5;di++)BLK.forEach((b,bi)=>{h+='<th class="blk-th'+(bi===0?' fd':'')+'">'+b+'</th>';});h+='</tr></thead><tbody>';
   team.forEach((p,pi)=>{const c=clr(pi);h+='<tr class="prow"><td class="nm-cell"><div class="color-dot" style="background:'+c+'"></div><span title="'+p.naam+'">'+p.naam+'</span><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td>';for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){const on=slots[p.id]?.[di]?.[bi];h+='<td class="slot-td'+(bi===0?' fd':'')+'"><button class="slot-btn'+(on?' on':'')+'" style="'+(on?'background:'+c+';':'')+'" onclick="toggleSlot(\''+p.id+'\','+di+','+bi+')">'+(on?'✓':'')+'</button></td>';}h+='</tr>';});
   h+='<tr class="brow"><td class="name-corner" style="font-size:10px;font-weight:700;color:#6b7280;padding:4px 7px;text-align:left">Bureaus</td>';for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){const n=slotCount(di,bi);h+='<td class="bureau-td'+(bi===0?' fd':'')+'"><div class="bbadge '+badgeCls(n)+'">'+(n||'—')+'</div></td>';}h+='</tr></tbody>';
-  document.getElementById('rt').innerHTML=h;document.getElementById('rooster-note').textContent='Overhead: '+(ohPct()*100).toFixed(1)+'% niet-factureerbaar.';
+  document.getElementById('rt').innerHTML=h;document.getElementById('rooster-note').textContent='Verdoken kosten: '+(ohPct()*100).toFixed(1)+'% verlies op bruto-inkomsten.';
   renderMdoConfig();
   renderMdoAgenda();
   const counts=[],lbs=[];for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){counts.push(slotCount(di,bi));lbs.push(DS[di]+' '+BLK[bi]);}
@@ -1158,20 +1247,30 @@ function addInvestering(){
   renderKosten();renderFin();renderCapp();onAnyChange();
 }
 
-function renderOverleg(){
-  // Synchroniseer checkbox met state
-  const cb=document.getElementById('overleg-active');if(cb)cb.checked=overlegOhActief;
-  const st=document.getElementById('overleg-status');
-  if(st){
-    const raw=ohPctRaw();
-    if(overlegOhActief)st.innerHTML='<span style="color:#059669;font-weight:600">✓ Actief</span> — overhead van <strong>'+(raw*100).toFixed(1)+'%</strong> wordt overal afgetrokken.';
-    else st.innerHTML='<span style="color:#dc2626;font-weight:600">⊘ Uit</span> — afdrachten worden berekend zonder overhead-aftrek (potentiële situatie, raw <strong>'+(raw*100).toFixed(1)+'%</strong> zou anders verloren gaan).';
+function renderVerdoken(){
+  // Sync state met DOM
+  verdokenKosten=getVerdokenFromDOM();
+  const ns=verdokenKosten.noShow,ie=verdokenKosten.inefficientie;
+  const loss=ohPct()*100; // totale verlies-%
+  const tEl=document.getElementById('verdoken-totaal');
+  if(tEl)tEl.textContent=loss.toFixed(1).replace('.',',')+' %';
+  const uEl=document.getElementById('verdoken-uitleg');
+  if(uEl){
+    if(ns===0&&ie===0)uEl.innerHTML='<strong style="color:#059669">Ideaalscenario actief.</strong> Alle ingeplande consultaties leveren geld op. Geef boven cijfers in om realistischer te rekenen.';
+    else uEl.innerHTML='Op een bruto-inkomen van bv. <strong>€ 1.000</strong> houdt het centrum hier <strong>€ '+Math.round(1000*(1-loss/100)).toLocaleString('nl-BE')+'</strong> aan over (na '+ns.toFixed(1).replace('.',',')+' % no-show en '+ie.toFixed(1).replace('.',',')+' % inefficiëntie).';
   }
-  const g=id=>+(document.getElementById(id)?.value)||0,op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60;
-  const ohTot=op+nt*mt+Math.floor(tl/mf)*mm,cons=tl*cd,grand=ohTot+cons,bill=cons/grand,over=ohTot/grand;
-  document.getElementById('oh-bar').innerHTML='<div class="oh-bill" style="width:'+bill*100+'%">'+(bill*100).toFixed(1)+'%</div><div class="oh-over" style="width:'+over*100+'%">'+(over*100).toFixed(1)+'%</div>';
-  document.getElementById('oh-summary').innerHTML='<strong>Overleg/traject:</strong> '+ohTot+' min &nbsp;|&nbsp; <strong>Factureerbaar: <span style="color:#059669">'+(bill*100).toFixed(1)+'%</span></strong>'+(overlegOhActief?'':' &nbsp;<span style="color:#dc2626;font-size:11px">⚠ overhead-aftrek staat uit</span>');
-  document.getElementById('impact-tbody').innerHTML=team.map(p=>{const z=p.tarief*p.cons*(p.pct/100),m=z*bill,d=m-z;return'<tr><td>'+p.naam+'</td><td style="text-align:right">'+fmt(z)+'/blok</td><td style="text-align:right">'+fmt(m)+'/blok</td><td style="text-align:right;color:'+(d<-.01?'#dc2626':'#6b7280')+'">'+(d<-.01?'':'+')+fmt(d)+'/blok</td></tr>';}).join('');
+  const body=document.getElementById('verdoken-tbody');
+  if(body){
+    if(!team.length)body.innerHTML='<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:8px">Nog geen teamleden ingegeven.</td></tr>';
+    else body.innerHTML=team.map(p=>{
+      // Bruto/mnd = bruto-inkomen zonder verdoken-kosten = brutoPerBlok-zonder-oh × blokken/wk × wk
+      const wk=wkPerMaand(p),dB=dagBlokken(p),avB=avondDelen(p);
+      const brutoDagBlok=brutoEurPerBlokRaw(p,0),brutoAvBlok=brutoEurPerBlokRaw(p,2);
+      const brutoMnd=(brutoDagBlok*dB+brutoAvBlok*avB)*wk;
+      const nettoMnd=brutoMnd*(1-loss/100),verlies=brutoMnd-nettoMnd;
+      return '<tr><td>'+p.naam+'</td><td style="text-align:right">'+fmt(brutoMnd)+'</td><td style="text-align:right;color:#dc2626">-'+fmt(verlies)+'</td><td style="text-align:right;font-weight:600">'+fmt(nettoMnd)+'</td></tr>';
+    }).join('');
+  }
 }
 
 function renderCapp(){
@@ -1435,11 +1534,12 @@ function renderCap(){
     return{p,pi,dd,cMnd,tMnd,mMnd,hasMix:mix.length>0};
   });
   const tC=rows.reduce((s,r)=>s+r.cMnd,0),tT=rows.reduce((s,r)=>s+r.tMnd,0),tM=rows.reduce((s,r)=>s+r.mMnd,0);
-  const trajLen=+(document.getElementById('p-trajlen')?.value)||20,newPat=trajLen>0?tC/trajLen:0;
+  const tl=+trajLen||DEFAULT_TRAJLEN,newPat=tl>0?tC/tl:0;
   let h='<div class="cap-stat-grid"><div class="sum-card"><div class="sum-label">Consultaties/mnd</div><div class="sum-val neutral">'+Math.round(tC)+'</div></div><div class="sum-card"><div class="sum-label">Tech. prestaties/mnd</div><div class="sum-val neutral">'+Math.round(tT)+'</div></div><div class="sum-card"><div class="sum-label">MDOs/mnd</div><div class="sum-val neutral">'+Math.round(tM)+'</div></div><div class="sum-card"><div class="sum-label">Nieuwe patiënten/mnd</div><div class="sum-val green">'+Math.round(newPat)+'</div></div></div>';
+  h+='<div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px"><div style="font-weight:600;color:#374151;font-size:12.5px">Trajectlengte (gesprekken per traject)</div><p class="note" style="margin-top:2px">Gemiddeld aantal gesprekken dat een traject duurt. Gebruikt om "nieuwe patiënten/mnd" te berekenen.</p></div><input type="number" id="p-trajlen-cap" value="'+tl+'" min="1" max="100" step="1" style="width:80px;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:14px;text-align:right" onchange="setTrajLen(+this.value)"><span style="font-size:12px;color:#9ca3af">gesprekken</span></div>';
   h+='<div class="card"><div class="card-title">Capaciteit per teamlid</div><table><thead><tr><th>Naam</th><th style="text-align:right">Blokken/wk</th><th style="text-align:right">Consult/mnd</th><th style="text-align:right">Tech/mnd</th><th style="text-align:right">MDO/mnd</th><th style="text-align:right">Bron</th></tr></thead><tbody>';
   rows.forEach(({p,pi,dd,cMnd,tMnd,mMnd,hasMix})=>{h+='<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+clr(pi)+';margin-right:5px"></span>'+p.naam+'</td><td style="text-align:right">'+dd+'</td><td style="text-align:right;font-weight:600">'+(Math.round(cMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(tMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(mMnd)||'—')+'</td><td style="text-align:right"><span style="font-size:10px;padding:1px 5px;border-radius:3px;background:'+(hasMix?'#ede9fe':'#f3f4f6')+';color:'+(hasMix?'#6d28d9':'#9ca3af')+'">'+(hasMix?'mix':'standaard')+'</span></td></tr>';});
-  h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td>Totaal</td><td style="text-align:right">'+rows.reduce((s,r)=>s+r.dd,0)+'</td><td style="text-align:right">'+Math.round(tC)+'</td><td style="text-align:right">'+Math.round(tT)+'</td><td style="text-align:right">'+Math.round(tM)+'</td><td></td></tr></tbody></table><p class="note" style="margin-top:7px">Trajectlengte: '+trajLen+' gesprekken (Overleg-tab). Nieuwe patiënten/mnd = consultaties ÷ trajectlengte.</p></div>';
+  h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td>Totaal</td><td style="text-align:right">'+rows.reduce((s,r)=>s+r.dd,0)+'</td><td style="text-align:right">'+Math.round(tC)+'</td><td style="text-align:right">'+Math.round(tT)+'</td><td style="text-align:right">'+Math.round(tM)+'</td><td></td></tr></tbody></table><p class="note" style="margin-top:7px">Trajectlengte: '+tl+' gesprekken. Nieuwe patiënten/mnd = consultaties ÷ trajectlengte.</p></div>';
   document.getElementById('cap-content').innerHTML=h;
 }
 
@@ -1553,13 +1653,8 @@ function setPersonMinAfdracht(pid,v){
 function toggleSlot(pid,di,bi){if(!slots[pid])slots[pid]=mkDef();slots[pid][di][bi]=!slots[pid][di][bi];renderRooster();renderFin();renderCapp();renderMix();renderCap();onAnyChange();}
 function addPersoon(){const n=document.getElementById('nh-naam').value.trim();if(!n)return;const id=nextId('tp'),t=document.getElementById('nh-type').value||'zelfstandige';const pctStr=document.getElementById('nh-pct').value;const pct=pctStr===''||pctStr==null?20:+pctStr;team.push({id,naam:n,type:t,tarief:+document.getElementById('nh-tarief').value||80,cons:+document.getElementById('nh-cons').value||4,pct:pct,wkjr:+document.getElementById('nh-wkjr').value||46});slots[id]=mkDef();['nh-naam','nh-tarief','nh-cons','nh-pct','nh-wkjr'].forEach(x=>document.getElementById(x).value='');refreshAll();onAnyChange();}
 function delPersoon(id){team=team.filter(p=>p.id!==id);delete slots[id];delete personMandaten[id];delete personOpleiding[id];delete werkelijkeCons[id];delete personMix[id];delete personTechnisch[id];delete personMDO[id];delete personAdmin[id];delete personAvond[id];delete mdoBlokken[id];delete cappOptIn[id];delete personActPct[id];delete personMinAfdrachtPct[id];delete personAvondPct[id];delete finExpanded[id];refreshAll();onAnyChange();}
-function onOverleg(){renderOverleg();renderFin();renderRooster();renderCap();renderCapp();if(document.getElementById('tab-mix').classList.contains('active'))renderMix();onAnyChange();}
-function toggleOverlegOh(active){
-  overlegOhActief=!!active;
-  renderOverleg();renderFin();renderRooster();renderCap();renderCapp();
-  if(document.getElementById('tab-mix').classList.contains('active'))renderMix();
-  onAnyChange();
-}
+function onVerdoken(){verdokenKosten=getVerdokenFromDOM();renderVerdoken();renderFin();renderRooster();renderCap();renderCapp();if(document.getElementById('tab-mix').classList.contains('active'))renderMix();onAnyChange();}
+function setTrajLen(v){trajLen=Math.max(1,+v||DEFAULT_TRAJLEN);renderCap();onAnyChange();}
 function actN(id,v){const a=acts.find(x=>x.id===id);if(a){a.naam=v;onAnyChange();}}
 function actNom(id,v){const a=acts.find(x=>x.id===id);if(a){a.nomencl=v;onAnyChange();}}
 function actF(id,v){const a=acts.find(x=>x.id===id);if(a){a.familie=v;renderMix();onAnyChange();}}
@@ -1598,8 +1693,8 @@ function addMdoBooking(day,startHour){
 function delMdoBooking(id){mdoBookings=mdoBookings.filter(b=>b.id!==id);renderRooster();renderCapp();renderFin();onAnyChange();}
 
 function refreshFin(){const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('fin'))renderFin();if(a('kosten'))renderKosten();}
-function refreshAll(){renderTeam();renderRooster();renderFin();renderKosten();const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('overleg'))renderOverleg();if(a('capp'))renderCapp();if(a('mix'))renderMix();if(a('cap'))renderCap();}
-function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='overleg')renderOverleg();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();}
+function refreshAll(){renderTeam();renderRooster();renderFin();renderKosten();renderVerdoken();const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('capp'))renderCapp();if(a('mix'))renderMix();if(a('cap'))renderCap();}
+function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='verdoken')renderVerdoken();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();}
 
 document.getElementById('save-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('scenarios-modal').addEventListener('click',function(e){if(e.target===this)closeScenariosModal();});
