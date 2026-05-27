@@ -250,19 +250,6 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
   <button class="btn-sv danger" onclick="resetConfirm()">↺ Reset</button>
   <button class="btn-logout" id="btn-logout" onclick="doLogout()" style="display:none">⏻ Uitloggen</button>
 </div>
-<div id="disclaimer-banner" style="margin:10px 12px 0;padding:11px 13px;background:linear-gradient(90deg,#fffbeb 0%,#fef3c7 100%);border:1px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:8px;font-size:12px;color:#78350f;line-height:1.55;position:relative">
-  <button onclick="dismissDisclaimer()" title="Verberg deze melding (komt terug bij herladen)" style="position:absolute;top:6px;right:8px;background:none;border:none;color:#92400e;font-size:18px;line-height:1;cursor:pointer;padding:0;font-weight:700">×</button>
-  <strong style="display:block;margin-bottom:5px;color:#92400e;font-size:13px">⚠️ Belangrijk vóór je begint — lees dit even</strong>
-  Je gegevens worden <strong>lokaal op deze computer en in deze browser bewaard</strong>. Dat betekent:
-  <ul style="margin:5px 0 5px 20px;padding:0">
-    <li>Werk <strong>niet in een incognito-/privé-venster</strong> — alles verdwijnt zodra je dat venster sluit.</li>
-    <li>Wis je browsergegevens (cookies + sitedata)? Dan ben je je <strong>volledige planner kwijt</strong>.</li>
-    <li>Je collega's zien <strong>niet</strong> wat jij hebt ingevuld. Iedereen heeft zijn eigen lokale opslag.</li>
-    <li>Werk je op een andere computer of in een andere browser, dan begin je daar met een <strong>leeg dossier</strong>.</li>
-    <li>Wil je je werk veiligstellen of meenemen naar een andere PC? Gebruik <strong>💾 Export JSON</strong> bovenaan om een back-up te downloaden, en <strong>📂 Import</strong> om die elders terug in te laden.</li>
-  </ul>
-  <em style="font-size:11px;color:#92400e">Tip: bewaar regelmatig een scenario via 📚 Scenario's — dat is een lokale "snapshot" waar je later naar terug kan grijpen.</em>
-</div>
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('legende',this)">📖 Legende</button>
   <button class="tab-btn" onclick="showTab('fin',this)">📊 Financieel</button>
@@ -1953,7 +1940,6 @@ function recolorRuimte(id,v){const r=ruimtes.find(x=>x.id===id);if(!r)return;r.k
 function addPersoon(){const n=document.getElementById('nh-naam').value.trim();if(!n)return;const id=nextId('tp'),t=document.getElementById('nh-type').value||'zelfstandige';const pctStr=document.getElementById('nh-pct').value;const pct=pctStr===''||pctStr==null?(t==='bediende'?0:20):+pctStr;team.push({id,naam:n,type:t,tarief:+document.getElementById('nh-tarief').value||80,cons:+document.getElementById('nh-cons').value||4,pct:pct,wkjr:+document.getElementById('nh-wkjr').value||46,brutoJaar:0,ific:''});slots[id]=mkDef();['nh-naam','nh-tarief','nh-cons','nh-pct','nh-wkjr'].forEach(x=>document.getElementById(x).value='');refreshAll();onAnyChange();}
 function delPersoon(id){team=team.filter(p=>p.id!==id);delete slots[id];delete personMandaten[id];delete personOpleiding[id];delete werkelijkeCons[id];delete personMix[id];delete personTechnisch[id];delete personMDO[id];delete personAdmin[id];delete personAvond[id];delete mdoBlokken[id];delete cappOptIn[id];delete personActPct[id];delete personMinAfdrachtPct[id];delete personAvondPct[id];delete finExpanded[id];refreshAll();onAnyChange();}
 function onVerdoken(){verdokenKosten=getVerdokenFromDOM();renderVerdoken();renderFin();renderRooster();renderCap();renderCapp();if(document.getElementById('tab-mix').classList.contains('active'))renderMix();onAnyChange();}
-function dismissDisclaimer(){const b=document.getElementById('disclaimer-banner');if(b)b.style.display='none';}
 function setTrajLen(v){trajLen=Math.max(1,+v||DEFAULT_TRAJLEN);renderCap();onAnyChange();}
 function actN(id,v){const a=acts.find(x=>x.id===id);if(a){a.naam=v;onAnyChange();}}
 function actNom(id,v){const a=acts.find(x=>x.id===id);if(a){a.nomencl=v;onAnyChange();}}
