@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>thefallacymachine — tools</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f0f2f5;min-height:100vh;}
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:24px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;}
+.auth-card input:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.15);}
+.auth-card .btn-auth{width:100%;background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:#4338ca;}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+.auth-card .toggle a{color:#4f46e5;cursor:pointer;text-decoration:underline;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.hub{max-width:1100px;margin:0 auto;padding:24px;}
+.hub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px;flex-wrap:wrap;gap:12px;}
+.brand{font-size:22px;font-weight:700;color:#1f2937;letter-spacing:-.5px;}
+.brand .accent{color:#4f46e5;}
+.brand-sub{font-size:12px;color:#9ca3af;font-weight:500;display:block;margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.user-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;background:#ede9fe;color:#6d28d9;border-radius:18px;font-size:13px;font-weight:600;}
+.user-pill .dot{width:8px;height:8px;border-radius:50%;background:#10b981;}
+.btn-logout{background:#fff;border:1px solid #e5e7eb;color:#6b7280;padding:7px 14px;border-radius:8px;font-size:12.5px;cursor:pointer;font-weight:500;}
+.btn-logout:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+section{margin-bottom:36px;}
+section h2{font-size:18px;font-weight:700;color:#1f2937;margin-bottom:14px;letter-spacing:-.3px;}
+section h2 small{font-weight:400;color:#9ca3af;font-size:12.5px;margin-left:8px;}
+.tools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.tool-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.05);border:1px solid #f3f4f6;transition:all .15s;cursor:pointer;text-decoration:none;color:inherit;display:block;}
+.tool-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(79,70,229,.12);border-color:#c7d2fe;}
+.tool-card .icon{font-size:32px;margin-bottom:8px;display:block;}
+.tool-card .titel{font-size:16px;font-weight:700;color:#1f2937;margin-bottom:4px;}
+.tool-card .beschr{font-size:12.5px;color:#6b7280;line-height:1.5;}
+.no-tools{padding:30px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;text-align:center;color:#92400e;font-size:13px;line-height:1.5;}
+.admin-card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.admin-table{width:100%;border-collapse:collapse;font-size:13px;}
+.admin-table th{text-align:left;padding:10px 8px;border-bottom:2px solid #e5e7eb;color:#374151;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.admin-table th.center{text-align:center;}
+.admin-table td{padding:10px 8px;border-bottom:1px solid #f3f4f6;}
+.admin-table tr:hover td{background:#fafafa;}
+.admin-table .name-cell{font-weight:600;color:#1f2937;}
+.role-badge{display:inline-block;padding:2px 9px;border-radius:11px;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.role-badge.admin{background:#fef3c7;color:#92400e;}
+.role-badge.user{background:#e0e7ff;color:#3730a3;}
+.role-btn{background:none;border:1px solid #e5e7eb;color:#6b7280;padding:3px 10px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:5px;}
+.role-btn:hover{background:#f9fafb;border-color:#d1d5db;}
+.access-cell{text-align:center;}
+.access-toggle{width:36px;height:20px;border-radius:10px;background:#e5e7eb;position:relative;cursor:pointer;border:none;transition:background .15s;display:inline-block;vertical-align:middle;padding:0;}
+.access-toggle::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.access-toggle.on{background:#10b981;}.access-toggle.on::after{left:18px;}
+.info-banner{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:8px;padding:11px 14px;font-size:12.5px;line-height:1.5;margin-bottom:14px;}
+.loading{padding:30px;text-align:center;color:#9ca3af;font-size:13px;}
+.footer{text-align:center;color:#9ca3af;font-size:11.5px;margin-top:40px;padding:20px;}
+.footer a{color:inherit;}
+</style>
+</head>
+<body>
+
+<!-- ====== Login overlay ====== -->
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h1>📊 thefallacymachine</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="naam@praktijk.be" autocomplete="email">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" placeholder="••••••••" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Nog geen account? <a onclick="showSignup()">Registreer</a></div>
+    </div>
+    <div id="auth-form-signup" style="display:none">
+      <label>Naam (zoals te zien voor collega's)</label>
+      <input type="text" id="auth-name" placeholder="Voornaam Achternaam">
+      <label>Email</label>
+      <input type="email" id="auth-email-s" placeholder="naam@praktijk.be" autocomplete="email">
+      <label>Wachtwoord <small style="color:#9ca3af">(min. 6 tekens)</small></label>
+      <input type="password" id="auth-pw-s" placeholder="••••••••" autocomplete="new-password" onkeypress="if(event.key==='Enter')doSignup()">
+      <button class="btn-auth" id="auth-btn-signup" onclick="doSignup()">Account aanmaken</button>
+      <div class="toggle">Al een account? <a onclick="showLogin()">Inloggen</a></div>
+      <p style="margin-top:12px;font-size:11px;color:#9ca3af;text-align:center">Na registratie krijgt een beheerder een seintje om je toegang te geven tot de tools.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Hub ====== -->
+<div class="hub" id="hub" style="display:none">
+  <header class="hub-header">
+    <div>
+      <div class="brand">📊 the<span class="accent">fallacy</span>machine</div>
+      <span class="brand-sub">tools voor zorgpad-optimalisatie</span>
+    </div>
+    <div class="header-right">
+      <span class="user-pill"><span class="dot"></span><span id="user-name">—</span></span>
+      <button class="btn-logout" onclick="doLogout()">⏻ Uitloggen</button>
+    </div>
+  </header>
+
+  <section>
+    <h2>📂 Mijn tools <small>tools waar jij toegang voor hebt</small></h2>
+    <div id="tools-grid" class="tools-grid"><div class="loading">Laden…</div></div>
+  </section>
+
+  <section id="admin-section" style="display:none">
+    <h2>⚙️ Beheer <small>gebruikers &amp; toegangen (alleen voor admins)</small></h2>
+    <div class="info-banner">
+      <strong>Hoe werkt het?</strong> Nieuwe collega's maken zelf een account aan via "Registreer" op het loginscherm. Hun naam verschijnt dan hieronder, en jij kan per tool de toegang aan- of uitzetten. Mensen zonder toegang zien op deze pagina geen tools.
+    </div>
+    <div class="admin-card">
+      <div id="admin-users-table"><div class="loading">Gebruikers laden…</div></div>
+    </div>
+  </section>
+
+  <div class="footer">
+    Privé tools voor zorgpad-optimalisatie · data bewaard in eigen Supabase backend · <a href="https://supabase.com" target="_blank">powered by Supabase</a>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+let sb=null,currentUser=null,currentProfile=null;
+let allTools=[],allUsers=[],allAccess=[];
+
+function showAuthMsg(txt,type){const el=document.getElementById('auth-msg');if(!el)return;el.innerHTML=txt?'<div class="msg '+(type||'err')+'">'+txt+'</div>':'';}
+function showLogin(){document.getElementById('auth-form-login').style.display='';document.getElementById('auth-form-signup').style.display='none';document.getElementById('auth-sub').textContent='Log in om verder te gaan';showAuthMsg('');}
+function showSignup(){document.getElementById('auth-form-login').style.display='none';document.getElementById('auth-form-signup').style.display='';document.getElementById('auth-sub').textContent='Maak een account aan';showAuthMsg('');}
+
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';
+  showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+
+async function doSignup(){
+  const name=document.getElementById('auth-name').value.trim(),email=document.getElementById('auth-email-s').value.trim(),pw=document.getElementById('auth-pw-s').value;
+  if(!name||!email||!pw){showAuthMsg('Vul alle velden in.');return;}
+  if(pw.length<6){showAuthMsg('Wachtwoord moet minstens 6 tekens hebben.');return;}
+  const btn=document.getElementById('auth-btn-signup');btn.disabled=true;btn.textContent='Bezig…';
+  showAuthMsg('');
+  const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{display_name:name}}});
+  btn.disabled=false;btn.textContent='Account aanmaken';
+  if(error){showAuthMsg('Registratie mislukt: '+error.message);return;}
+  if(data.session){await afterLogin(data.session);}
+  else{showAuthMsg('Account aangemaakt — een beheerder moet je nog toegang geven tot tools voor je hier iets kan openen.','ok');setTimeout(showLogin,3000);}
+}
+
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();
+  currentUser=null;currentProfile=null;
+  document.getElementById('hub').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';
+  showLogin();
+}
+
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:prof}=await sb.from('profiles').select('id,display_name,role').eq('id',currentUser.id).maybeSingle();
+  currentProfile=prof||{display_name:currentUser.email,role:'user'};
+  document.getElementById('auth-overlay').style.display='none';
+  document.getElementById('hub').style.display='';
+  document.getElementById('user-name').textContent=currentProfile.display_name+(currentProfile.role==='admin'?' ⭐':'');
+  await renderMyTools();
+  if(currentProfile.role==='admin'){
+    document.getElementById('admin-section').style.display='';
+    await renderAdminPanel();
+  }
+}
+
+async function renderMyTools(){
+  const grid=document.getElementById('tools-grid');
+  const {data,error}=await sb.from('user_tool_access').select('tool_id,tools(id,naam,beschrijving,icoon,url)').eq('user_id',currentUser.id);
+  if(error){grid.innerHTML='<div class="no-tools">⚠ Fout bij laden: '+error.message+'</div>';return;}
+  const tools=(data||[]).map(d=>d.tools).filter(Boolean);
+  if(!tools.length){grid.innerHTML='<div class="no-tools">⏳ <strong>Je hebt nog geen toegang tot tools.</strong><br>Vraag een beheerder om je toegang te geven — je naam staat al in het systeem.</div>';return;}
+  grid.innerHTML=tools.map(t=>'<a class="tool-card" href="'+(t.url||'#')+'"><span class="icon">'+(t.icoon||'📊')+'</span><div class="titel">'+t.naam+'</div><div class="beschr">'+(t.beschrijving||'')+'</div></a>').join('');
+}
+
+async function renderAdminPanel(){
+  const [usersR,toolsR,accessR]=await Promise.all([
+    sb.from('profiles').select('id,display_name,role,created_at').order('created_at',{ascending:false}),
+    sb.from('tools').select('id,naam,icoon').order('naam'),
+    sb.from('user_tool_access').select('user_id,tool_id')
+  ]);
+  if(usersR.error){document.getElementById('admin-users-table').innerHTML='<div class="no-tools">Fout: '+usersR.error.message+'</div>';return;}
+  allUsers=usersR.data||[];allTools=toolsR.data||[];allAccess=accessR.data||[];
+  renderAdminTable();
+}
+
+function renderAdminTable(){
+  const wrap=document.getElementById('admin-users-table');
+  if(!allUsers.length){wrap.innerHTML='<div class="no-tools">Nog geen gebruikers.</div>';return;}
+  const accessSet=new Set(allAccess.map(a=>a.user_id+'|'+a.tool_id));
+  let h='<table class="admin-table"><thead><tr><th>Gebruiker</th><th>Rol</th>';
+  allTools.forEach(t=>h+='<th class="center">'+(t.icoon||'')+' '+t.naam+'</th>');
+  h+='</tr></thead><tbody>';
+  allUsers.forEach(u=>{
+    const isMe=u.id===currentUser.id;
+    h+='<tr>'
+      +'<td class="name-cell">'+(u.display_name||'(naamloos)')+(isMe?' <span style="color:#9ca3af;font-weight:400;font-size:11px">(jij)</span>':'')+'</td>'
+      +'<td><span class="role-badge '+u.role+'">'+u.role+'</span>'
+      +(!isMe?'<button class="role-btn" onclick="toggleRole(\''+u.id+'\')" title="Rol wisselen">↔</button>':'')
+      +'</td>';
+    allTools.forEach(t=>{
+      const has=accessSet.has(u.id+'|'+t.id);
+      h+='<td class="access-cell"><button class="access-toggle '+(has?'on':'')+'" onclick="toggleAccess(\''+u.id+'\',\''+t.id+'\','+has+')" title="'+(has?'Toegang intrekken':'Toegang geven')+'"></button></td>';
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  wrap.innerHTML=h;
+}
+
+async function toggleAccess(userId,toolId,currentlyHas){
+  if(currentlyHas){
+    const {error}=await sb.from('user_tool_access').delete().eq('user_id',userId).eq('tool_id',toolId);
+    if(error){alert('Fout: '+error.message);return;}
+  } else {
+    const {error}=await sb.from('user_tool_access').insert({user_id:userId,tool_id:toolId,granted_by:currentUser.id});
+    if(error){alert('Fout: '+error.message);return;}
+  }
+  await renderAdminPanel();
+}
+
+async function toggleRole(userId){
+  const u=allUsers.find(x=>x.id===userId);if(!u)return;
+  const newRole=u.role==='admin'?'user':'admin';
+  if(!confirm('Rol van '+u.display_name+' wijzigen naar "'+newRole+'"?'))return;
+  const {error}=await sb.from('profiles').update({role:newRole}).eq('id',userId);
+  if(error){alert('Fout: '+error.message+'\n(Mogelijk niet genoeg rechten — alleen admins kunnen rollen wijzigen.)');return;}
+  await renderAdminPanel();
+}
+
+(async function(){
+  try{
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  }catch(e){
+    document.getElementById('auth-overlay').style.display='flex';
+    showAuthMsg('Kan geen verbinding maken met de server. Probeer later opnieuw.','err');
+    return;
+  }
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await afterLogin(session);}
+  else{document.getElementById('auth-overlay').style.display='flex';}
+  sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){currentUser=null;currentProfile=null;}});
+})();
+</script>
+</body>
+</html>

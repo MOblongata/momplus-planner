@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOM+ Planner</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#1a1a1a;background:#f0f2f5;}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e5e7eb;padding:0 10px;overflow-x:auto;}
+.tab-btn{padding:10px 12px;border:none;background:none;cursor:pointer;font-size:12px;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;}
+.tab-btn.active{color:#4f46e5;border-bottom-color:#4f46e5;font-weight:700;}
+.tab-btn:hover:not(.active){color:#374151;}
+.tab-pane{display:none;padding:12px;}.tab-pane.active{display:block;}
+.card{background:#fff;border-radius:10px;padding:13px;margin-bottom:11px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.card-title{font-size:10.5px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;}
+.sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:11px;}
+.sum-card{background:#fff;border-radius:10px;padding:12px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.sum-label{font-size:10px;color:#9ca3af;margin-bottom:2px;}.sum-val{font-size:19px;font-weight:700;}
+.green{color:#059669;}.red{color:#dc2626;}.neutral{color:#1a1a1a;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:6px 8px;background:#f9fafb;color:#6b7280;font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #e5e7eb;}
+td{padding:5px 8px;border-bottom:1px solid #f3f4f6;vertical-align:middle;}tr:last-child td{border-bottom:none;}
+td input[type=number],td input[type=text]{width:100%;border:1px solid #e5e7eb;border-radius:5px;padding:3px 5px;font-size:12px;background:#fafafa;}
+td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
+.add-row{display:flex;gap:7px;margin-top:11px;align-items:flex-end;flex-wrap:wrap;}
+.add-row label{font-size:10.5px;color:#6b7280;display:block;margin-bottom:2px;}
+.add-row input,.add-row select{border:1px solid #e5e7eb;border-radius:6px;padding:5px 7px;font-size:12px;background:#fff;}
+.btn{padding:6px 12px;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;}
+.btn-primary{background:#4f46e5;color:#fff;}.btn-primary:hover{background:#4338ca;}
+.btn-sm{padding:3px 9px;font-size:11px;}
+.btn-del{background:none;border:none;cursor:pointer;color:#d1d5db;font-size:13px;padding:2px 5px;line-height:1;}.btn-del:hover{color:#dc2626;}
+.chart-wrap{position:relative;height:195px;}
+.note{font-size:11px;color:#9ca3af;margin-top:7px;line-height:1.4;}
+.limit-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap;}
+.limit-label{font-size:12.5px;font-weight:500;}
+.limit-input{width:54px;border:2px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:15px;font-weight:700;text-align:center;}
+.limit-input:focus{outline:none;border-color:#4f46e5;}
+.legend-row{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#6b7280;}
+.leg{display:flex;align-items:center;gap:4px;}.leg-sq{width:11px;height:11px;border-radius:3px;}
+.rooster-wrap{overflow-x:auto;}.rt{border-collapse:collapse;width:100%;table-layout:fixed;}.rt th,.rt td{padding:0;text-align:center;}
+.rt .day-th{font-size:11px;}.rt .blk-th{font-size:10px;color:#6b7280;font-weight:600;padding:2px 0;}
+.slot-sel{width:100%;height:26px;border:1px solid #e5e7eb;border-radius:4px;font-size:10.5px;font-weight:600;padding:0 2px;background:#f9fafb;color:#9ca3af;cursor:pointer;text-align:center;text-align-last:center;transition:all .12s;}
+.slot-sel.on{background:#dcfce7;color:#065f46;border-color:#86efac;}
+.slot-sel.room{color:#fff;border-color:transparent;}
+.slot-sel.conflict{outline:2px solid #ef4444;outline-offset:-1px;}
+.slot-sel:hover{filter:brightness(1.04);transform:scale(1.03);}
+.ruimte-card{display:flex;gap:8px;align-items:center;background:#f9fafb;padding:6px 9px;border-radius:7px;margin-bottom:5px;font-size:12px;border-left:4px solid #4f46e5;}
+.ruimte-card input[type=text]{flex:1;border:1px solid #e5e7eb;border-radius:5px;padding:3px 7px;font-size:12px;}
+.ruimte-card input[type=color]{width:28px;height:28px;border:1px solid #e5e7eb;border-radius:5px;padding:0;cursor:pointer;background:none;}
+.day-th{background:#f9fafb;font-size:10px;font-weight:700;color:#374151;padding:5px 0;border-left:2px solid #e5e7eb;}
+.blk-th{background:#f9fafb;font-size:9px;color:#9ca3af;padding:3px 0;font-weight:600;}.blk-th.fd{border-left:2px solid #e5e7eb;}
+.name-corner{min-width:118px;border-right:1px solid #e5e7eb;background:#f9fafb;}
+.nm-cell{text-align:left;padding:3px 6px;width:95px;max-width:95px;border-right:1px solid #e5e7eb;display:flex;align-items:center;gap:4px;}
+.nm-cell span{flex:1;font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.nm-cell .btn-del{flex-shrink:0;font-size:11px;padding:0 4px;}
+.name-corner{width:95px;}
+.slot-td{padding:1px;border-left:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;}.slot-td.fd{border-left:2px solid #e5e7eb;}
+.prow{border-bottom:1px solid #f9fafb;}.brow td{border-top:2px solid #e5e7eb;padding-top:3px;}
+.bureau-td{width:30px;padding:2px 1px;}.bureau-td.fd{border-left:2px solid #e5e7eb;}
+.bbadge{width:28px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin:auto;}
+.bok{background:#dcfce7;color:#16a34a;}.bwarn{background:#fef9c3;color:#ca8a04;}.bover{background:#fee2e2;color:#dc2626;}.bempty{background:#f9fafb;color:#d1d5db;}
+.color-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.param-row{display:flex;align-items:center;gap:9px;margin-bottom:8px;}
+.param-label{flex:1;font-size:12px;}.param-label small{color:#9ca3af;display:block;font-size:10px;}
+.leg-item{padding:8px 10px;margin-bottom:7px;background:#f9fafb;border-left:3px solid #4f46e5;border-radius:5px;font-size:12.5px;color:#374151;line-height:1.55;}
+.leg-item strong{color:#1f2937;}
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;}
+.auth-card input:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.15);}
+.auth-card .btn-auth{width:100%;background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:#4338ca;}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+.auth-card .toggle a{color:#4f46e5;cursor:pointer;text-decoration:underline;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.user-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:#ede9fe;color:#6d28d9;border-radius:16px;font-size:11.5px;font-weight:600;}
+.user-pill .dot{width:7px;height:7px;border-radius:50%;background:#10b981;}
+.btn-logout{background:none;border:1px solid #e5e7eb;color:#6b7280;padding:5px 10px;border-radius:7px;font-size:11.5px;cursor:pointer;}
+.btn-logout:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.sync-status.saving{color:#f59e0b;}.sync-status.saved{color:#059669;}.sync-status.error{color:#dc2626;}
+.param-input{width:60px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 7px;font-size:13px;font-weight:700;text-align:center;}
+.param-input:focus{outline:none;border-color:#4f46e5;}
+.param-unit{font-size:11px;color:#9ca3af;width:55px;}
+.oh-wrap{background:#f9fafb;border-radius:8px;padding:11px;margin-top:9px;}
+.oh-bar{height:26px;border-radius:6px;overflow:hidden;display:flex;margin:7px 0;}
+.oh-bill{background:#10b981;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+.oh-over{background:#f59e0b;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:11px;}
+.stat-card{background:#f9fafb;border-radius:8px;padding:10px;text-align:center;}
+.stat-label{font-size:10px;color:#9ca3af;margin-bottom:2px;}.stat-val{font-size:18px;font-weight:700;color:#374151;}
+.totaal-row{font-weight:600;text-align:right;margin-top:9px;font-size:12.5px;}
+.alert{border-radius:8px;padding:9px 12px;font-size:11.5px;line-height:1.5;margin-top:9px;}
+.alert-warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
+.alert-info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
+.netto-pill{display:inline-block;background:#f0fdf4;color:#15803d;border:1px solid #86efac;border-radius:5px;padding:1px 6px;font-size:11px;font-weight:600;}
+.warn-pill{display:inline-block;background:#fffbeb;color:#b45309;border:1px solid #fde68a;border-radius:5px;padding:1px 6px;font-size:10px;}
+.save-bar{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:8px;padding:7px 12px;background:#fff;border-bottom:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.06);flex-wrap:wrap;}
+.save-status{font-size:11px;color:#9ca3af;flex:1;min-width:100px;}
+.save-status.saved{color:#059669;font-weight:600;}
+.btn-sv{padding:5px 11px;border:1px solid #e5e7eb;border-radius:7px;cursor:pointer;font-size:11.5px;font-weight:500;background:#fff;color:#374151;}
+.btn-sv:hover{background:#f9fafb;}
+.btn-sv.primary{background:#4f46e5;color:#fff;border-color:#4f46e5;}.btn-sv.primary:hover{background:#4338ca;}
+.btn-sv.danger{color:#dc2626;border-color:#fca5a5;}.btn-sv.danger:hover{background:#fef2f2;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:12px;padding:18px;width:90%;max-width:520px;box-shadow:0 8px 32px rgba(0,0,0,.18);}
+.modal h3{font-size:14px;font-weight:700;margin-bottom:6px;}
+.modal p{font-size:11.5px;color:#6b7280;margin-bottom:10px;line-height:1.5;}
+.modal textarea{width:100%;height:140px;font-family:monospace;font-size:11px;border:1px solid #e5e7eb;border-radius:7px;padding:8px;resize:vertical;}
+.modal-btns{display:flex;gap:8px;margin-top:10px;justify-content:flex-end;}
+.capp-layer-bar{height:18px;border-radius:5px;overflow:hidden;display:flex;margin:6px 0;}
+.capp-l1{background:#7c3aed;}.capp-l2{background:#2563eb;}.capp-l3{background:#d97706;}.capp-l4{background:#c2410c;}.capp-res{background:#e5e7eb;}
+.capp-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px;margin-top:4px;}
+.capp-leg{display:flex;align-items:center;gap:4px;}
+.capp-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.type-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:none;}
+.type-z{background:#ede9fe;color:#6d28d9;}.type-b{background:#fee2e2;color:#b91c1c;}
+.mandaat-tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;margin:1px;}
+.mandaat-tag.on{background:#4f46e5;color:#fff;border-color:#4f46e5;}
+.capp-row-dim{opacity:.4;}
+.layer-cfg{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f3f4f6;}
+.layer-cfg:last-child{border-bottom:none;}
+.layer-cfg-label{font-size:12px;}.layer-cfg-label small{display:block;font-size:10px;color:#9ca3af;}
+.layer-cfg-input{width:56px;border:1px solid #e5e7eb;border-radius:6px;padding:3px 6px;font-size:13px;font-weight:700;text-align:center;}
+.layer-cfg-input:focus{outline:none;border-color:#4f46e5;}
+.layer-cfg-unit{font-size:11px;color:#9ca3af;width:28px;}
+.mix-person{background:#fff;border-radius:10px;padding:13px;margin-bottom:11px;box-shadow:0 1px 3px rgba(0,0,0,.07);}
+.mix-section{margin-top:10px;padding-top:8px;border-top:1px solid #f3f4f6;}
+.pct-warn{color:#dc2626;font-size:11px;font-weight:600;}
+.pct-ok{color:#059669;font-size:11px;font-weight:600;}
+.cpb-pill{display:inline-block;background:#ede9fe;color:#6d28d9;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;}
+.capp-badge{font-size:10px;background:#f3e8ff;color:#7c3aed;padding:1px 6px;border-radius:3px;white-space:nowrap;}
+.avond-row{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#fffbeb;border-radius:7px;font-size:11.5px;margin-top:8px;flex-wrap:wrap;}
+.cap-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:11px;}
+.mdo-ag{border-collapse:collapse;width:100%;font-size:11px;}
+.mdo-ag th{padding:5px 2px;background:#f9fafb;font-size:10px;font-weight:700;color:#374151;border-bottom:1px solid #e5e7eb;}
+.mdo-ag td{padding:0;border-right:1px solid #f3f4f6;border-bottom:1px solid #f3f4f6;height:18px;text-align:center;vertical-align:middle;}
+.mdo-ag .th-time{width:48px;color:#9ca3af;font-size:10px;}
+.mdo-ag .td-time{font-size:10px;color:#9ca3af;text-align:right;padding-right:6px;font-variant-numeric:tabular-nums;border-right:1px solid #e5e7eb;background:#fafafa;}
+.mdo-ag .cell-cons-ok{background:#f0fdf4;cursor:pointer;}
+.mdo-ag .cell-cons-ok:hover{background:#bbf7d0;}
+.mdo-ag .cell-cons-full{background:repeating-linear-gradient(45deg,#fee2e2,#fee2e2 4px,#fecaca 4px,#fecaca 8px);cursor:not-allowed;}
+.mdo-ag .cell-free{background:#fff;cursor:pointer;}
+.mdo-ag .cell-free:hover{background:#fef9c3;}
+.mdo-ag .cell-booked{background:#ddd6fe;color:#5b21b6;font-weight:700;cursor:pointer;}
+.mdo-ag .cell-booked:hover{background:#c4b5fd;}
+.mdo-ag .cell-booked-start{border-top:2px solid #7c3aed;}
+.mdo-ag .row-band-vm{background:#fafafa;}
+.mdo-ag .legend-mdo{display:flex;gap:10px;flex-wrap:wrap;font-size:10px;color:#6b7280;margin:7px 0;}
+.mdo-ag .legend-mdo .leg-sq{width:11px;height:11px;border-radius:2px;display:inline-block;margin-right:3px;vertical-align:middle;}
+.mdo-bk-card{background:#f9fafb;border-radius:8px;padding:10px;margin-bottom:8px;border-left:3px solid #7c3aed;}
+.mdo-bk-title{font-weight:700;color:#5b21b6;font-size:12px;display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.mdo-bk-pill{background:#ede9fe;color:#6d28d9;padding:1px 7px;border-radius:4px;font-size:10.5px;font-weight:600;}
+.mdo-bk-team{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+.mdo-bk-mem{font-size:10.5px;padding:2px 7px;border-radius:4px;background:#fff;border:1px solid #e5e7eb;color:#374151;}
+.mdo-bk-mem.absent{opacity:.55;font-style:italic;}
+.capp-toggle{font-size:10px;padding:2px 6px;border-radius:4px;cursor:pointer;font-weight:700;border:1px solid transparent;line-height:1.3;}
+.capp-toggle.on{background:#ede9fe;color:#6d28d9;border-color:#c4b5fd;}
+.capp-toggle.on:hover{background:#ddd6fe;}
+.capp-toggle.off{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb;}
+.capp-toggle.off:hover{background:#e5e7eb;}
+.be-indicator{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:12px;flex-wrap:wrap;}
+.be-indicator.ok{background:#f0fdf4;border:1px solid #86efac;color:#166534;}
+.be-indicator.bad{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;}
+.be-indicator.unknown{background:#f9fafb;border:1px solid #e5e7eb;color:#6b7280;}
+.be-indicator strong{font-size:13px;}
+.be-pill{display:inline-block;padding:1px 7px;border-radius:4px;font-size:11px;font-weight:700;}
+.be-pill.ok{background:#dcfce7;color:#15803d;}
+.be-pill.bad{background:#fee2e2;color:#b91c1c;}
+.fin-expand-btn{font-size:10px;padding:1px 6px;border-radius:4px;cursor:pointer;border:1px solid #e5e7eb;background:#fff;color:#4f46e5;font-weight:600;margin-left:6px;}
+.fin-expand-btn:hover{background:#f3f4f6;}
+.fin-expand-btn.on{background:#ede9fe;border-color:#c4b5fd;}
+.fin-sub-row td{background:#fafafa;padding:4px 8px;border-bottom:1px solid #f3f4f6;font-size:11px;}
+.fin-act-pill{font-size:9px;background:#ede9fe;color:#6d28d9;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:5px;}
+.lock-btn{font-size:11px;padding:1px 6px;border-radius:4px;border:1px solid #e5e7eb;cursor:pointer;background:#fff;font-weight:600;line-height:1.2;flex-shrink:0;}
+.lock-btn:hover{background:#f3f4f6;}
+.lock-btn.on{background:#fef3c7;color:#92400e;border-color:#fbbf24;}
+</style>
+</head>
+<body>
+
+<!-- ====== Login overlay ====== -->
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h1>📊 MOM+ Planner</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" placeholder="naam@momplus.be" autocomplete="email">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" placeholder="••••••••" autocomplete="current-password">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Nog geen account? <a onclick="showSignup()">Registreer</a></div>
+    </div>
+    <div id="auth-form-signup" style="display:none">
+      <label>Naam (zoals te zien voor collega's)</label>
+      <input type="text" id="auth-name" placeholder="Voornaam Achternaam">
+      <label>Email</label>
+      <input type="email" id="auth-email-s" placeholder="naam@momplus.be" autocomplete="email">
+      <label>Wachtwoord <small style="color:#9ca3af">(min. 6 tekens)</small></label>
+      <input type="password" id="auth-pw-s" placeholder="••••••••" autocomplete="new-password">
+      <button class="btn-auth" id="auth-btn-signup" onclick="doSignup()">Account aanmaken</button>
+      <div class="toggle">Al een account? <a onclick="showLogin()">Inloggen</a></div>
+      <p class="note" style="margin-top:12px;font-size:11px;color:#9ca3af;text-align:center">Na registratie krijgt een beheerder een seintje om je toegang te geven tot de planner.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="scenarios-modal">
+  <div class="modal" style="max-width:580px">
+    <h3>📚 Scenario's</h3>
+    <p>Bewaar de huidige configuratie als scenario (bv. "5 medewerkers", "Pilootfase", "Volledig team"). Je kan later schakelen tussen verschillende setups zonder van nul te beginnen.</p>
+    <div style="display:flex;gap:7px;align-items:center;margin-bottom:12px">
+      <input type="text" id="scenario-naam" placeholder="Naam voor dit scenario..." style="flex:1;border:1px solid #e5e7eb;border-radius:7px;padding:7px 9px;font-size:12.5px" onkeypress="if(event.key==='Enter')saveAsScenario()">
+      <button class="btn-sv primary" onclick="saveAsScenario()">+ Bewaar huidige</button>
+    </div>
+    <div style="font-size:10.5px;color:#9ca3af;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:6px">Opgeslagen scenario's</div>
+    <div id="scenarios-list" style="max-height:280px;overflow-y:auto;border:1px solid #f3f4f6;border-radius:7px;padding:6px"></div>
+    <div class="modal-btns">
+      <button class="btn-sv" onclick="closeScenariosModal()">Sluiten</button>
+    </div>
+  </div>
+</div>
+<div class="modal-bg" id="save-modal">
+  <div class="modal">
+    <h3>💾 Instellingen opslaan</h3>
+    <p>Kopieer onderstaande JSON en sla op als <strong>.json</strong> bestand. Laad terug via "📂 Laden".</p>
+    <textarea id="modal-json" readonly onclick="this.select()"></textarea>
+    <div class="modal-btns">
+      <button class="btn-sv primary" onclick="copyJSON()">📋 Kopieer alles</button>
+      <button class="btn-sv" onclick="closeModal()">Sluiten</button>
+    </div>
+    <p id="copy-confirm" style="text-align:right;font-size:11px;color:#059669;margin-top:6px;display:none">✓ Gekopieerd!</p>
+  </div>
+</div>
+<div class="save-bar">
+  <span class="user-pill" id="user-pill" style="display:none"><span class="dot"></span><span id="user-name">—</span></span>
+  <span class="save-status" id="save-status">Laden...</span>
+  <button class="btn-sv primary" onclick="openScenariosModal()">📚 Scenario's</button>
+  <button class="btn-sv" onclick="exportJSON()">💾 Export JSON</button>
+  <label class="btn-sv" style="cursor:pointer">📂 Import<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
+  <button class="btn-sv danger" onclick="resetConfirm()">↺ Reset</button>
+  <button class="btn-logout" id="btn-logout" onclick="doLogout()" style="display:none">⏻ Uitloggen</button>
+</div>
+<div id="disclaimer-banner" style="margin:10px 12px 0;padding:11px 13px;background:linear-gradient(90deg,#fffbeb 0%,#fef3c7 100%);border:1px solid #fcd34d;border-left:4px solid #f59e0b;border-radius:8px;font-size:12px;color:#78350f;line-height:1.55;position:relative">
+  <button onclick="dismissDisclaimer()" title="Verberg deze melding (komt terug bij herladen)" style="position:absolute;top:6px;right:8px;background:none;border:none;color:#92400e;font-size:18px;line-height:1;cursor:pointer;padding:0;font-weight:700">×</button>
+  <strong style="display:block;margin-bottom:5px;color:#92400e;font-size:13px">⚠️ Belangrijk vóór je begint — lees dit even</strong>
+  Je gegevens worden <strong>lokaal op deze computer en in deze browser bewaard</strong>. Dat betekent:
+  <ul style="margin:5px 0 5px 20px;padding:0">
+    <li>Werk <strong>niet in een incognito-/privé-venster</strong> — alles verdwijnt zodra je dat venster sluit.</li>
+    <li>Wis je browsergegevens (cookies + sitedata)? Dan ben je je <strong>volledige planner kwijt</strong>.</li>
+    <li>Je collega's zien <strong>niet</strong> wat jij hebt ingevuld. Iedereen heeft zijn eigen lokale opslag.</li>
+    <li>Werk je op een andere computer of in een andere browser, dan begin je daar met een <strong>leeg dossier</strong>.</li>
+    <li>Wil je je werk veiligstellen of meenemen naar een andere PC? Gebruik <strong>💾 Export JSON</strong> bovenaan om een back-up te downloaden, en <strong>📂 Import</strong> om die elders terug in te laden.</li>
+  </ul>
+  <em style="font-size:11px;color:#92400e">Tip: bewaar regelmatig een scenario via 📚 Scenario's — dat is een lokale "snapshot" waar je later naar terug kan grijpen.</em>
+</div>
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('legende',this)">📖 Legende</button>
+  <button class="tab-btn" onclick="showTab('fin',this)">📊 Financieel</button>
+  <button class="tab-btn" onclick="showTab('rooster',this)">📅 Rooster</button>
+  <button class="tab-btn" onclick="showTab('team',this)">👥 Team</button>
+  <button class="tab-btn" onclick="showTab('kosten',this)">💶 Kosten</button>
+  <button class="tab-btn" onclick="showTab('verdoken',this)">🫥 Verdoken kosten</button>
+  <button class="tab-btn" onclick="showTab('mdo',this)">🗣 MDO</button>
+  <button class="tab-btn" onclick="showTab('capp',this)">☕ Cappuccino</button>
+  <button class="tab-btn" onclick="showTab('mix',this)">📋 Mix</button>
+  <button class="tab-btn" onclick="showTab('cap',this)">📊 Capaciteit</button>
+</div>
+
+<div id="tab-fin" class="tab-pane">
+  <div class="sum-grid">
+    <div class="sum-card"><div class="sum-label">Maandkosten</div><div class="sum-val neutral" id="fk">—</div></div>
+    <div class="sum-card"><div class="sum-label">MOM+ afdracht/mnd</div><div class="sum-val neutral" id="fi">—</div></div>
+    <div class="sum-card"><div class="sum-label">Resultaat MOM+</div><div class="sum-val" id="fr">—</div></div>
+  </div>
+  <div id="fin-breakeven" class="be-indicator unknown" style="margin-bottom:11px"></div>
+  <div class="card">
+    <div class="card-title">Inkomen per teamlid</div>
+    <table><thead><tr><th>Naam</th><th style="width:215px">Afdracht (%  •  €/blok)</th><th style="width:48px;text-align:right">Blok/wk</th><th style="width:78px;text-align:right">MOM+/mnd</th><th style="width:78px;text-align:right">Netto consult</th><th style="width:115px;text-align:right">☕ pool</th><th style="width:88px;text-align:right">Totaal netto</th></tr></thead><tbody id="fin-tbody"></tbody></table>
+    <div id="fin-alerts"></div><p class="note" id="fin-note"></p>
+  </div>
+  <div class="card"><div class="card-title">Break-even grafiek</div><div class="chart-wrap"><canvas id="fin-chart"></canvas></div></div>
+</div>
+
+<div id="tab-rooster" class="tab-pane">
+  <div class="card">
+    <div class="card-title">🏠 Ruimtes / bureaus</div>
+    <p class="note" style="margin-bottom:8px">Voeg ruimtes toe waar consultaties kunnen plaatsvinden. Per teamlid en per dagdeel kan je dan in het rooster hieronder kiezen in welke ruimte ze werken. <strong>Geen ruimte ingevuld?</strong> Dan kies je gewoon ✓ (aanwezig) zonder specifieke ruimte.</p>
+    <div id="ruimtes-list"></div>
+    <div class="add-row" style="margin-top:6px">
+      <div><label>Naam ruimte</label><input type="text" id="nr-naam" placeholder="Bv. Bureau 1" style="width:180px"></div>
+      <div><label>Kleur</label><input type="color" id="nr-kleur" value="#4f46e5" style="width:50px;height:34px;padding:2px"></div>
+      <button class="btn btn-primary" onclick="addRuimte()">+ Toevoegen</button>
+    </div>
+    <p class="note" id="ruimtes-info" style="margin-top:6px"></p>
+  </div>
+  <div class="card">
+    <div class="limit-row">
+      <span class="limit-label">Max. gelijktijdig aanwezig:</span>
+      <input type="number" class="limit-input" id="bureau-limit" value="8" min="1" max="20" oninput="renderRooster();onAnyChange()">
+      <div class="legend-row">
+        <div class="leg"><div class="leg-sq" style="background:#dcfce7;border:1px solid #86efac"></div>OK</div>
+        <div class="leg"><div class="leg-sq" style="background:#fef9c3;border:1px solid #fde047"></div>≥75%</div>
+        <div class="leg"><div class="leg-sq" style="background:#fee2e2;border:1px solid #fca5a5"></div>Over</div>
+      </div>
+    </div>
+    <div class="rooster-wrap"><table class="rt" id="rt"></table></div>
+    <p class="note" id="rooster-note" style="margin-top:8px"></p>
+  </div>
+  <div class="card"><div class="card-title">Bureau samenvatting</div><div class="stat-grid" id="bstat"></div><div class="chart-wrap"><canvas id="rooster-chart"></canvas></div></div>
+</div>
+
+<div id="tab-mdo" class="tab-pane">
+  <div class="card">
+    <div class="card-title">🗣 MDO — optioneel</div>
+    <p class="note" style="margin-bottom:8px">MDO = multidisciplinair overleg (cliëntbespreking met meerdere zorgverleners). Deze tab is <strong>optioneel</strong>. Vul niets in als je geen MDO-werking hebt — dan blijft de planner gewoon werken zonder MDO-inkomsten of agenda-blokken.</p>
+  </div>
+  <div class="card">
+    <div class="card-title">🗣 MDO-blokken — configuratie</div>
+    <div class="param-row"><div class="param-label">Blokduur<small>één MDO-blok</small></div><input type="number" class="param-input" id="mdo-blokUren" value="2" min="0.5" max="8" step="0.5" oninput="setMdoConfig('blokUren',+this.value)"><span class="param-unit">uur</span></div>
+    <div class="param-row"><div class="param-label">MDO's per uur</div><input type="number" class="param-input" id="mdo-mdoPerUur" value="3" min="1" max="10" oninput="setMdoConfig('mdoPerUur',+this.value)"><span class="param-unit">/uur</span></div>
+    <div class="param-row"><div class="param-label">→ MDO's per blok<small>= blokduur × MDO's/uur</small></div><span id="mdo-sessies-info" style="font-weight:700;color:#7c3aed;flex:0">—</span><span class="param-unit"></span></div>
+    <div class="param-row"><div class="param-label">Tarief per MDO<small>uit Mix-tab (eerste MDO-act)</small></div><span id="mdo-tarief-info" style="font-weight:700;color:#7c3aed;flex:0">—</span><span class="param-unit"></span></div>
+    <div id="mdo-overzicht" style="background:#f9fafb;border-radius:8px;padding:11px;margin-top:9px;font-size:12px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🗣 MDO-agenda</div>
+    <p class="note" style="margin-bottom:8px">Klik op een tijdslot om een MDO-blok van <strong id="mdo-blkdur-info">2u</strong> in te plannen. Cellen tijdens consultatieblokken zonder vrij bureau zijn niet aanklikbaar. Onder de agenda zie je wie kan deelnemen.</p>
+    <div id="mdo-agenda-wrap" style="overflow-x:auto"></div>
+    <div id="mdo-bookings-list" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<div id="tab-team" class="tab-pane">
+  <div class="card">
+    <div class="card-title">Teamleden, tarieven &amp; planning</div>
+    <table><thead><tr><th>Naam</th><th style="width:56px">Type</th><th style="width:70px">Tarief €</th><th style="width:72px">Cons/blok</th><th style="width:72px">Afdracht %</th><th style="width:62px">Wk/jaar</th><th style="width:28px"></th></tr></thead><tbody id="team-tbody"></tbody></table>
+    <div class="add-row">
+      <div><label>Naam</label><input type="text" id="nh-naam" placeholder="Naam" style="width:130px"></div>
+      <div><label>Type</label><select id="nh-type"><option value="zelfstandige">Zelfstandige</option><option value="bediende">Bediende</option></select></div>
+      <div><label>Tarief (€)</label><input type="number" id="nh-tarief" placeholder="80" style="width:62px"></div>
+      <div><label>Cons/blok</label><input type="number" id="nh-cons" placeholder="4" style="width:60px"></div>
+      <div><label>Afdracht %</label><input type="number" id="nh-pct" placeholder="20" style="width:60px"></div>
+      <div><label>Wk/jaar</label><input type="number" id="nh-wkjr" placeholder="46" style="width:56px"></div>
+      <button class="btn btn-primary" onclick="addPersoon()">+ Toevoegen</button>
+    </div>
+    <div class="alert alert-info" style="margin-top:10px">Tarief/cons zijn standaardwaarden. Stel per persoon een gedetailleerde mix in via de <strong>📋 Mix</strong>-tab — die vervangt dan de standaard voor alle berekeningen.</div>
+  </div>
+</div>
+
+<div id="tab-kosten" class="tab-pane">
+  <div class="card">
+    <div class="card-title">🏠 Huisvesting — scenario</div>
+    <div style="display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap">
+      <button class="btn-sv" id="hv-btn-huur" onclick="setHvType('huur')">🔑 Huur</button>
+      <button class="btn-sv" id="hv-btn-aankoop" onclick="setHvType('aankoop')">🏦 Aankoop met lening</button>
+    </div>
+    <div id="hv-huur-section">
+      <div class="param-row"><div class="param-label">Maandhuur</div><input type="number" class="param-input" style="width:90px" id="hv-maandhuur" oninput="hvUpd('maandhuur',+this.value)"><span class="param-unit">€/mnd</span></div>
+    </div>
+    <div id="hv-aankoop-section" style="display:none">
+      <div class="param-row"><div class="param-label">Aankoopprijs<small>excl. notaris/registratie</small></div><input type="number" class="param-input" style="width:110px" id="hv-aankoopprijs" oninput="hvUpd('aankoopprijs',+this.value)"><span class="param-unit">€</span></div>
+      <div class="param-row"><div class="param-label">Eigen inbreng<small>cash, niet via lening</small></div><input type="number" class="param-input" style="width:110px" id="hv-eigenInbreng" oninput="hvUpd('eigenInbreng',+this.value)"><span class="param-unit">€</span></div>
+      <div class="param-row"><div class="param-label">Te lenen<small>= aankoop − eigen inbreng</small></div><span id="hv-telenen" style="font-weight:700;font-size:13px;color:#4f46e5;flex:0"></span><span class="param-unit"></span></div>
+      <div class="param-row"><div class="param-label">Looptijd lening</div><input type="number" class="param-input" id="hv-leningJaren" min="1" max="40" oninput="hvUpd('leningJaren',+this.value)"><span class="param-unit">jaar</span></div>
+      <div class="param-row"><div class="param-label">Rentevoet (jaarlijks)</div><input type="number" class="param-input" id="hv-rentevoet" min="0" max="20" step="0.05" oninput="hvUpd('rentevoet',+this.value)"><span class="param-unit">%</span></div>
+      <div class="param-row"><div class="param-label">Notaris/registratie<small>% op aankoop, eenmalige cash-kost (info)</small></div><input type="number" class="param-input" id="hv-registratie" min="0" max="30" step="0.1" oninput="hvUpd('registratie',+this.value)"><span class="param-unit">%</span></div>
+    </div>
+    <div id="hv-result" style="margin-top:11px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">🛠 Investeringen &amp; afschrijvingen</div>
+    <p class="note" style="margin-bottom:8px">Voeg per investering (verbouwing, EEG-toestel, meubels, IT, ...) een bedrag toe met eigen afschrijvingsperiode. De maandelijkse afschrijving verschijnt automatisch in de tabel hieronder.</p>
+    <table><thead><tr><th>Omschrijving</th><th style="width:110px">Bedrag €</th><th style="width:100px">Afschrijving</th><th style="width:110px;text-align:right">€/mnd</th><th style="width:30px"></th></tr></thead><tbody id="inv-tbody"></tbody></table>
+    <div class="add-row">
+      <div><label>Omschrijving</label><input type="text" id="ni-naam" placeholder="Bv. EEG-toestel" style="width:200px"></div>
+      <div><label>Bedrag (€)</label><input type="number" id="ni-bedrag" placeholder="25000" style="width:100px"></div>
+      <div><label>Periode (jaar)</label><input type="number" id="ni-jaren" placeholder="5" min="1" max="40" style="width:80px"></div>
+      <button class="btn btn-primary" onclick="addInvestering()">+ Toevoegen</button>
+    </div>
+    <div class="totaal-row" id="inv-totaal" style="margin-top:9px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">👤 Personeelskosten (bedienden)</div>
+    <p class="note" style="margin-bottom:8px">Hier beheer je het loon van bedienden in dienst. Vul de <strong>bruto loonkost per jaar</strong> in (incl. patronale lasten en alle werkgeverskosten). De maandkost en de koppeling met de Team-tab gebeurt automatisch. <strong>Bediende toevoegen hier = automatisch toegevoegd in Team</strong>, en omgekeerd.</p>
+    <table><thead><tr><th>Naam</th><th style="width:115px">IFIC-cat.<small>optioneel</small></th><th style="width:130px">Bruto/jaar €</th><th style="width:100px;text-align:right">€/mnd</th><th style="width:30px"></th></tr></thead><tbody id="personeel-tbody"></tbody></table>
+    <div class="add-row">
+      <div><label>Naam bediende</label><input type="text" id="np-naam" placeholder="Bv. Secretaresse" style="width:170px"></div>
+      <div><label>IFIC-categorie</label><input type="text" id="np-ific" placeholder="vb. 14" style="width:85px"></div>
+      <div><label>Bruto/jaar (€)</label><input type="number" id="np-bruto" placeholder="35000" min="0" style="width:110px"></div>
+      <button class="btn btn-primary" onclick="addBediende()">+ Toevoegen</button>
+    </div>
+    <div class="totaal-row" id="personeel-totaal" style="margin-top:9px"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Totale Maandelijkse werkingskosten</div>
+    <table><thead><tr><th>Omschrijving</th><th style="width:175px">Bedrag (mnd of jr)</th><th style="width:30px"></th></tr></thead><tbody id="kosten-tbody"></tbody></table>
+    <div class="add-row">
+      <div><label>Omschrijving</label><input type="text" id="nk-naam" placeholder="Nieuwe post" style="width:185px"></div>
+      <div><label>Bedrag (€)</label><input type="number" id="nk-bedrag" placeholder="0" style="width:88px"></div>
+      <div><label>Per</label><select id="nk-periode"><option value="mnd">maand</option><option value="jr">jaar</option></select></div>
+      <button class="btn btn-primary" onclick="addKost()">+ Toevoegen</button>
+    </div>
+    <div class="totaal-row" id="kosten-totaal"></div>
+    <div class="alert alert-warn" id="kosten-vpk-note" style="display:none"></div>
+  </div>
+</div>
+
+<div id="tab-verdoken" class="tab-pane">
+  <div class="card">
+    <div class="card-title">🫥 Verdoken kosten</div>
+    <p class="note" style="margin-bottom:10px">Niet alles wat je inplant levert ook écht geld op. Vul hier in welk percentage van de geplande consultaties verloren gaat. <strong>Standaard staat alles op 0%</strong> — dan rekent de planner met een ideale situatie. Verhoog de cijfers om realistischer in te schatten.</p>
+    <div class="param-row">
+      <div class="param-label">No-show patiënten<small>Patiënten die niet komen opdagen of last-minute annuleren</small></div>
+      <input type="number" class="param-input" id="p-noshow" value="0" min="0" max="100" step="0.5" oninput="onVerdoken()">
+      <span class="param-unit">%</span>
+    </div>
+    <div class="param-row">
+      <div class="param-label">Inefficiëntie<small>Tijd die geblokkeerd staat maar niet factureerbaar (gaten in agenda, administratie tijdens slot, technische problemen…)</small></div>
+      <input type="number" class="param-input" id="p-ineff" value="0" min="0" max="100" step="0.5" oninput="onVerdoken()">
+      <span class="param-unit">%</span>
+    </div>
+    <div class="param-row" style="border-top:1px solid #e5e7eb;padding-top:9px;margin-top:5px">
+      <div class="param-label" style="font-weight:700;color:#dc2626">Totaal verlies op bruto-inkomsten</div>
+      <span id="verdoken-totaal" style="font-weight:700;color:#dc2626;font-size:15px">0,0 %</span>
+    </div>
+    <p class="note" id="verdoken-uitleg" style="margin-top:10px;background:#f9fafb;padding:9px;border-radius:7px;line-height:1.5"></p>
+  </div>
+  <div class="card">
+    <div class="card-title">Voorbeeld-impact per teamlid</div>
+    <p class="note" style="margin-bottom:6px">Concreet hoeveel zou een teamlid verliezen door no-show + inefficiëntie:</p>
+    <table><thead><tr><th>Naam</th><th style="text-align:right">Bruto/mnd<small>zonder verlies</small></th><th style="text-align:right">Verlies/mnd</th><th style="text-align:right">Netto/mnd<small>na verlies</small></th></tr></thead><tbody id="verdoken-tbody"></tbody></table>
+  </div>
+</div>
+
+<div id="tab-legende" class="tab-pane active">
+  <div class="card">
+    <div class="card-title">📖 Wat doet elk tabblad?</div>
+    <p class="note" style="margin-bottom:10px">Korte uitleg in mensentaal. Je hoeft geen statistiek of techniek te kennen — gewoon zien wat waar staat en hoe je het kan aanpassen.</p>
+    <div class="leg-item"><strong>📊 Financieel</strong> — Het hoofdoverzicht. Je ziet bovenaan de maandkosten van het centrum, hoeveel geld er via de afdrachten binnenkomt, en of dat ruim genoeg is om de rekeningen te betalen ("Resultaat MOM+"). Onder elk teamlid vind je hoeveel zij persoonlijk overhouden, hoeveel ze afdragen, en hun stukje uit de cappuccino-pool. Per teamlid kan je de afdracht-% met een schuifbalk fijnregelen.</div>
+    <div class="leg-item"><strong>📅 Rooster</strong> — Een wekelijks rooster waar je per teamlid aanvinkt op welke dagdelen ze werken. Een dagdeel is een blok van een halve dag: voormiddag (VM, 8:00–13:30), namiddag (NM, 14:00–19:30) of avond (Av, 19:30–24:00). Onderaan staat hoeveel bureaus tegelijk bezet zijn — handig om te zien of je niet boven je beschikbare ruimtes komt.</div>
+    <div class="leg-item"><strong>👥 Team</strong> — De ledenlijst. Voor elk teamlid noteer je: tarief per consultatie (€), aantal consultaties per blok, afdracht-% (= het deel van het inkomen dat naar de MOM+ gaat), aantal werkweken per jaar en het type (Z = zelfstandige, B = bediende). Als je een teamlid een mix van soorten consultaties laat doen (Mix-tab), worden de paarse velden automatisch ingevuld.</div>
+    <div class="leg-item"><strong>💶 Kosten</strong> — Alle vaste maandkosten van het centrum: huisvesting (huur of aankoop), inrichting/verbouwing als afschrijving, en losse kostenposten (admin, schoonmaak, verzekeringen, …). Wat je hier intikt, telt rechtstreeks mee in "Resultaat MOM+".</div>
+    <div class="leg-item"><strong>🫥 Verdoken kosten</strong> — Hier zet je in dat niet elke geplande consultatie geld oplevert. <strong>No-show</strong> = patiënt komt niet opdagen → die € is weg. <strong>Inefficiëntie</strong> = tijd in de agenda die niet factureerbaar is (gaten, administratie tijdens een slot, technische problemen). Beide staan standaard op 0%; vul realistische cijfers in om je calculatie eerlijker te maken.</div>
+    <div class="leg-item"><strong>☕ Cappuccino</strong> — Het verdeelmodel voor het overschot van de MOM+ (alles wat overblijft na kosten, plus bepaalde "pool-bronnen" zoals MDO's). De pool wordt verdeeld in 5 lagen:
+      <ul style="margin:5px 0 5px 24px;font-size:11.5px;color:#4b5563">
+        <li><strong>L1 Espresso</strong> = aanwezigheid (wie veel dagdelen werkt, krijgt meer)</li>
+        <li><strong>L2 Melk</strong> = quota-bonus (wie zijn verwachte aantal consultaties haalt of overtreft)</li>
+        <li><strong>L3 Schuim</strong> = mandaten/extra rollen (coördinatie, supervisie, PhD …) × werkomvang</li>
+        <li><strong>L4 Kaneel</strong> = opleidingsniveau (bachelor, master, manama, eindverantwoordelijkheid …) × werkomvang</li>
+        <li><strong>L5 Reserve</strong> = blijft bij de MOM+ als spaarpot</li>
+      </ul>
+      Met de schuiven bovenaan bepaal je hoeveel % van de pool naar elke laag gaat. Je kan ook per teamlid een <strong>minimum afdracht</strong> instellen: zo voorkom je dat iemand via de pool meer terugkrijgt dan ze afdragen.
+    </div>
+    <div class="leg-item"><strong>📋 Mix</strong> — Per teamlid stel je in welke types consultaties ze doen en in welke verhouding (60% intake, 40% opvolging, …). Ook technische prestaties (zoals EEG) staan hier — die tellen <em>enkel overdag</em>, niet 's avonds. Onderaan kan je MDO's (multidisciplinaire besprekingen) per week ingeven, en administratieve handelingen. Voor avondblokken kan je een aparte afdracht-% instellen (leeg laten = zelfde als dag).</div>
+    <div class="leg-item"><strong>📊 Capaciteit</strong> — Een samenvattend overzicht: hoeveel consultaties/maand kan het team aan, hoeveel technische prestaties, hoeveel MDO's, en hoeveel nieuwe patiënten je gemiddeld kan opstarten per maand (op basis van een instelbare trajectlengte).</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🔑 Veelgebruikte begrippen</div>
+    <div class="leg-item"><strong>Afdracht-%</strong> — Het percentage van het bruto-inkomen dat een zelfstandig teamlid afdraagt aan de MOM+ (voor huisvesting, kosten, gedeelde diensten). Voorbeeld: 20% afdracht op €100 betekent €20 naar de MOM+, €80 voor het teamlid zelf.</div>
+    <div class="leg-item"><strong>Bruto vs. netto</strong> — Bruto = wat de patiënt betaalt. Netto = wat overblijft na de afdracht en de verdoken kosten (no-show, inefficiëntie).</div>
+    <div class="leg-item"><strong>MOM+-afdracht</strong> — De som van alle afdrachten van zelfstandigen. Dit is de inkomstenbron van de MOM+. Moet groot genoeg zijn om alle maandkosten te dekken (Resultaat MOM+ ≥ 0).</div>
+    <div class="leg-item"><strong>Cappuccino-pool</strong> — Een gemeenschappelijke spaarpot waar het MOM+-overschot in komt, samen met bepaalde inkomsten (MDO, administratie, …). Wordt nadien herverdeeld onder de teamleden volgens de laag-instellingen.</div>
+    <div class="leg-item"><strong>Break-even</strong> — Het gemiddelde afdracht-% dat nodig is om net de maandkosten te dekken. Als het huidige gemiddelde hoger is, maak je winst (overschot voor de pool). Als het lager is, zit je in het rood.</div>
+    <div class="leg-item"><strong>Dagdeel / blok</strong> — Een halve werkdag van 5u30 (overdag) of 4u30 (avond). 1 teamlid werkt typisch 4–8 dagdelen per week.</div>
+    <div class="leg-item"><strong>Routing van een act</strong> — Hoe het geld van een handeling (consult, MDO, administratie) verdeeld wordt: "→ afdracht" gaat normaal via de afdracht-%, "→ ☕ pool" gaat rechtstreeks naar de cappuccino-pool.</div>
+    <div class="leg-item"><strong>MDO</strong> — Multidisciplinair overleg: een cliënt-bespreking met meerdere zorgverleners (vb. arts + psycholoog + verpleegkundige). Genereert inkomsten die naar de pool gaan.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💡 Hoe gebruik je deze planner praktisch?</div>
+    <ol style="margin-left:18px;font-size:12.5px;color:#374151;line-height:1.7">
+      <li>Begin in <strong>Team</strong> — voeg al je teamleden toe.</li>
+      <li>Open <strong>Rooster</strong> — vink aan wie wanneer werkt.</li>
+      <li>Vul <strong>Kosten</strong> in — huisvesting, vaste lasten, investeringen.</li>
+      <li>Ga naar <strong>Mix</strong> — stel per teamlid de soorten consultaties en frequenties in.</li>
+      <li>Open <strong>Financieel</strong> — bekijk of het centrum break-even draait. Speel met de afdracht-% sliders om scenario's te testen.</li>
+      <li>Eventueel <strong>Cappuccino</strong> — als je een poolverdeling wil gebruiken.</li>
+      <li>Bovenaan kan je via <strong>📚 Scenario's</strong> een instelling onder een naam bewaren en later terughalen. Handig om varianten te vergelijken.</li>
+    </ol>
+  </div>
+</div>
+
+<div id="tab-capp" class="tab-pane">
+  <div class="card">
+    <div class="card-title">☕ Pool-instellingen</div>
+    <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12.5px">
+      <input type="checkbox" id="capp-kostendekking" onchange="toggleCappKostendekking(this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:#7c3aed;margin-top:2px;flex-shrink:0">
+      <span><strong>Pool gebruiken om MOM+-tekort te dekken</strong> — wanneer aan: als de MOM+-afdrachten de maandkosten niet dekken, gaan de pool-bronnen (MDO, Admin, Mix-acts → ☕, ...) eerst naar het dichten van het tekort. Pas het saldo dat overblijft wordt verdeeld in de pool.</span>
+    </label>
+    <p class="note" id="capp-kostendekking-status" style="margin-top:6px"></p>
+  </div>
+  <div class="card">
+    <div class="card-title">☕ Pool &amp; Laagverdeling</div>
+    <div id="capp-pool-breakdown" style="margin-bottom:12px"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+      <span style="font-size:11px;color:#9ca3af">Manuele override:</span>
+      <input type="number" id="capp-overschot-manual" placeholder="auto" style="width:90px;border:1px solid #e5e7eb;border-radius:6px;padding:4px 7px;font-size:13px" oninput="onCappChange()">
+    </div>
+    <div id="capp-lagen-sliders" style="margin-bottom:8px"></div>
+    <p class="note" id="capp-lagen-tot" style="margin-top:4px"></p>
+    <div id="capp-pool-bar" style="margin-top:12px"></div>
+  </div>
+  <div class="card"><div class="card-title">Mandaten &amp; Expertise (laag 3) <span id="mdt-totaal" style="float:right;font-size:11px;color:#9ca3af">—</span></div><table><thead><tr><th>Mandaat / credential</th><th style="width:200px">Punten (0–20)</th><th style="width:30px"></th></tr></thead><tbody id="mandaten-tbody"></tbody></table><div class="add-row"><div><label>Omschrijving</label><input type="text" id="nm-naam" placeholder="Nieuw mandaat" style="width:200px"></div><button class="btn btn-primary" onclick="addMandaat()">+ Toevoegen</button></div><p class="note" style="margin-top:6px">Elke slider 0–20 onafhankelijk. Het laagtotaal is gewoon de som van alle puntenwaarden — geen vast plafond.</p></div>
+  <div class="card"><div class="card-title">Opleidingen &amp; verantwoordelijkheid (laag 4) <span id="opl-totaal" style="float:right;font-size:11px;color:#9ca3af">—</span></div><table><thead><tr><th>Opleidingsniveau / rol</th><th style="width:200px">Punten (0–20)</th><th style="width:30px"></th></tr></thead><tbody id="opleidingen-tbody"></tbody></table><div class="add-row"><div><label>Omschrijving</label><input type="text" id="no-naam" placeholder="Bv. Postgraduaat, dr., ..." style="width:230px"></div><button class="btn btn-primary" onclick="addOpleiding()">+ Toevoegen</button></div><p class="note" style="margin-top:6px">Elke slider 0–20 onafhankelijk. Per persoon vink je hieronder de van toepassing zijnde niveaus aan.</p></div>
+  <div class="card"><div class="card-title">Invoer per persoon</div><table><thead><tr><th>Naam</th><th style="width:38px">Type</th><th style="width:70px;text-align:right">Verwacht<br><span style="font-weight:400;color:#9ca3af;font-size:9px">cons/mnd</span></th><th style="width:70px;text-align:right">Werkelijk<br><span style="font-weight:400;color:#9ca3af;font-size:9px">afgeleid</span></th><th style="width:140px">Ratio</th><th>Mandaten</th><th style="width:42px;text-align:right">Ptn L3</th><th>Opleidingen</th><th style="width:42px;text-align:right">Ptn L4</th></tr></thead><tbody id="capp-persoon-tbody"></tbody></table><p class="note" style="margin-top:6px">Bedienden (B) nemen niet deel. Ratio standaard op 1,0 (werkelijk = verwacht), begrensd op 1,25.</p></div>
+  <div class="card">
+    <div class="card-title">🛡 Minimum effectieve afdracht per persoon</div>
+    <p class="note" style="margin-bottom:8px">Stel per teamlid een minimum effectieve afdracht% in. Wanneer de cappuccino-payout zou zorgen dat de true afdracht onder dit minimum zakt, wordt de payout begrensd. Het uitgespaarde bedrag belandt in de MOM+-reserve. <strong>Leeg laten = geen limiet.</strong></p>
+    <div id="capp-min-tbody"></div>
+  </div>
+  <div class="card"><div class="card-title">Verdeling cappuccino-pool</div><div id="capp-result-content"></div></div>
+</div>
+
+<div id="tab-mix" class="tab-pane">
+  <div class="card">
+    <div class="card-title">📋 Actencatalogus — billable acts</div>
+    <table><thead><tr><th>Naam</th><th style="width:115px">Nomenclatuur<br><span style="font-weight:400;color:#9ca3af;font-size:9px">RIZIV-code</span></th><th style="width:100px">Familie</th><th style="width:70px">Tarief €</th><th style="width:145px">Duur (min)</th><th style="width:110px">Routing</th><th style="width:28px"></th></tr></thead><tbody id="acts-tbody"></tbody></table>
+    <div class="add-row">
+      <div><label>Naam</label><input type="text" id="na-naam" placeholder="Nieuwe act" style="width:150px"></div>
+      <div><label>Nomenclatuur</label><input type="text" id="na-nomencl" placeholder="optioneel" style="width:110px;font-family:monospace"></div>
+      <div><label>Familie</label><select id="na-familie"><option value="consultatie">💬 Consult</option><option value="technisch">🔬 Technisch</option><option value="mdo">👥 MDO</option><option value="groep">🫂 Groep</option><option value="toeslag">🌙 Toeslag</option><option value="admin">📝 Admin</option></select></div>
+      <div><label>Tarief (€)</label><input type="number" id="na-tarief" placeholder="50" style="width:68px"></div>
+      <div><label>Duur (min)</label><input type="number" id="na-duur" placeholder="60" style="width:65px"></div>
+      <button class="btn btn-primary" onclick="addAct()">+ Toevoegen</button>
+    </div>
+    <div class="alert alert-info" style="margin-top:8px;font-size:11px"><strong>Routing:</strong> "→ afdracht" = normale MOM+-inkomsten. "→ ☕ pool" = rechtstreeks naar cappuccinopool. "⚙ p.p." = instelbaar per persoon (bv. avondtoeslag).</div>
+  </div>
+  <div id="mix-personen"></div>
+</div>
+
+<div id="tab-cap" class="tab-pane">
+  <div id="cap-content"></div>
+</div>
+
+<script>
+const DAYS=['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag'],DS=['Ma','Di','Wo','Do','Vr'],BLK=['VM','NM','Av'];
+const COLORS=['#818cf8','#34d399','#f472b6','#fb923c','#60a5fa','#a78bfa','#4ade80','#facc15','#f87171','#38bdf8','#2dd4bf','#e879f9','#94a3b8'];
+const LS_KEY='mom-plus-planner-v4'; // fallback cache — primary = Supabase
+// ===== Supabase config =====
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='momplus-planner';
+let sb=null,currentUser=null,currentProfile=null,saveDebounceTimer=null;
+// Bloktijden (uren sinds middernacht): VM 8:00-13:30 (5u30), NM 14:00-19:30 (5u30), Av 19:30-24:00 (4u30)
+const BLOK_MIN_DAG=330,BLOK_MIN_AV=270;
+const BLOK_MIN=BLOK_MIN_DAG; // backward compat
+function blokMinForBi(bi){return bi===2?BLOK_MIN_AV:BLOK_MIN_DAG;}
+// Aandeel avondblok t.o.v. dagblok (qua duur) — gebruikt voor pro rata bij niet-mix flow
+function avondShare(){return BLOK_MIN_AV/BLOK_MIN_DAG;}
+let idCtr=300,finChart=null,rChart=null;
+function recomputeIdCtr(){
+  const num=s=>{if(typeof s!=='string')return 0;const m=s.match(/(\d+)$/);return m?+m[1]:0;};
+  let mx=300;
+  (team||[]).forEach(p=>{mx=Math.max(mx,num(p.id)+1);});
+  (kostenData||[]).forEach(k=>{mx=Math.max(mx,num(k.id)+1);});
+  (mandaten||[]).forEach(m=>{mx=Math.max(mx,num(m.id)+1);});
+  (acts||[]).forEach(a=>{mx=Math.max(mx,num(a.id)+1);});
+  (mdoBookings||[]).forEach(b=>{mx=Math.max(mx,num(b.id)+1);});
+  (investeringen||[]).forEach(i=>{mx=Math.max(mx,num(i.id)+1);});
+  (ruimtes||[]).forEach(r=>{mx=Math.max(mx,num(r.id)+1);});
+  idCtr=mx;
+}
+function idExists(id){return(team||[]).some(x=>x.id===id)||(kostenData||[]).some(x=>x.id===id)||(mandaten||[]).some(x=>x.id===id)||(acts||[]).some(x=>x.id===id)||(mdoBookings||[]).some(x=>x.id===id)||(investeringen||[]).some(x=>x.id===id)||(ruimtes||[]).some(x=>x.id===id);}
+function nextId(prefix){let id;do{id=prefix+(idCtr++);}while(idExists(id));return id;}
+
+// MOM+ start volledig blanco — geen default-data. Frank vult zelf aan via de Team / Kosten / Mix tabs.
+const DEFAULT_TEAM=[];
+const DEFAULT_KOSTEN=[];
+const DEFAULT_VERDOKEN={noShow:0,inefficientie:0};
+const DEFAULT_TRAJLEN=20; // gesprekken per traject — gebruikt in Capaciteit-tab voor 'nieuwe patiënten/mnd'
+const DEFAULT_HUISVESTING={type:'huur',maandhuur:0,aankoopprijs:0,eigenInbreng:0,registratie:12,leningJaren:25,rentevoet:3.5,verbouwingBedrag:0,verbouwingJaren:0};
+const DEFAULT_INVESTERINGEN=[];
+const DEFAULT_MANDATEN=[];
+const DEFAULT_OPLEIDINGEN=[];
+const DEFAULT_CAPP={pctL1:30,pctL2:30,pctL3:20,pctL4:16,pctL5:4,overschotManual:''};
+const CAPP_LAAG_KEYS=['pctL1','pctL2','pctL3','pctL4','pctL5'];
+const DEFAULT_MDO_CONFIG={blokUren:2,mdoPerUur:3};
+const DEFAULT_ACTS=[];
+
+let team=DEFAULT_TEAM.map(p=>({...p}));
+let slots={};
+function mkDef(){return[[true,true,false],[true,true,false],[true,false,false],[true,true,false],[true,false,false]];}
+team.forEach(p=>slots[p.id]=mkDef());
+let kostenData=DEFAULT_KOSTEN.map(k=>({...k}));
+let huisvesting={...DEFAULT_HUISVESTING};
+let investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));
+let mandaten=DEFAULT_MANDATEN.map(m=>({...m}));
+let opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));
+let personMandaten={},personOpleiding={},werkelijkeCons={};
+let cappData={...DEFAULT_CAPP};
+let mdoConfig={...DEFAULT_MDO_CONFIG};
+let mdoBookings=[]; // [{id, day:0-4, startHour:float (uren sinds middernacht), durationHours:float}]
+let ruimtes=[]; // [{id, naam, kleur}] — beschikbare ruimtes/bureaus om consultaties in te plannen
+let mdoBlokken={}; // {pid: aantalMDOsPerWeek} — aantal MDO-sessies/cliëntbesprekingen per week per teamlid
+let cappOptIn={}; // {pid: true/false} — deelname aan cappuccinopool. Default true voor zelfstandigen.
+let personMinAfdrachtPct={}; // {pid: pct|''} — minimum effectieve afdracht% (cap op pool-payout). Leeg = geen limit.
+let personAvondPct={};       // {pid: pct|''} — aparte afdracht% voor avondblokken. Leeg = zelfde als dag-pct.
+let verdokenKosten={...DEFAULT_VERDOKEN}; // {noShow, inefficientie} — beide in % (0-100). Werkt multiplicatief op alle bruto-inkomsten.
+let trajLen=DEFAULT_TRAJLEN; // gesprekken per traject (instelbaar in Capaciteit-tab)
+let cappKostendekking=false; // wanneer aan: pool-bronnen dekken eerst MOM+-tekort vooraleer pool gevormd wordt
+let personActPct={}; // {pid:{actId:pct}} — per persoon override-afdracht% per specifieke act
+let finExpanded={}; // {pid:true} — UI-state: welke teamleden hebben hun sub-rijen open
+let acts=DEFAULT_ACTS.map(a=>({...a}));
+let personMix={};        // {pid:[{actId,pct}]}
+let personTechnisch={};  // {pid:{actId:count}}
+let personMDO={};        // {pid:{actId:perWeek}}
+let personAdmin={};      // {pid:{actId:perMaand}}
+let personAvond={};      // {pid:{actId:routing}}
+
+function openModal(){document.getElementById('save-modal').classList.add('open');}
+function closeModal(){document.getElementById('save-modal').classList.remove('open');document.getElementById('copy-confirm').style.display='none';}
+
+// Scenario's: primair via Supabase (gedeeld per tool), fallback naar localStorage
+const SCENARIOS_KEY='mom-plus-planner-scenarios-v1';
+let scenariosCache=[];
+function loadScenariosLS(){try{const r=localStorage.getItem(SCENARIOS_KEY);return r?JSON.parse(r):[];}catch(e){return[];}}
+function saveScenariosLS(arr){try{localStorage.setItem(SCENARIOS_KEY,JSON.stringify(arr));}catch(e){alert('Kan scenario niet opslaan: '+e.message);}}
+async function refreshScenariosCache(){
+  if(!sb||!currentUser){scenariosCache=loadScenariosLS().map(s=>({...s,created_by_name:'(lokaal)'}));return;}
+  try{
+    const {data,error}=await sb.from('scenarios').select('id,naam,state,created_by,created_at,updated_at').eq('tool_id',TOOL_ID).order('updated_at',{ascending:false});
+    if(error)throw error;
+    const userIds=[...new Set((data||[]).map(s=>s.created_by).filter(Boolean))];
+    let nameMap={};
+    if(userIds.length){
+      const {data:profs}=await sb.from('profiles').select('id,display_name').in('id',userIds);
+      if(profs)profs.forEach(p=>nameMap[p.id]=p.display_name);
+    }
+    scenariosCache=(data||[]).map(s=>({id:s.id,naam:s.naam,state:s.state,savedAt:s.updated_at,created_by:s.created_by,created_by_name:nameMap[s.created_by]||'onbekend'}));
+  }catch(e){console.warn('refreshScenariosCache fail',e);scenariosCache=loadScenariosLS().map(s=>({...s,created_by_name:'(lokaal)'}));}
+}
+async function openScenariosModal(){
+  document.getElementById('scenarios-modal').classList.add('open');
+  await refreshScenariosCache();
+  renderScenariosList();
+  setTimeout(()=>{const n=document.getElementById('scenario-naam');if(n)n.focus();},50);
+}
+function closeScenariosModal(){document.getElementById('scenarios-modal').classList.remove('open');}
+async function saveAsScenario(){
+  const nEl=document.getElementById('scenario-naam'),naam=(nEl?.value||'').trim();
+  if(!naam){alert('Geef het scenario een naam.');return;}
+  if(sb&&currentUser){
+    const dup=scenariosCache.find(s=>s.naam.toLowerCase()===naam.toLowerCase());
+    if(dup){
+      if(!confirm('Scenario "'+naam+'" bestaat al. Overschrijven?'))return;
+      const {error}=await sb.from('scenarios').update({state:buildState(),updated_at:new Date().toISOString()}).eq('id',dup.id);
+      if(error){alert('Fout bij opslaan: '+error.message);return;}
+    } else {
+      const {error}=await sb.from('scenarios').insert({tool_id:TOOL_ID,naam,state:buildState(),created_by:currentUser.id});
+      if(error){alert('Fout bij opslaan: '+error.message);return;}
+    }
+    await refreshScenariosCache();
+  } else {
+    const arr=loadScenariosLS();
+    const dup=arr.find(s=>s.naam.toLowerCase()===naam.toLowerCase());
+    if(dup){if(!confirm('Scenario "'+naam+'" bestaat al. Overschrijven?'))return;dup.savedAt=new Date().toISOString();dup.state=buildState();}
+    else{arr.push({id:'sc'+Date.now(),naam,savedAt:new Date().toISOString(),state:buildState()});}
+    saveScenariosLS(arr);
+    scenariosCache=arr.map(s=>({...s,created_by_name:'(lokaal)'}));
+  }
+  if(nEl)nEl.value='';
+  renderScenariosList();
+  setStatus('✓ Scenario "'+naam+'" opgeslagen','saved');
+}
+async function loadScenarioFromLS(id){
+  const sc=scenariosCache.find(s=>String(s.id)===String(id));
+  if(!sc)return;
+  if(!confirm('Scenario "'+sc.naam+'" laden? Huidige instellingen worden vervangen (maar kan je nog opslaan als nieuw scenario).'))return;
+  applyState(sc.state);refreshAll();
+  if(sb&&currentUser){cloudSaveDebounced();}else{lsAutoSave();}
+  setStatus('✓ Scenario "'+sc.naam+'" geladen','saved');closeScenariosModal();
+}
+async function deleteScenario(id){
+  const sc=scenariosCache.find(s=>String(s.id)===String(id));
+  if(!sc)return;
+  if(!confirm('Scenario "'+sc.naam+'" definitief verwijderen?'))return;
+  if(sb&&currentUser){
+    const {error}=await sb.from('scenarios').delete().eq('id',id);
+    if(error){alert('Fout bij verwijderen: '+error.message+'\n(Mogelijk kan je enkel je eigen scenario\'s verwijderen.)');return;}
+    await refreshScenariosCache();
+  } else {
+    saveScenariosLS(loadScenariosLS().filter(s=>String(s.id)!==String(id)));
+    scenariosCache=scenariosCache.filter(s=>String(s.id)!==String(id));
+  }
+  renderScenariosList();
+}
+function renderScenariosList(){
+  const el=document.getElementById('scenarios-list');
+  if(!el)return;
+  if(!scenariosCache.length){el.innerHTML='<p class="note" style="padding:8px;text-align:center">Nog geen scenario\'s opgeslagen. Geef hierboven een naam en klik "+ Bewaar huidige".</p>';return;}
+  const sorted=[...scenariosCache].sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+  const myId=currentUser?.id;
+  el.innerHTML=sorted.map(s=>{
+    const d=new Date(s.savedAt);
+    const dStr=d.toLocaleDateString('nl-BE')+' '+d.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
+    const teamN=(s.state?.team||[]).length;
+    const isOwn=s.created_by&&s.created_by===myId;
+    const auteur=s.created_by_name?'<span style="font-size:10px;color:'+(isOwn?'#059669':'#9ca3af')+'">'+(isOwn?'👤 jij':'👥 '+s.created_by_name)+'</span>':'';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid #f3f4f6">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.naam+'</div>'
+      +'<div style="font-size:10.5px;color:#9ca3af">'+teamN+' teamleden • '+dStr+' '+auteur+'</div></div>'
+      +'<button class="btn-sv primary" style="padding:4px 10px" onclick="loadScenarioFromLS(\''+s.id+'\')">Laden</button>'
+      +'<button class="btn-del" onclick="deleteScenario(\''+s.id+'\')" title="Verwijderen">×</button>'
+      +'</div>';
+  }).join('');
+}
+function copyJSON(){const ta=document.getElementById('modal-json');ta.select();try{document.execCommand('copy');}catch(e){navigator.clipboard&&navigator.clipboard.writeText(ta.value);}document.getElementById('copy-confirm').style.display='block';}
+
+function getVerdokenFromDOM(){const ns=+(document.getElementById('p-noshow')?.value)||0,ie=+(document.getElementById('p-ineff')?.value)||0;return{noShow:Math.max(0,Math.min(100,ns)),inefficientie:Math.max(0,Math.min(100,ie))};}
+function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
+function buildState(){return{version:8,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),verdokenKosten:getVerdokenFromDOM(),trajLen:+trajLen||DEFAULT_TRAJLEN,bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes))};}
+function applyState(st){
+  team=(st.team||DEFAULT_TEAM.map(p=>({...p}))).map(p=>({type:'zelfstandige',brutoJaar:0,ific:'',...p}));
+  slots=st.slots||{};team.forEach(p=>{if(!slots[p.id])slots[p.id]=mkDef();});
+  kostenData=(st.kostenData||DEFAULT_KOSTEN.map(k=>({...k}))).map(k=>({periode:'mnd',...k}));
+  if(st.huisvesting){huisvesting={...DEFAULT_HUISVESTING,...st.huisvesting};}
+  else{
+    // migratie uit oude state: k1=huur, k2=afschrijving renovatie
+    const k1=kostenData.find(k=>k.id==='k1'||/huur.*pand/i.test(k.naam||'')),k2=kostenData.find(k=>k.id==='k2'||/afschrijv.*(renov|verbouw|inricht)/i.test(k.naam||''));
+    huisvesting={...DEFAULT_HUISVESTING};
+    if(k1){huisvesting.maandhuur=Math.round(maandBedrag(k1));kostenData=kostenData.filter(k=>k!==k1);}
+    if(k2){const mnd=maandBedrag(k2);huisvesting.verbouwingBedrag=Math.round(mnd*12*10);huisvesting.verbouwingJaren=10;kostenData=kostenData.filter(k=>k!==k2);}
+  }
+  // Investeringen — migratie van oude huisvesting.verbouwingBedrag/Jaren naar nieuwe lijst
+  if(Array.isArray(st.investeringen)){investeringen=JSON.parse(JSON.stringify(st.investeringen));}
+  else if((+huisvesting.verbouwingBedrag||0)>0&&(+huisvesting.verbouwingJaren||0)>0){
+    investeringen=[{id:'inv-migr-'+Date.now(),naam:'Verbouwing/inrichting pand',bedrag:+huisvesting.verbouwingBedrag,jaren:+huisvesting.verbouwingJaren}];
+  }else{investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));}
+  // Reset oude velden om dubbeltelling te voorkomen
+  huisvesting.verbouwingBedrag=0;huisvesting.verbouwingJaren=0;
+  mandaten=st.mandaten||DEFAULT_MANDATEN.map(m=>({...m}));
+  opleidingen=st.opleidingen||DEFAULT_OPLEIDINGEN.map(o=>({...o}));
+  personMandaten=st.personMandaten||{};personOpleiding=st.personOpleiding||{};werkelijkeCons=st.werkelijkeCons||{};
+  // Migratie: oude pctL4cap (cap-percentage) → omzetten naar absolute pctL4 + pctL5 (reserve)
+  const oldCp=st.cappData||{};
+  if(oldCp.pctL4cap!==undefined&&oldCp.pctL4===undefined){
+    const a=+oldCp.pctL1||30,b=+oldCp.pctL2||30,c=+oldCp.pctL3||20,cap=+oldCp.pctL4cap||20;
+    const d=cap*(a+b+c)/100,e=Math.max(0,100-a-b-c-d);
+    cappData={pctL1:a,pctL2:b,pctL3:c,pctL4:d,pctL5:e,overschotManual:oldCp.overschotManual||''};
+  } else {
+    cappData={...DEFAULT_CAPP,...oldCp};
+  }
+  // Normaliseer: lagen samen = 100%
+  const totL=CAPP_LAAG_KEYS.reduce((s,k)=>s+(+cappData[k]||0),0);
+  if(totL>0.01&&Math.abs(totL-100)>0.1){const f=100/totL;CAPP_LAAG_KEYS.forEach(k=>cappData[k]=(+cappData[k]||0)*f);}
+  acts=(st.acts||DEFAULT_ACTS.map(a=>({...a}))).map(a=>({routing:'afdracht',nomencl:'',...a}));
+  personMix=st.personMix||{};personTechnisch=st.personTechnisch||{};
+  personMDO=st.personMDO||{};personAdmin=st.personAdmin||{};personAvond=st.personAvond||{};
+  mdoConfig={...DEFAULT_MDO_CONFIG,...(st.mdoConfig||{})};
+  mdoBookings=Array.isArray(st.mdoBookings)?JSON.parse(JSON.stringify(st.mdoBookings)):[];
+  mdoBlokken=st.mdoBlokken||{};
+  cappOptIn=st.cappOptIn||{};
+  cappKostendekking=st.cappKostendekking!==undefined?!!st.cappKostendekking:false;
+  cappLockedLagen=Array.isArray(st.cappLockedLagen)?[...st.cappLockedLagen]:[];
+  personActPct=st.personActPct||{};
+  personMinAfdrachtPct=st.personMinAfdrachtPct||{};
+  personAvondPct=st.personAvondPct||{};
+  ruimtes=Array.isArray(st.ruimtes)?JSON.parse(JSON.stringify(st.ruimtes)):[];
+  // Migratie: oude slots[pid][di][bi] kon true/false zijn. Nu mag het null / 'X' (aanwezig zonder ruimte) / ruimteId (string).
+  // De render-code interpreteert truthy als aanwezig, dus oude true blijft werken. We laten conversie achterwege om back-compat te bewaren.
+  // Verdoken kosten (no-show + inefficiëntie). Migratie: oude state had 'overleg' + 'overlegOhActief' — die gooien we weg, beginnen op 0%.
+  verdokenKosten={...DEFAULT_VERDOKEN,...(st.verdokenKosten||{})};
+  const elNs=document.getElementById('p-noshow');if(elNs)elNs.value=verdokenKosten.noShow;
+  const elIe=document.getElementById('p-ineff');if(elIe)elIe.value=verdokenKosten.inefficientie;
+  trajLen=+st.trajLen||DEFAULT_TRAJLEN;
+  const elTl=document.getElementById('p-trajlen-cap');if(elTl)elTl.value=trajLen;
+  if(st.bureauLimit){const bl=document.getElementById('bureau-limit');if(bl)bl.value=st.bureauLimit;}
+  const sc=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
+  sc('capp-overschot-manual',cappData.overschotManual||'');
+  recomputeIdCtr();
+}
+function lsAutoSave(){try{localStorage.setItem(LS_KEY,JSON.stringify(buildState()));}catch(e){}}
+function lsLoad(){try{const r=localStorage.getItem(LS_KEY);if(r){applyState(JSON.parse(r));return true;}}catch(e){}return false;}
+// ===== Cloud-sync (Supabase) =====
+async function cloudLoad(){
+  if(!sb||!currentUser)return false;
+  try{
+    const {data,error}=await sb.from('tool_states').select('state').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+    if(error){console.warn('cloudLoad error',error);return false;}
+    if(data&&data.state){applyState(data.state);return true;}
+  }catch(e){console.warn('cloudLoad fail',e);}
+  return false;
+}
+async function cloudSave(){
+  if(!sb||!currentUser)return;
+  setSyncStatus('saving','💾 Bewaren…');
+  try{
+    const state=buildState();
+    const {error}=await sb.from('tool_states').upsert({user_id:currentUser.id,tool_id:TOOL_ID,state,updated_at:new Date().toISOString()},{onConflict:'user_id,tool_id'});
+    if(error){setSyncStatus('error','⚠ Niet bewaard: '+error.message);console.warn(error);return;}
+    setSyncStatus('saved','✓ Bewaard in cloud');
+    try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e){}
+  }catch(e){setSyncStatus('error','⚠ Sync mislukt');console.warn(e);}
+}
+function cloudSaveDebounced(){if(saveDebounceTimer)clearTimeout(saveDebounceTimer);saveDebounceTimer=setTimeout(cloudSave,600);}
+function setSyncStatus(cls,txt){const el=document.getElementById('save-status');if(el){el.className='save-status sync-status '+cls;el.textContent=txt;}}
+function setStatus(t,c){const el=document.getElementById('save-status');if(el){el.textContent=t;el.className='save-status'+(c?' '+c:'');}}
+function onAnyChange(){lsAutoSave();if(sb&&currentUser){cloudSaveDebounced();}else{setStatus('✓ Lokaal opgeslagen','saved');}}
+function exportJSON(){document.getElementById('modal-json').value=JSON.stringify(buildState(),null,2);openModal();}
+function importJSON(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{applyState(JSON.parse(e.target.result));refreshAll();lsAutoSave();setStatus('✓ Geladen','saved');}catch(err){alert('Fout: '+err.message);}};r.readAsText(f);inp.value='';}
+function resetConfirm(){
+  if(!confirm('Alles resetten naar standaard?'))return;
+  team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());
+  kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};
+  investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));
+  mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));
+  personMandaten={};personOpleiding={};werkelijkeCons={};
+  cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};
+  cappOptIn={};cappKostendekking=false;cappLockedLagen=[];
+  personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};ruimtes=[];
+  acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};
+  verdokenKosten={...DEFAULT_VERDOKEN};trajLen=DEFAULT_TRAJLEN;
+  const elNs=document.getElementById('p-noshow');if(elNs)elNs.value=verdokenKosten.noShow;
+  const elIe=document.getElementById('p-ineff');if(elIe)elIe.value=verdokenKosten.inefficientie;
+  const elTl=document.getElementById('p-trajlen-cap');if(elTl)elTl.value=trajLen;
+  const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;
+  const om=document.getElementById('capp-overschot-manual');if(om)om.value='';
+  refreshAll();lsAutoSave();setStatus('↺ Reset','saved');
+}
+
+function clr(i){return COLORS[i%COLORS.length];}
+function fmt(n){return'€\u202F'+Math.round(n).toLocaleString('nl-BE');}
+// ohPct() = totale verlies-fractie op bruto-inkomsten (0..1). Multiplicatief gecombineerd: (1-ohPct) = (1-noShow/100)*(1-inefficientie/100)
+function ohPct(){
+  const ns=document.getElementById('p-noshow')?+(document.getElementById('p-noshow').value)||0:(+verdokenKosten.noShow||0);
+  const ie=document.getElementById('p-ineff')?+(document.getElementById('p-ineff').value)||0:(+verdokenKosten.inefficientie||0);
+  const keep=(1-Math.min(100,Math.max(0,ns))/100)*(1-Math.min(100,Math.max(0,ie))/100);
+  return 1-keep;
+}
+function wkPerMaand(p){return(p.wkjr||46)/12;}
+function slotOn(v){return!!v;} // truthy = aanwezig (true legacy, 'X' aanwezig zonder ruimte, of ruimte-id string)
+function dagdelen(p){return(slots[p.id]||[]).reduce((s,d)=>s+d.reduce((sb,b)=>sb+(slotOn(b)?1:0),0),0);}
+function avondDelen(p){return(slots[p.id]||[]).reduce((s,d)=>s+(slotOn(d[2])?1:0),0);}
+function getRuimteVoor(pid,di,bi){const v=slots[pid]?.[di]?.[bi];if(!v||v===true||v==='X')return null;return ruimtes.find(r=>r.id===v)||null;}
+function isRuimteConflict(di,bi,ruimteId){if(!ruimteId)return false;let n=0;for(const p of team){if(slots[p.id]?.[di]?.[bi]===ruimteId){n++;if(n>1)return true;}}return false;}
+function ruimteCountAll(di,bi){const m={};for(const p of team){const v=slots[p.id]?.[di]?.[bi];if(v&&v!==true&&v!=='X'){m[v]=(m[v]||0)+1;}}return m;}
+function vzwPerMaand(p){
+  // p.cons = consultaties per (dag-)blok. Avondblok = pro rata korter, en gebruikt evt. apart avond-pct.
+  const oh=1-ohPct(),wk=wkPerMaand(p),tar=+p.tarief||0,cons=+p.cons||0;
+  const dB=dagBlokken(p),avB=avondDelen(p);
+  const pctDag=(+p.pct||0)/100,pctAv=(hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag);
+  const dag=tar*cons*oh*pctDag*dB*wk;
+  const av=tar*cons*avondShare()*oh*pctAv*avB*wk;
+  return dag+av;
+}
+function persNettoPerMaand(p){
+  const oh=1-ohPct(),wk=wkPerMaand(p),tar=+p.tarief||0,cons=+p.cons||0;
+  const dB=dagBlokken(p),avB=avondDelen(p);
+  const pctDag=(+p.pct||0)/100,pctAv=(hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag);
+  const dag=tar*cons*oh*(1-pctDag)*dB*wk;
+  const av=tar*cons*avondShare()*oh*(1-pctAv)*avB*wk;
+  return dag+av;
+}
+function maandBedrag(k){return k.periode==='jr'?(+k.bedrag||0)/12:(+k.bedrag||0);}
+function annuiteit(P,jaarRente,jaren){if(P<=0||jaren<=0)return 0;const n=jaren*12,i=(+jaarRente||0)/100/12;if(i===0)return P/n;return P*i*Math.pow(1+i,n)/(Math.pow(1+i,n)-1);}
+function hvTeLenen(){return Math.max(0,(+huisvesting.aankoopprijs||0)-(+huisvesting.eigenInbreng||0));}
+function hvBasisMnd(){if(huisvesting.type==='aankoop')return annuiteit(hvTeLenen(),huisvesting.rentevoet,+huisvesting.leningJaren||0);return+huisvesting.maandhuur||0;}
+function investeringMnd(inv){const b=+inv.bedrag||0,j=+inv.jaren||0;if(b<=0||j<=0)return 0;return b/(j*12);}
+function totaleInvesteringMnd(){return investeringen.reduce((s,i)=>s+investeringMnd(i),0);}
+function hvMaandlast(){return hvBasisMnd();}
+function hvNotarisCash(){if(huisvesting.type!=='aankoop')return 0;return(+huisvesting.aankoopprijs||0)*((+huisvesting.registratie||0)/100);}
+function personeelKostenMnd(){return team.filter(p=>p.type==='bediende').reduce((s,p)=>s+(+p.brutoJaar||0)/12,0);}
+function totalKosten(){return kostenData.reduce((s,k)=>s+maandBedrag(k),0)+hvMaandlast()+totaleInvesteringMnd()+personeelKostenMnd();}
+function slotCount(di,bi){return team.filter(p=>slots[p.id]?.[di]?.[bi]).length;}
+function bureauLim(){return+(document.getElementById('bureau-limit')?.value)||8;}
+function badgeCls(n){if(!n)return'bempty';const l=bureauLim();if(n>l)return'bover';if(n>=l*.75)return'bwarn';return'bok';}
+function cpbForAct(act,bi){return Math.floor(blokMinForBi(bi||0)/(act.duur||60));}
+function cpbForActAv(act){return Math.floor(BLOK_MIN_AV/(act.duur||60));}
+function dagBlokken(p){return Math.max(0,dagdelen(p)-avondDelen(p));}
+
+function mixGewogenTarief(p){
+  const mix=personMix[p.id]||[];if(!mix.length)return null;
+  let totPct=0,totTar=0;
+  for(const m of mix){const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;const pct=+m.pct||0;totPct+=pct;totTar+=pct*act.tarief;}
+  return totPct>0?totTar/totPct:null;
+}
+function mixGewogenCons(p){
+  const mix=personMix[p.id]||[];if(!mix.length)return null;
+  let totPct=0,totCons=0;
+  for(const m of mix){const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;const pct=+m.pct||0;totPct+=pct;totCons+=pct*cpbForAct(act);}
+  return totPct>0?totCons/totPct:null;
+}
+
+function getActPct(p,actId){const o=personActPct[p.id];if(o&&o[actId]!==undefined&&o[actId]!==null&&o[actId]!=='')return +o[actId];return +p.pct||0;}
+function hasAvondOverride(p){const v=personAvondPct[p.id];return v!==undefined&&v!==null&&v!=='';}
+// Avondblok-pct: heeft prioriteit over per-act override en algemene pct. Leeg = val terug op getActPct (dus per-act override of algemene).
+function getAvondActPct(p,actId){if(hasAvondOverride(p))return +personAvondPct[p.id]||0;return getActPct(p,actId);}
+function hasActOverride(p,actId){const o=personActPct[p.id];return!!(o&&o[actId]!==undefined&&o[actId]!==null&&o[actId]!=='');}
+function hasAnyOverride(p){const o=personActPct[p.id];if(!o)return false;return Object.keys(o).some(k=>o[k]!==undefined&&o[k]!==null&&o[k]!=='');}
+function gewogenGemPctActs(p){
+  // Gewogen gemiddelde afdracht% over alle afdracht-acts (dag+avond, tech enkel overdag)
+  const afdActs=getActsForPersonAfdracht(p);
+  if(!afdActs.length)return +p.pct||0;
+  const oh=1-ohPct(),dB=dagBlokken(p),avB=avondDelen(p),wk=wkPerMaand(p);
+  let totBruto=0,totAfd=0;
+  for(const{act,source,mix,count} of afdActs){
+    if(source==='mix'){
+      const tar=+act.tarief||0,mp=(+mix.pct||0)/100;
+      const brDag=dB*mp*cpbForAct(act,0)*tar*oh*wk;
+      const brAv =avB*mp*cpbForAct(act,2)*tar*oh*wk;
+      totBruto+=brDag+brAv;
+      totAfd+=brDag*(getActPct(p,act.id)/100)+brAv*(getAvondActPct(p,act.id)/100);
+    } else {
+      const br=(+count||0)*dB*wk*(+act.tarief||0); // tech: enkel dag
+      totBruto+=br;totAfd+=br*(getActPct(p,act.id)/100);
+    }
+  }
+  return totBruto>0?(totAfd/totBruto)*100:+p.pct||0;
+}
+function getActsForPersonAfdracht(p){
+  // Lijst van acts (met routing 'afdracht') waar deze persoon iets mee doet
+  const list=[];
+  const mix=personMix[p.id]||[];
+  for(const m of mix){const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;if((act.routing||'afdracht')!=='afdracht')continue;list.push({act,source:'mix',mix:m});}
+  const tech=personTechnisch[p.id]||{};
+  for(const aId in tech){const cnt=+tech[aId]||0;if(cnt<=0)continue;const act=acts.find(a=>a.id===aId&&a.familie==='technisch');if(!act)continue;if((act.routing||'afdracht')!=='afdracht')continue;list.push({act,source:'tech',count:cnt});}
+  return list;
+}
+function vzwPerMaandMixed(p){
+  const mix=personMix[p.id]||[],tech=personTechnisch[p.id]||{};
+  const dB=dagBlokken(p),avB=avondDelen(p),wk=wkPerMaand(p),oh=1-ohPct();
+  let tot=0;
+  for(const m of mix){
+    const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;
+    if((act.routing||'afdracht')!=='afdracht')continue;
+    const mp=(+m.pct||0)/100,tar=+act.tarief||0;
+    // Dag
+    tot+=dB*mp*cpbForAct(act,0)*tar*oh*(getActPct(p,act.id)/100)*wk;
+    // Avond
+    tot+=avB*mp*cpbForAct(act,2)*tar*oh*(getAvondActPct(p,act.id)/100)*wk;
+  }
+  // Technisch: enkel overdag (geen tech tijdens avondblokken — bv. geen EEG)
+  for(const[aId,cnt]of Object.entries(tech)){const act=acts.find(a=>a.id===aId&&a.familie==='technisch');if(!act||!cnt)continue;if((act.routing||'afdracht')!=='afdracht')continue;tot+=cnt*dB*wk*(+act.tarief||0)*(getActPct(p,aId)/100);}
+  return tot;
+}
+function persNettoMixed(p){
+  const mix=personMix[p.id]||[],tech=personTechnisch[p.id]||{};
+  const dB=dagBlokken(p),avB=avondDelen(p),wk=wkPerMaand(p),oh=1-ohPct();
+  let tot=0;
+  for(const m of mix){
+    const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;
+    if((act.routing||'afdracht')!=='afdracht')continue;
+    const mp=(+m.pct||0)/100,tar=+act.tarief||0;
+    tot+=dB*mp*cpbForAct(act,0)*tar*oh*(1-getActPct(p,act.id)/100)*wk;
+    tot+=avB*mp*cpbForAct(act,2)*tar*oh*(1-getAvondActPct(p,act.id)/100)*wk;
+  }
+  for(const[aId,cnt]of Object.entries(tech)){const act=acts.find(a=>a.id===aId&&a.familie==='technisch');if(!act||!cnt)continue;if((act.routing||'afdracht')!=='afdracht')continue;tot+=cnt*dB*wk*(+act.tarief||0)*(1-getActPct(p,aId)/100);}
+  return tot;
+}
+function mixCappIncome(){
+  // Bijdrage aan ☕ pool vanuit consultatie/technische acts met routing='cappuccino'
+  let tot=0;
+  const oh=1-ohPct();
+  for(const p of team){
+    const dB=dagBlokken(p),avB=avondDelen(p),wk=wkPerMaand(p);
+    if(!(dB+avB))continue;
+    const mix=personMix[p.id]||[],tech=personTechnisch[p.id]||{};
+    for(const m of mix){const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;if((act.routing||'afdracht')!=='cappuccino')continue;const mp=(+m.pct||0)/100,tar=+act.tarief||0;tot+=dB*mp*cpbForAct(act,0)*tar*oh*wk;tot+=avB*mp*cpbForAct(act,2)*tar*oh*wk;}
+    // Tech enkel overdag
+    for(const[aId,cnt]of Object.entries(tech)){const act=acts.find(a=>a.id===aId&&a.familie==='technisch');if(!act||!cnt)continue;if((act.routing||'afdracht')!=='cappuccino')continue;tot+=cnt*dB*wk*(+act.tarief||0);}
+  }
+  return tot;
+}
+function vzwActual(p){return(personMix[p.id]||[]).length>0?vzwPerMaandMixed(p):vzwPerMaand(p);}
+function nettoActual(p){return(personMix[p.id]||[]).length>0?persNettoMixed(p):persNettoPerMaand(p);}
+function brutoEurPerBlokRaw(p,bi){
+  // Bruto-tariefopbrengst per blok VÓÓR aftrek van verdoken kosten (no-show / inefficiëntie).
+  const isAv=bi===2;
+  const mix=personMix[p.id]||[];
+  if(mix.length>0){
+    let tot=0;
+    for(const m of mix){const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;if((act.routing||'afdracht')!=='afdracht')continue;tot+=(+m.pct/100)*cpbForAct(act,isAv?2:0)*(+act.tarief||0);}
+    return tot;
+  }
+  const cons=(+p.cons||0)*(isAv?avondShare():1);
+  return(+p.tarief||0)*cons;
+}
+function brutoEurPerBlok(p,bi){
+  // Bruto-tariefopbrengst per blok ná aftrek van verdoken kosten (= effectief factureerbaar, vóór afdracht-%).
+  return brutoEurPerBlokRaw(p,bi)*(1-ohPct());
+}
+function afdrachtEurPerBlok(p){return brutoEurPerBlok(p,0)*((+p.pct||0)/100);}
+function afdrachtEurPerAvondBlok(p){
+  const av=hasAvondOverride(p)?(+personAvondPct[p.id]||0):(+p.pct||0);
+  return brutoEurPerBlok(p,2)*(av/100);
+}
+function afdrachtEurPerWeek(p){
+  // True €/week op basis van dag + avond apart
+  return afdrachtEurPerBlok(p)*dagBlokken(p)+afdrachtEurPerAvondBlok(p)*avondDelen(p);
+}
+function isCappOptIn(p){return p.type!=='bediende'&&cappOptIn[p.id]!==false;}
+function brutoVzwPotentieelMnd(){
+  // Som over zelfstandigen: dag-blokken + avond-blokken (laatste op kortere duur)
+  let tot=0;
+  for(const p of team){if(p.type==='bediende')continue;const dB=dagBlokken(p),avB=avondDelen(p);if(!(dB+avB))continue;const wk=wkPerMaand(p);tot+=brutoEurPerBlok(p,0)*dB*wk+brutoEurPerBlok(p,2)*avB*wk;}
+  return tot;
+}
+function breakEvenPct(){
+  const bruto=brutoVzwPotentieelMnd();
+  if(bruto<=0)return null;
+  return(totalKosten()/bruto)*100;
+}
+function actueelGewogenPct(){
+  // Gewogen gemiddelde van pct, naar gewicht van bruto/maand (dag + avond apart gewogen)
+  let totBruto=0,totAfd=0;
+  for(const p of team){
+    if(p.type==='bediende')continue;
+    const dB=dagBlokken(p),avB=avondDelen(p);if(!(dB+avB))continue;
+    const wk=wkPerMaand(p);
+    const bDag=brutoEurPerBlok(p,0)*dB*wk,bAv=brutoEurPerBlok(p,2)*avB*wk;
+    const pctDag=(+p.pct||0)/100,pctAv=hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag;
+    totBruto+=bDag+bAv;totAfd+=bDag*pctDag+bAv*pctAv;
+  }
+  return totBruto>0?(totAfd/totBruto)*100:0;
+}
+function totalVzw(){return team.reduce((s,p)=>s+vzwActual(p),0);}
+function mdoCappIncome(){let t=0;for(const[pid,m]of Object.entries(personMDO)){const p=team.find(x=>x.id===pid);if(!p)continue;for(const[aId,pw]of Object.entries(m)){const act=acts.find(a=>a.id===aId);if(act&&pw)t+=pw*act.tarief*wkPerMaand(p);}}return t;}
+function mdoSessiesPerBlok(){return(+mdoConfig.blokUren||0)*(+mdoConfig.mdoPerUur||0);}
+function mdoTariefAct(){const a=acts.find(x=>x.familie==='mdo');return a?+a.tarief||0:75;}
+function mdoBlokIncome(){
+  // Inkomsten = som per teamlid van (MDO's per week × tarief × wk/maand). Eén MDO = 1 cliëntbespreking.
+  const tarief=mdoTariefAct();
+  if(tarief<=0)return 0;
+  let tot=0;
+  for(const pid in mdoBlokken){
+    const mdos=+mdoBlokken[pid]||0;
+    const p=team.find(x=>x.id===pid);
+    if(!p||!mdos)continue;
+    tot+=mdos*tarief*wkPerMaand(p);
+  }
+  return tot;
+}
+function teamMdoBlokkenTot(){return Object.values(mdoBlokken).reduce((s,v)=>s+(+v||0),0);}
+function mdoTotaalGewenst(){
+  // Som van MDO's per week uit Mix (nieuwe blok-input) + losse MDO-acts (oude personMDO)
+  let tot=teamMdoBlokkenTot();
+  for(const pid in personMDO){
+    const obj=personMDO[pid]||{};
+    for(const aId in obj){const act=acts.find(a=>a.id===aId&&a.familie==='mdo');if(act)tot+=+obj[aId]||0;}
+  }
+  return tot;
+}
+function mdoUrenIngepland(){return mdoBookings.reduce((s,b)=>s+(+b.durationHours||0),0);}
+function mdoSessiesIngepland(){return mdoUrenIngepland()*(+mdoConfig.mdoPerUur||0);}
+
+// Tijden van consultatieblokken (uren sinds middernacht): VM 8:00-13:30 (5u30), NM 14:00-19:30 (5u30), Av 19:30-24:00 (4u30)
+const CONS_BLOK_TIMES=[[8.0,13.5],[14.0,19.5],[19.5,24.0]];
+function fmtHour(h){const hh=Math.floor(h),mm=Math.round((h-hh)*60);return(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;}
+function intersects(s1,e1,s2,e2){return s1<e2&&s2<e1;}
+function getOverlapConsBlokIdxs(s,e){const r=[];CONS_BLOK_TIMES.forEach((t,i)=>{if(intersects(s,e,t[0],t[1]))r.push(i);});return r;}
+function mdoBureauBezet(day,s,e){const bidx=getOverlapConsBlokIdxs(s,e);if(!bidx.length)return 0;return Math.max(...bidx.map(b=>slotCount(day,b)));}
+function mdoBureauVrij(day,s,e){return mdoBureauBezet(day,s,e)<bureauLim();}
+function mdoBookingOverlap(day,s,e,ignoreId){return mdoBookings.some(b=>b.day===day&&b.id!==ignoreId&&intersects(s,e,b.startHour,b.startHour+b.durationHours));}
+function mdoDeelnemers(day,s,e){
+  // Teamleden die GEEN consultatie-conflict hebben tijdens MDO. Bedienden uitgesloten van pool, maar mogen wel deelnemen praktisch — voor pool-toewijzing tonen we toch alle types.
+  const bidx=getOverlapConsBlokIdxs(s,e);
+  return team.filter(p=>{for(const bi of bidx){if(slots[p.id]?.[day]?.[bi])return false;}return true;}).map(p=>{const aanwezig=(slots[p.id]?.[day]||[]).some(x=>x);return{p,aanwezig};});
+}
+function mdoSlotInBooking(day,h){return mdoBookings.find(b=>b.day===day&&h>=b.startHour&&h<b.startHour+b.durationHours);}
+function adminCappIncome(){let t=0;for(const[,am]of Object.entries(personAdmin)){for(const[aId,pm]of Object.entries(am)){const act=acts.find(a=>a.id===aId);if(act&&pm)t+=act.tarief*pm;}}return t;}
+function avondCappIncome(){let t=0;for(const p of team){const av=personAvond[p.id]||{};for(const[aId,r]of Object.entries(av)){if(r!=='cappuccino')continue;const act=acts.find(a=>a.id===aId);if(act)t+=avondDelen(p)*wkPerMaand(p)*act.tarief;}}return t;}
+function cappPool(){
+  const om=document.getElementById('capp-overschot-manual')?.value;
+  if(om&&om!=='')return Math.max(0,+om||0);
+  const vzwOverschot=totalVzw()-totalKosten();
+  const bronnen=mdoCappIncome()+mdoBlokIncome()+adminCappIncome()+avondCappIncome()+mixCappIncome();
+  if(cappKostendekking){
+    // Pool-bronnen dekken eerst MOM+-tekort; rest vormt de pool. Bij positief overschot telt dat ook mee als bron.
+    return Math.max(0,vzwOverschot+bronnen);
+  }
+  // Klassiek: tekort afgekapt, bronnen gaan los naar pool
+  return Math.max(0,vzwOverschot)+bronnen;
+}
+
+function calcCapp(){
+  const pool=cappPool(),dln=team.filter(p=>isCappOptIn(p)&&dagdelen(p)>0);
+  if(!dln.length)return null;
+  const pL1=(+cappData.pctL1||0)/100,pL2=(+cappData.pctL2||0)/100,pL3=(+cappData.pctL3||0)/100,pL4=(+cappData.pctL4||0)/100;
+  const dd=dln.map(p=>dagdelen(p)),totDD=dd.reduce((s,x)=>s+x,0);
+  const L1=dd.map(x=>totDD?(x/totDD)*pL1*pool:0);
+  const verwacht=dln.map(p=>dagdelen(p)*p.cons*wkPerMaand(p)),werkelijk=dln.map(p=>+(werkelijkeCons[p.id]||0));
+  const ratios=dln.map((p,i)=>verwacht[i]?Math.min(werkelijk[i]/verwacht[i],1.25):0);
+  // L2 = puur ratio (kwaliteits-/quota-bonus per persoon, niet gewogen door werkomvang — L1 doet dat al)
+  const totRatio=ratios.reduce((s,r)=>s+r,0);
+  const L2=ratios.map(r=>totRatio?(r/totRatio)*pL2*pool:0);
+  // L3 = mandatenpunten gewogen door dagdelen (merit × werkomvang)
+  const mp=dln.map(p=>(personMandaten[p.id]||[]).reduce((s,mid)=>{const m=mandaten.find(x=>x.id===mid);return s+(m?+m.punten:0);},0));
+  const l3pts=dln.map((_,i)=>mp[i]*dd[i]),totL3pts=l3pts.reduce((s,x)=>s+x,0);
+  const L3=l3pts.map(x=>totL3pts?(x/totL3pts)*pL3*pool:0);
+  // L4 = opleidingspunten gewogen door dagdelen (opleiding × werkomvang)
+  const op=dln.map(p=>(personOpleiding[p.id]||[]).reduce((s,oid)=>{const o=opleidingen.find(x=>x.id===oid);return s+(o?+o.punten:0);},0));
+  const l4pts=dln.map((_,i)=>op[i]*dd[i]),totL4pts=l4pts.reduce((s,x)=>s+x,0);
+  const L4=l4pts.map(x=>totL4pts?(x/totL4pts)*pL4*pool:0);
+  let totals=dln.map((_,i)=>L1[i]+L2[i]+L3[i]+L4[i]);
+  // Cap per persoon op basis van minimum effectieve afdracht%
+  const capped=new Array(dln.length).fill(false);
+  dln.forEach((p,i)=>{
+    const minStr=personMinAfdrachtPct[p.id];
+    if(minStr===''||minStr===null||minStr===undefined)return; // geen limit
+    const minPct=+minStr;if(isNaN(minPct))return;
+    const vzwM=vzwActual(p),persM=nettoActual(p),brutoM=vzwM+persM;
+    if(brutoM<=0)return;
+    const minVzwNet=brutoM*(minPct/100);
+    const maxPayout=Math.max(0,vzwM-minVzwNet);
+    if(totals[i]>maxPayout){
+      const f=totals[i]>0?maxPayout/totals[i]:0;
+      L1[i]*=f;L2[i]*=f;L3[i]*=f;L4[i]*=f;
+      totals[i]=L1[i]+L2[i]+L3[i]+L4[i];
+      capped[i]=true;
+    }
+  });
+  const totPool=totals.reduce((s,x)=>s+x,0);
+  return{dln,pool,pL1,pL2,pL3,pL4,L1,L2,L3,L4,totals,totPool,verwacht,werkelijk,ratios,mp,op,capped};
+}
+
+function renderFin(){
+  const k=totalKosten(),vzw=totalVzw(),r=vzw-k;
+  document.getElementById('fk').textContent=fmt(k);document.getElementById('fi').textContent=fmt(vzw);
+  const el=document.getElementById('fr');el.textContent=(r>=0?'+':'')+fmt(r);el.className='sum-val '+(r>=0?'green':'red');
+  document.getElementById('fin-note').innerHTML='Verdoken kosten: <strong>'+(ohPct()*100).toFixed(1)+'%</strong> verlies op bruto (no-show + inefficiëntie). ☕ pool-payout maandelijks uit cappuccino-verdeling.';
+  // Break-even indicator
+  const beEl=document.getElementById('fin-breakeven');
+  if(beEl){
+    const be=breakEvenPct(),act=actueelGewogenPct();
+    if(be===null){beEl.className='be-indicator unknown';beEl.innerHTML='<span>⚠️ Geen consultatiepotentieel berekenbaar (geen tarief/blokken ingevuld). Break-even-% kan niet bepaald worden.</span>';}
+    else{
+      const haalbaar=be<=100;
+      const huidigOk=act>=be;
+      const cls=!haalbaar?'bad':(huidigOk?'ok':'bad');
+      const pillCls=huidigOk?'ok':'bad';
+      beEl.className='be-indicator '+cls;
+      beEl.innerHTML='<span>📊 <strong>Break-even bij gemiddeld '+be.toFixed(1)+'%</strong> afdracht voor iedereen (= '+fmt(k)+' / '+fmt(brutoVzwPotentieelMnd())+' bruto)</span>'
+        +'<span style="margin-left:auto">Huidig gewogen gemiddelde: <span class="be-pill '+pillCls+'">'+act.toFixed(1)+'%</span></span>'
+        +(!haalbaar?'<div style="flex-basis:100%;font-size:11px;margin-top:4px;color:#b91c1c">⚠️ Break-even > 100% — kosten overstijgen het maximale bruto-potentieel. Verlaag kosten of verhoog teamcapaciteit/tarieven.</div>':'');
+    }
+  }
+  const vpkW=team.filter(p=>p.pct===0&&dagdelen(p)>0);
+  document.getElementById('fin-alerts').innerHTML=vpkW.map(p=>'<div class="alert alert-warn">⚠️ <strong>'+p.naam+'</strong> heeft afdracht 0% — controleer kostenpost.</div>').join('');
+  // Cappuccino payouts per persoon ophalen
+  const cappRes=calcCapp(),cappMap={};
+  if(cappRes){cappRes.dln.forEach((p,i)=>{cappMap[p.id]=cappRes.totals[i];});}
+  document.getElementById('fin-tbody').innerHTML=team.map((p,pi)=>{
+    const dd=dagdelen(p),vzwM=vzwActual(p),persM=nettoActual(p),isBed=p.type==='bediende';
+    const cappM=cappMap[p.id]||0,totaalM=persM+cappM;
+    const hasOver=hasAnyOverride(p);
+    const displayPct=hasOver?gewogenGemPctActs(p):(+p.pct||0);
+    const bruto=brutoEurPerBlok(p);
+    // Bij overrides toont eur-slider het echte gewogen gemiddelde (dag-referentie)
+    const eurBlok=hasOver?(bruto*(displayPct/100)):afdrachtEurPerBlok(p);
+    // True week-bedrag = dag-portion + avond-portion (avond is kortere blokken & evt. apart pct)
+    const dBfin=dagBlokken(p),avBfin=avondDelen(p);
+    const eurWeek=hasOver?(bruto*(displayPct/100)*dBfin+brutoEurPerBlok(p,2)*(displayPct/100)*avBfin):afdrachtEurPerWeek(p);
+    const maxEur=Math.max(1,Math.round(bruto*10)/10);
+    const lockColor=hasOver?'#7c3aed':'#4f46e5';
+    const lockStyle=hasOver?'opacity:.55;cursor:not-allowed':'cursor:pointer';
+    const lockTitle=hasOver?'title="🔒 Vergrendeld — per-act overrides actief. Verwijder overrides (↺ in sub-rij) om weer algemeen in te kunnen stellen."':'';
+    const prof=isBed
+      ?'<span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span>'
+      :'<div style="display:flex;flex-direction:column;gap:3px;min-width:200px">'
+        +'<div style="display:flex;align-items:center;gap:6px" '+lockTitle+'>'
+          +'<input type="range" data-fin-pct="'+p.id+'" min="0" max="100" step="0.1" value="'+displayPct.toFixed(1)+'" style="flex:1;'+lockStyle+';accent-color:'+lockColor+'" '
+          +(hasOver?'disabled ':'')
+          +'oninput="updateFinLabels(\''+p.id+'\',+this.value,\'pct\')" '
+          +'onchange="setPctSlider(\''+p.id+'\',+this.value)">'
+          +'<span id="fin-pct-lbl-'+p.id+'" style="font-weight:700;color:'+lockColor+';font-size:11px;min-width:42px;text-align:right">'+(hasOver?'🔒 ':'')+displayPct.toFixed(1)+'%</span>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px" '+lockTitle+'>'
+          +'<input type="range" data-fin-eur="'+p.id+'" min="0" max="'+maxEur+'" step="0.5" value="'+eurBlok.toFixed(1)+'" style="flex:1;'+lockStyle+';accent-color:#059669" '
+          +(hasOver?'disabled ':'')
+          +'oninput="updateFinLabels(\''+p.id+'\',+this.value,\'eur\')" '
+          +'onchange="setEurBlokSlider(\''+p.id+'\',+this.value)">'
+          +'<span id="fin-eur-lbl-'+p.id+'" style="font-weight:600;color:#059669;font-size:10.5px;min-width:62px;text-align:right">€'+Math.round(eurBlok)+'/blok</span>'
+        +'</div>'
+        +'<div id="fin-week-lbl-'+p.id+'" style="font-size:10px;color:'+(hasOver?'#7c3aed':'#9ca3af')+';text-align:right;margin-top:-1px">'+(dd?(hasOver?'gewogen gemiddelde · ':'')+'= €'+Math.round(eurWeek)+'/wk':'—')+'</div>'
+      +'</div>';
+    const pers=isBed?'<span style="color:#d1d5db">—</span>':(dd?'<span style="color:#6b7280">'+fmt(persM)+'</span>':'—');
+    const optIn=isCappOptIn(p);
+    const toggle=isBed?'':'<button class="capp-toggle '+(optIn?'on':'off')+'" onclick="toggleCappOptIn(\''+p.id+'\')" title="'+(optIn?'In cappuccino-pool — klik om uit te schakelen':'Niet in pool — klik om mee te doen')+'">'+(optIn?'☕ in':'⊘ uit')+'</button>';
+    const cappBedrag=!optIn||isBed?'<span style="color:#d1d5db">—</span>':(cappM>0?'<span style="color:#7c3aed;font-weight:600">+'+fmt(cappM)+'</span>':'<span style="color:#d1d5db">—</span>');
+    const capp=isBed?'<span style="color:#d1d5db">—</span>':'<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px">'+toggle+cappBedrag+'</div>';
+    const totaalIncl=optIn?totaalM:persM;
+    // True afdracht = nominale MOM+-afdracht minus cappuccino-payout (= wat netto bij MOM+ blijft)
+    const wkM=wkPerMaand(p),brutoM=vzwM+persM;
+    const trueAfdrMnd=optIn?(vzwM-cappM):vzwM;
+    const trueAfdrWk=wkM>0?trueAfdrMnd/wkM:0;
+    const truePctEff=brutoM>0?(trueAfdrMnd/brutoM)*100:0;
+    const trueAfdrLine=(optIn&&dd&&!isBed)
+      ?'<div style="font-size:9.5px;color:#9ca3af;margin-top:2px;line-height:1.3">⇄ true afdracht: <strong style="color:#374151">€'+Math.round(trueAfdrWk)+'/wk</strong> <span style="color:#7c3aed">('+truePctEff.toFixed(1)+'% eff.)</span></div>'
+      :'';
+    const totaal=isBed?'<span style="color:#d1d5db">—</span>':(dd?'<div><span class="netto-pill">'+fmt(totaalIncl)+'</span>'+trueAfdrLine+'</div>':'—');
+    const afdActs=isBed?[]:getActsForPersonAfdracht(p);
+    const isExp=!!finExpanded[p.id];
+    const overrideCount=afdActs.filter(x=>hasActOverride(p,x.act.id)).length;
+    const expandBtn=afdActs.length>0
+      ?'<button class="fin-expand-btn'+(isExp?' on':'')+'" onclick="toggleFinExpand(\''+p.id+'\')" title="'+(isExp?'Sluit':'Toon')+' overrides per act">'+(isExp?'▾':'▸')+' '+afdActs.length+' act'+(afdActs.length===1?'':'s')+(overrideCount?' <span style="color:#7c3aed">('+overrideCount+' over)</span>':'')+'</button>'
+      :'';
+    const mainRow='<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span>'+p.naam+expandBtn+'</td><td>'+prof+'</td><td style="text-align:right;font-weight:600;color:'+(dd?'#4f46e5':'#d1d5db')+'">'+dd+'</td><td style="text-align:right;font-weight:600">'+(dd?fmt(vzwM):'—')+'</td><td style="text-align:right;font-size:11px">'+pers+'</td><td style="text-align:right;font-size:11px">'+capp+'</td><td style="text-align:right;font-weight:600">'+totaal+'</td></tr>';
+    let subRows='';
+    if(isExp&&afdActs.length>0){
+      const oh=ohPct();
+      subRows=afdActs.map(({act,source,mix,count})=>{
+        const actPct=getActPct(p,act.id),isOv=hasActOverride(p,act.id);
+        const cpb=cpbForAct(act);
+        let brutoPerBlok;
+        if(source==='mix'){brutoPerBlok=(+mix.pct/100)*cpb*act.tarief*(1-oh);}
+        else{brutoPerBlok=(+count||0)*act.tarief;}
+        const afdPerBlok=brutoPerBlok*(actPct/100);
+        const monthly=source==='mix'
+          ?dd*(+mix.pct/100)*cpb*act.tarief*(1-oh)*(actPct/100)*wkPerMaand(p)
+          :(+count||0)*dd*wkPerMaand(p)*act.tarief*(actPct/100);
+        const accent=isOv?'#7c3aed':'#4f46e5';
+        return '<tr class="fin-sub-row">'
+          +'<td colspan="2" style="padding-left:25px;color:#374151">'
+            +'<span style="font-size:11px">└─ '+act.naam+'</span>'
+            +'<span style="font-size:9.5px;color:#9ca3af;margin-left:6px">'+(source==='mix'?'consult • '+(+mix.pct||0)+'% mix':'technisch • '+count+'/dagdeel')+'</span>'
+            +(isOv?'<span class="fin-act-pill">override</span>':'')
+          +'</td>'
+          +'<td colspan="2" style="padding:3px 8px">'
+            +'<div style="display:flex;align-items:center;gap:6px">'
+              +'<input type="range" min="0" max="100" step="0.5" value="'+actPct+'" '
+              +'oninput="document.getElementById(\'fin-act-lbl-'+p.id+'-'+act.id+'\').textContent=(+this.value).toFixed(1)+\'%\'" '
+              +'onchange="setActPctOverride(\''+p.id+'\',\''+act.id+'\',+this.value)" '
+              +'style="flex:1;cursor:pointer;accent-color:'+accent+'">'
+              +'<span id="fin-act-lbl-'+p.id+'-'+act.id+'" style="font-weight:700;color:'+accent+';min-width:42px;text-align:right;font-size:11px">'+actPct.toFixed(1)+'%</span>'
+            +'</div>'
+          +'</td>'
+          +'<td style="text-align:right;font-size:10.5px;color:#6b7280">€'+Math.round(afdPerBlok)+'/blok</td>'
+          +'<td style="text-align:right;font-size:10.5px;color:#7c3aed;font-weight:600">'+fmt(monthly)+'/mnd</td>'
+          +'<td style="text-align:right">'
+            +(isOv?'<button class="btn-sv" style="padding:2px 7px;font-size:10px" onclick="clearActPctOverride(\''+p.id+'\',\''+act.id+'\')" title="Override verwijderen, terug naar algemeen %">↺</button>':'<span style="font-size:9.5px;color:#9ca3af">algemeen</span>')
+          +'</td>'
+        +'</tr>';
+      }).join('');
+    }
+    return mainRow+subRows;
+  }).join('');
+  const bars=team.map(p=>vzwActual(p));let cum=0;const cumL=bars.map(v=>{cum+=v;return cum;});
+  if(finChart)finChart.destroy();
+  finChart=new Chart(document.getElementById('fin-chart').getContext('2d'),{data:{labels:team.map(p=>p.naam.split(' ')[0]),datasets:[{type:'bar',label:'MOM+/mnd',data:bars,backgroundColor:team.map((_,i)=>clr(i)+'bb'),borderColor:team.map((_,i)=>clr(i)),borderWidth:1,borderRadius:4,yAxisID:'y'},{type:'line',label:'Cumulatief',data:cumL,borderColor:'#4f46e5',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y'},{type:'line',label:'Break-even',data:Array(team.length).fill(totalKosten()),borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:0,yAxisID:'y'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:7}}},scales:{y:{ticks:{callback:v=>'€'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'#f3f4f6'}},x:{ticks:{font:{size:9.5}}}}}});
+}
+
+function renderRuimtes(){
+  const lst=document.getElementById('ruimtes-list');
+  if(!lst)return;
+  if(!ruimtes.length){lst.innerHTML='<p class="note" style="padding:6px 0;color:#9ca3af">Nog geen ruimtes toegevoegd. Je kan het rooster toch al gebruiken: kies dan ✓ (aanwezig) in plaats van een specifieke ruimte.</p>';}
+  else{
+    lst.innerHTML=ruimtes.map((r,ri)=>'<div class="ruimte-card" style="border-left-color:'+(r.kleur||'#4f46e5')+'">'
+      +'<span style="display:inline-block;width:24px;height:24px;background:'+(r.kleur||'#4f46e5')+';color:#fff;border-radius:5px;text-align:center;line-height:24px;font-weight:700;font-size:12px;flex-shrink:0">'+(ri+1)+'</span>'
+      +'<input type="text" value="'+(r.naam||'').replace(/"/g,'&quot;')+'" placeholder="Naam van de ruimte" oninput="renameRuimte(\''+r.id+'\',this.value)">'
+      +'<input type="color" value="'+(r.kleur||'#4f46e5')+'" oninput="recolorRuimte(\''+r.id+'\',this.value)" title="Kleur">'
+      +'<button class="btn-del" onclick="delRuimte(\''+r.id+'\')" title="Ruimte verwijderen">×</button>'
+      +'</div>').join('');
+  }
+  const info=document.getElementById('ruimtes-info');
+  if(info)info.innerHTML=ruimtes.length?'<strong>'+ruimtes.length+'</strong> ruimte'+(ruimtes.length===1?'':'s')+' beschikbaar. In het rooster hieronder verschijnt elke ruimte als nummer (bv. <strong style="background:#4f46e5;color:#fff;padding:1px 5px;border-radius:3px">1</strong>) — hover toont de naam.':'';
+}
+function renderRooster(){
+  renderRuimtes();
+  let h='<thead><tr><th class="name-corner" rowspan="2"></th>';DAYS.forEach(d=>{h+='<th class="day-th" colspan="3">'+d+'</th>';});h+='</tr><tr>';for(let di=0;di<5;di++)BLK.forEach((b,bi)=>{h+='<th class="blk-th'+(bi===0?' fd':'')+'">'+b+'</th>';});h+='</tr></thead><tbody>';
+  // Bouw de select-opties HTML 1x (zonder selected attribute) — die plakken we per cel met de juiste selected
+  const baseOpts='<option value="">—</option><option value="X">✓</option>'+ruimtes.map((r,ri)=>'<option value="'+r.id+'">'+(ri+1)+'</option>').join('');
+  team.forEach((p,pi)=>{
+    const c=clr(pi);
+    h+='<tr class="prow"><td class="nm-cell"><div class="color-dot" style="background:'+c+'"></div><span title="'+p.naam+'">'+p.naam+'</span><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td>';
+    for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){
+      const v=slots[p.id]?.[di]?.[bi];
+      // Bepaal weergave-staat
+      let valStr='',cls='slot-sel',bg='',title='Niet aanwezig';
+      if(v===true||v==='X'){valStr='X';cls='slot-sel on';title='Aanwezig (geen specifieke ruimte)';}
+      else if(v&&typeof v==='string'){
+        const r=ruimtes.find(x=>x.id===v);
+        if(r){
+          valStr=v;cls='slot-sel room';bg='background:'+(r.kleur||'#4f46e5')+';';title=r.naam;
+          if(isRuimteConflict(di,bi,v)){cls+=' conflict';title+=' ⚠ conflict (≥2 personen in deze ruimte)';}
+        }
+        // Onbekende ruimte-id (verwijderd?) → toon X
+        else{valStr='X';cls='slot-sel on';title='Aanwezig (ruimte verwijderd — kies opnieuw)';}
+      }
+      // Render select met juiste optie selected
+      const opts=baseOpts.replace('value="'+valStr+'"','value="'+valStr+'" selected');
+      h+='<td class="slot-td'+(bi===0?' fd':'')+'"><select class="'+cls+'" style="'+bg+'" title="'+title+'" onchange="setSlot(\''+p.id+'\','+di+','+bi+',this.value)">'+opts+'</select></td>';
+    }
+    h+='</tr>';
+  });
+  h+='<tr class="brow"><td class="name-corner" style="font-size:10px;font-weight:700;color:#6b7280;padding:4px 7px;text-align:left">Aanwezig</td>';for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){const n=slotCount(di,bi);h+='<td class="bureau-td'+(bi===0?' fd':'')+'"><div class="bbadge '+badgeCls(n)+'">'+(n||'—')+'</div></td>';}h+='</tr></tbody>';
+  document.getElementById('rt').innerHTML=h;document.getElementById('rooster-note').textContent='Verdoken kosten: '+(ohPct()*100).toFixed(1)+'% verlies op bruto-inkomsten.';
+  const counts=[],lbs=[];for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){counts.push(slotCount(di,bi));lbs.push(DS[di]+' '+BLK[bi]);}
+  const lim=bureauLim(),nonZ=counts.filter(x=>x>0),peak=Math.max(...counts,0),avg=nonZ.length?(nonZ.reduce((a,b)=>a+b,0)/nonZ.length):0,over=counts.filter(x=>x>lim).length;
+  // Ruimte-statistieken: gebruik per ruimte + conflicten
+  const ruimteUse={};ruimtes.forEach(r=>ruimteUse[r.id]=0);
+  let conflicten=0,zonderRuimte=0;
+  for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){
+    const rc=ruimteCountAll(di,bi);
+    for(const rid in rc){ruimteUse[rid]=(ruimteUse[rid]||0)+1;if(rc[rid]>1)conflicten++;}
+    for(const p of team){if(slots[p.id]?.[di]?.[bi]==='X'||slots[p.id]?.[di]?.[bi]===true)zonderRuimte++;}
+  }
+  let bstatHtml='<div class="stat-card"><div class="stat-label">Piekbezetting</div><div class="stat-val" style="color:'+(peak>lim?'#dc2626':peak>=lim*.75?'#d97706':'#059669')+'">'+peak+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">Gem. bezetting</div><div class="stat-val">'+avg.toFixed(1)+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">Blokken >limiet</div><div class="stat-val" style="color:'+(over?'#dc2626':'#059669')+'">'+over+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">Conflicten<small>2+ in 1 ruimte</small></div><div class="stat-val" style="color:'+(conflicten?'#dc2626':'#059669')+'">'+conflicten+'</div></div>';
+  if(ruimtes.length){
+    bstatHtml+='<div class="stat-card" style="grid-column:1/-1;text-align:left;padding-top:10px"><div class="stat-label" style="margin-bottom:6px">📊 Gebruik per ruimte (op 15 blokken/week)</div>';
+    bstatHtml+=ruimtes.map((r,ri)=>{const u=ruimteUse[r.id]||0,pct=(u/15*100);return'<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;padding:3px 0"><span style="display:inline-block;width:22px;height:22px;background:'+(r.kleur||'#4f46e5')+';color:#fff;border-radius:5px;text-align:center;line-height:22px;font-weight:700;font-size:11px;flex-shrink:0">'+(ri+1)+'</span><span style="flex:1;color:#374151">'+(r.naam||'(naamloos)')+'</span><span style="color:#6b7280">'+u+'/15</span><div style="width:70px;height:8px;background:#f3f4f6;border-radius:4px;overflow:hidden"><div style="width:'+Math.min(100,pct)+'%;height:100%;background:'+(r.kleur||'#4f46e5')+'"></div></div><span style="color:#9ca3af;font-size:10.5px;width:38px;text-align:right">'+pct.toFixed(0)+'%</span></div>';}).join('');
+    if(zonderRuimte)bstatHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:11.5px;padding:3px 0;color:#9ca3af;border-top:1px dashed #e5e7eb;margin-top:5px"><span style="display:inline-block;width:22px;height:22px;background:#86efac;color:#065f46;border-radius:5px;text-align:center;line-height:22px;font-weight:700;font-size:13px;flex-shrink:0">✓</span><span style="flex:1">Aanwezig zonder specifieke ruimte</span><span>'+zonderRuimte+' toewijzing'+(zonderRuimte===1?'':'en')+'</span></div>';
+    bstatHtml+='</div>';
+  }
+  document.getElementById('bstat').innerHTML=bstatHtml;
+  const bgs=counts.map(n=>!n?'#f3f4f6':n>lim?'#fca5a5':n>=lim*.75?'#fde68a':'#86efac'),brd=counts.map(n=>!n?'#e5e7eb':n>lim?'#f87171':n>=lim*.75?'#fbbf24':'#4ade80');
+  if(rChart)rChart.destroy();rChart=new Chart(document.getElementById('rooster-chart').getContext('2d'),{type:'bar',data:{labels:lbs,datasets:[{label:'Aanwezig',data:counts,backgroundColor:bgs,borderColor:brd,borderWidth:1.5,borderRadius:4},{type:'line',label:'Limiet ('+lim+')',data:Array(15).fill(lim),borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,2],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:7}}},scales:{y:{min:0,max:Math.max(lim+2,peak+1),ticks:{stepSize:1,font:{size:10}},grid:{color:'#f3f4f6'}},x:{ticks:{font:{size:9.5}},grid:{display:false}}}}});
+}
+
+function renderMdoTab(){renderMdoConfig();renderMdoAgenda();}
+function renderMdoConfig(){
+  const ses=mdoSessiesPerBlok(),tar=mdoTariefAct(),gewenst=mdoTotaalGewenst(),mogelijk=mdoSessiesIngepland(),inkomst=mdoBlokIncome();
+  const si=document.getElementById('mdo-sessies-info');if(si)si.textContent=ses+' MDO\'s/blok';
+  const ti=document.getElementById('mdo-tarief-info');if(ti)ti.textContent='€'+tar+'/MDO';
+  const bi=document.getElementById('mdo-blkdur-info');if(bi)bi.textContent=(+mdoConfig.blokUren||0)+'u';
+  const sv=(id,v)=>{const el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=v;};
+  sv('mdo-blokUren',mdoConfig.blokUren);sv('mdo-mdoPerUur',mdoConfig.mdoPerUur);
+  const mo=document.getElementById('mdo-overzicht');
+  if(!mo)return;
+  const ok=mogelijk>=gewenst;
+  const teamRows=team.filter(p=>p.type!=='bediende'&&(+mdoBlokken[p.id]||0)>0).map(p=>{const m=+mdoBlokken[p.id]||0;return'<div style="display:flex;justify-content:space-between;padding:1px 0;color:#6b7280;font-size:11.5px"><span>'+p.naam+'</span><span>'+m+' MDO'+(m>1?'\'s':'')+'/wk</span></div>';}).join('');
+  // losse MDO-acts uit personMDO
+  let losseRows='';
+  for(const pid in personMDO){
+    const p=team.find(x=>x.id===pid);if(!p)continue;
+    for(const aId in personMDO[pid]){const act=acts.find(a=>a.id===aId&&a.familie==='mdo');const n=+personMDO[pid][aId]||0;if(act&&n>0)losseRows+='<div style="display:flex;justify-content:space-between;padding:1px 0;color:#9ca3af;font-size:11px"><span>'+p.naam+' — '+act.naam+'</span><span>'+n+'/wk</span></div>';}
+  }
+  const urenNodig=ses>0?(gewenst/(+mdoConfig.mdoPerUur||1)):0;
+  const blokkenNodig=(+mdoConfig.blokUren||0)>0?urenNodig/(+mdoConfig.blokUren||1):0;
+  mo.innerHTML='<div style="font-weight:600;color:#7c3aed;margin-bottom:5px">🗣 MDO-overzicht</div>'
+    +'<div style="display:flex;justify-content:space-between;padding:2px 0"><span>Totaal gewenste MDO\'s/week</span><strong>'+gewenst+'</strong></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280;font-size:11px"><span>→ Uren MDO nodig</span><span>'+urenNodig.toFixed(2)+' u/wk ≈ '+blokkenNodig.toFixed(2)+' blokken</span></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:2px 0"><span>MDO-sessies mogelijk in agenda</span><strong style="color:'+(ok?'#059669':'#dc2626')+'">'+mogelijk+'/wk '+(ok?'✓':'⚠️')+'</strong></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280;font-size:11px"><span>→ Geplande MDO-uren</span><span>'+mdoUrenIngepland().toFixed(2)+' u/wk in '+mdoBookings.length+' blok'+(mdoBookings.length===1?'':'ken')+'</span></div>'
+    +(teamRows?'<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb;font-size:11px;color:#9ca3af;margin-bottom:3px">Per teamlid (Mix-tab)</div>'+teamRows:'')
+    +(losseRows?'<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb;font-size:11px;color:#9ca3af;margin-bottom:3px">Losse MDO-acts (oude manier)</div>'+losseRows:'')
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0 0;margin-top:5px;border-top:1px solid #e5e7eb;font-weight:700;color:#059669"><span>Pool-inkomst MDO\'s/mnd</span><span>'+fmt(inkomst)+'</span></div>'
+    +(!ok&&gewenst>0?'<div style="font-size:10.5px;color:#dc2626;padding:3px 0 0;font-style:italic">⚠️ Te weinig MDO-tijd in agenda voor alle gewenste MDO\'s.</div>':'');
+}
+
+function renderMdoAgenda(){
+  const wrap=document.getElementById('mdo-agenda-wrap');
+  if(!wrap)return;
+  const startH=8.0,endH=23.5,step=0.5;
+  const slotsList=[];for(let h=startH;h<endH;h+=step)slotsList.push(h);
+  let h2='<table class="mdo-ag"><thead><tr><th class="th-time">Tijd</th>';
+  DAYS.forEach(d=>h2+='<th>'+d+'</th>');
+  h2+='</tr></thead><tbody>';
+  slotsList.forEach(sH=>{
+    h2+='<tr><td class="td-time">'+fmtHour(sH)+'</td>';
+    for(let di=0;di<5;di++){
+      const book=mdoSlotInBooking(di,sH+0.001);
+      if(book){
+        const isStart=Math.abs(sH-book.startHour)<0.01;
+        h2+='<td class="cell-booked'+(isStart?' cell-booked-start':'')+'" onclick="delMdoBooking(\''+book.id+'\')" title="Klik om MDO-blok te verwijderen ('+fmtHour(book.startHour)+'–'+fmtHour(book.startHour+book.durationHours)+')">'+(isStart?'☕':'')+'</td>';
+      } else {
+        const dur=+mdoConfig.blokUren||2,end=sH+dur;
+        const overlapsBooking=mdoBookingOverlap(di,sH,end,null);
+        const overlapsConsCheck=getOverlapConsBlokIdxs(sH,end);
+        const inCons=overlapsConsCheck.length>0;
+        const bureauOk=mdoBureauVrij(di,sH,end);
+        const eindOk=end<=24.0;
+        if(!eindOk||overlapsBooking){
+          h2+='<td style="background:#f3f4f6;cursor:not-allowed" title="'+(eindOk?'overlapt met bestaande MDO':'na middernacht')+'"></td>';
+        } else if(inCons&&!bureauOk){
+          h2+='<td class="cell-cons-full" title="Geen vrij bureau tijdens consultatieblok"></td>';
+        } else if(inCons){
+          h2+='<td class="cell-cons-ok" onclick="addMdoBooking('+di+','+sH+')" title="MDO inplannen ('+fmtHour(sH)+'–'+fmtHour(end)+') — bureau vrij"></td>';
+        } else {
+          h2+='<td class="cell-free" onclick="addMdoBooking('+di+','+sH+')" title="MDO inplannen ('+fmtHour(sH)+'–'+fmtHour(end)+') — buiten consultatieblok"></td>';
+        }
+      }
+    }
+    h2+='</tr>';
+  });
+  h2+='</tbody></table>';
+  h2+='<div class="legend-mdo">'
+    +'<div><span class="leg-sq" style="background:#f0fdf4;border:1px solid #86efac"></span>klikbaar (consultatieblok, bureau vrij)</div>'
+    +'<div><span class="leg-sq" style="background:#fff;border:1px solid #e5e7eb"></span>klikbaar (lunch/avond, buiten consultatieblok)</div>'
+    +'<div><span class="leg-sq" style="background:repeating-linear-gradient(45deg,#fee2e2,#fee2e2 3px,#fecaca 3px,#fecaca 6px)"></span>geen vrij bureau</div>'
+    +'<div><span class="leg-sq" style="background:#ddd6fe"></span>MDO ingepland (klik = verwijder)</div>'
+    +'</div>';
+  wrap.innerHTML=h2;
+  // Bookings list met deelnemers
+  const bl=document.getElementById('mdo-bookings-list');
+  if(!bl)return;
+  if(!mdoBookings.length){bl.innerHTML='<p class="note">Nog geen MDO-blokken ingepland.</p>';return;}
+  const sorted=[...mdoBookings].sort((a,b)=>a.day-b.day||a.startHour-b.startHour);
+  bl.innerHTML='<div style="font-weight:600;color:#5b21b6;font-size:12px;margin-bottom:8px">Ingeplande MDO-blokken</div>'+sorted.map(b=>{
+    const eind=b.startHour+b.durationHours;
+    const deelnemers=mdoDeelnemers(b.day,b.startHour,eind);
+    const aanwezig=deelnemers.filter(d=>d.aanwezig);
+    const niet=deelnemers.filter(d=>!d.aanwezig);
+    const mems=aanwezig.map(({p})=>'<span class="mdo-bk-mem">'+p.naam+'</span>').join('');
+    const nietMems=niet.map(({p})=>'<span class="mdo-bk-mem absent">'+p.naam+' (niet aanwezig)</span>').join('');
+    const sessies=(+mdoConfig.mdoPerUur||0)*b.durationHours;
+    return '<div class="mdo-bk-card">'
+      +'<div class="mdo-bk-title">🗣 '+DAYS[b.day]+' '+fmtHour(b.startHour)+'–'+fmtHour(eind)+' <span class="mdo-bk-pill">'+sessies+' MDO\'s</span><button class="btn-del" style="margin-left:auto" onclick="delMdoBooking(\''+b.id+'\')">×</button></div>'
+      +'<div style="font-size:10.5px;color:#6b7280;margin-bottom:4px">Kan deelnemen (geen consultatie-conflict): '+aanwezig.length+' aanwezige + '+niet.length+' niet-aanwezige</div>'
+      +'<div class="mdo-bk-team">'+(mems||'<span style="font-size:10.5px;color:#dc2626">Niemand aanwezig op dat moment</span>')+nietMems+'</div>'
+    +'</div>';
+  }).join('');
+}
+
+function renderTeam(){
+  document.getElementById('team-tbody').innerHTML=team.map((p,pi)=>{
+    const isZ=p.type!=='bediende';
+    const gtar=mixGewogenTarief(p),gcons=mixGewogenCons(p),hasMix=gtar!==null;
+    const tarCell=hasMix
+      ?'<input type="number" value="'+gtar.toFixed(1)+'" readonly title="Automatisch vanuit Mix-tab" style="background:#ede9fe;color:#6d28d9;font-weight:600;cursor:not-allowed">'
+      :'<input type="number" value="'+p.tarief+'" oninput="hv_v(\''+p.id+'\',\'tarief\',+this.value)">';
+    const consCell=hasMix
+      ?'<input type="number" value="'+gcons.toFixed(2)+'" readonly title="Automatisch vanuit Mix-tab" style="background:#ede9fe;color:#6d28d9;font-weight:600;cursor:not-allowed">'
+      :'<input type="number" value="'+p.cons+'" oninput="hv_v(\''+p.id+'\',\'cons\',+this.value)">';
+    return'<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span><input type="text" value="'+p.naam+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:100px"></td><td><button class="type-badge '+(isZ?'type-z':'type-b')+'" onclick="toggleType(\''+p.id+'\')">'+(isZ?'Z':'B')+'</button></td><td>'+tarCell+'</td><td>'+consCell+'</td><td><input type="number" data-team-pct="'+p.id+'" value="'+p.pct+'" min="0" max="100" oninput="hv_v(\''+p.id+'\',\'pct\',+this.value)"></td><td><input type="number" value="'+p.wkjr+'" min="1" max="52" oninput="hv_v(\''+p.id+'\',\'wkjr\',+this.value)"></td><td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td></tr>';
+  }).join('');
+}
+
+function renderHuisvesting(){
+  const isA=huisvesting.type==='aankoop';
+  const bH=document.getElementById('hv-btn-huur'),bA=document.getElementById('hv-btn-aankoop');
+  if(bH)bH.className='btn-sv'+(isA?'':' primary');if(bA)bA.className='btn-sv'+(isA?' primary':'');
+  const sH=document.getElementById('hv-huur-section'),sA=document.getElementById('hv-aankoop-section');
+  if(sH)sH.style.display=isA?'none':'';if(sA)sA.style.display=isA?'':'none';
+  const sv=(id,v)=>{const el=document.getElementById(id);if(el&&document.activeElement!==el)el.value=v;};
+  sv('hv-maandhuur',huisvesting.maandhuur);sv('hv-aankoopprijs',huisvesting.aankoopprijs);sv('hv-eigenInbreng',huisvesting.eigenInbreng);sv('hv-leningJaren',huisvesting.leningJaren);sv('hv-rentevoet',huisvesting.rentevoet);sv('hv-registratie',huisvesting.registratie);
+  const tl=document.getElementById('hv-telenen');if(tl)tl.textContent=fmt(hvTeLenen());
+  const basis=hvBasisMnd(),notaris=hvNotarisCash(),tlEur=hvTeLenen();
+  let extra='';
+  if(isA){
+    const totBetaald=basis*(+huisvesting.leningJaren||0)*12,rente=Math.max(0,totBetaald-tlEur);
+    extra='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>Te lenen</span><span>'+fmt(tlEur)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>Totaal terugbetaald</span><span>'+fmt(totBetaald)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>Waarvan rente</span><span>'+fmt(rente)+'</span></div>'
+      +(notaris>0?'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#b45309"><span>+ Notaris/registratie (eenmalig cash)</span><span>'+fmt(notaris)+'</span></div>':'');
+  }
+  const r=document.getElementById('hv-result');if(r)r.innerHTML='<div style="background:#f9fafb;border-radius:8px;padding:11px;font-size:12.5px">'
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0;font-weight:700;color:#4f46e5;font-size:13.5px"><span>'+(isA?'Maandaflossing lening':'Maandhuur')+'</span><span>'+fmt(basis)+'</span></div>'
+    +(extra?'<div style="margin-top:9px;padding-top:8px;border-top:1px dashed #e5e7eb;font-size:11.5px">'+extra+'</div>':'')
+    +'</div>';
+}
+function renderPersoneel(){
+  const tb=document.getElementById('personeel-tbody');if(!tb)return;
+  const beds=team.filter(p=>p.type==='bediende');
+  if(!beds.length)tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#9ca3af;font-size:11px;padding:10px">Nog geen bedienden — voeg er hieronder een toe (komt ook in Team-tab).</td></tr>';
+  else tb.innerHTML=beds.map(p=>{const mnd=(+p.brutoJaar||0)/12;return'<tr><td><input type="text" value="'+(p.naam||'').replace(/"/g,'&quot;')+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:160px"></td><td><input type="text" value="'+(p.ific||'').replace(/"/g,'&quot;')+'" placeholder="—" oninput="setBedIfic(\''+p.id+'\',this.value)" style="width:95px;text-align:center"></td><td><input type="number" value="'+(+p.brutoJaar||0)+'" placeholder="0" min="0" step="100" style="width:110px" oninput="setBedJaar(\''+p.id+'\',+this.value)"></td><td style="text-align:right;color:#dc2626;font-weight:600">'+fmt(mnd)+'</td><td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')" title="Verwijder bediende (ook uit Team)">×</button></td></tr>';}).join('');
+  const tot=personeelKostenMnd();
+  const totEl=document.getElementById('personeel-totaal');
+  if(totEl)totEl.innerHTML='Totaal personeelskost: <strong style="color:#dc2626">'+fmt(tot)+'</strong> / maand &nbsp;<span style="color:#9ca3af;font-size:11px">('+beds.length+' bediende'+(beds.length===1?'':'n')+')</span>';
+}
+function renderKosten(){
+  renderHuisvesting();
+  renderInvesteringen();
+  renderPersoneel();
+  // Auto-rijen voor investeringen + personeel (read-only in samenvattingstabel, beheerd in eigen cards)
+  const invRows=investeringen.map(i=>{const mnd=investeringMnd(i);return'<tr style="background:#faf5ff"><td><span style="color:#7c3aed;font-weight:600">🛠 '+(i.naam||'(naamloos)')+'</span><span style="font-size:10px;color:#9ca3af;margin-left:5px">€'+(+i.bedrag||0).toLocaleString('nl-BE')+' / '+(+i.jaren||0)+'j</span></td><td style="color:#9ca3af;font-size:10.5px;font-style:italic">auto uit investering</td><td style="color:#7c3aed;font-weight:600;text-align:right">'+fmt(mnd)+'/mnd</td></tr>';}).join('');
+  const persRows=team.filter(p=>p.type==='bediende').map(p=>{const mnd=(+p.brutoJaar||0)/12;if(mnd<=0)return '';return'<tr style="background:#fef2f2"><td><span style="color:#dc2626;font-weight:600">👤 '+(p.naam||'(naamloos)')+'</span>'+(p.ific?'<span style="font-size:10px;color:#9ca3af;margin-left:5px">IFIC '+p.ific+'</span>':'')+'<span style="font-size:10px;color:#9ca3af;margin-left:5px">€'+(+p.brutoJaar||0).toLocaleString('nl-BE')+'/jr bruto</span></td><td style="color:#9ca3af;font-size:10.5px;font-style:italic">auto uit personeel</td><td style="color:#dc2626;font-weight:600;text-align:right">'+fmt(mnd)+'/mnd</td></tr>';}).filter(Boolean).join('');
+  const handRows=kostenData.map(k=>{const isJr=k.periode==='jr',mnd=maandBedrag(k),hint=isJr&&k.bedrag?'<span style="font-size:10px;color:#9ca3af;margin-left:4px">= '+fmt(mnd)+'/mnd</span>':'';return'<tr><td><input type="text" value="'+k.naam+'" oninput="kn(\''+k.id+'\',this.value)"></td><td style="white-space:nowrap"><input type="number" value="'+k.bedrag+'" style="width:90px" oninput="kb(\''+k.id+'\',+this.value)"><button onclick="kp(\''+k.id+'\')" style="margin-left:4px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;font-size:10.5px;font-weight:600;background:'+(isJr?'#4f46e5':'#f9fafb')+';color:'+(isJr?'#fff':'#6b7280')+'">'+(isJr?'jr':'mnd')+'</button>'+hint+'</td><td><button class="btn-del" onclick="delKost(\''+k.id+'\')">×</button></td></tr>';}).join('');
+  document.getElementById('kosten-tbody').innerHTML=invRows+persRows+handRows;
+  const ov=kostenData.reduce((s,k)=>s+maandBedrag(k),0),hv=hvMaandlast(),inv=totaleInvesteringMnd(),pers=personeelKostenMnd(),tot=ov+hv+inv+pers;
+  document.getElementById('kosten-totaal').innerHTML='Huisvesting: <strong>'+fmt(hv)+'</strong> + investeringen: <strong style="color:#7c3aed">'+fmt(inv)+'</strong> + personeel: <strong style="color:#dc2626">'+fmt(pers)+'</strong> + overige: <strong>'+fmt(ov)+'</strong> = <strong style="color:#4f46e5">'+fmt(tot)+'</strong> / maand';
+  const vpk=team.filter(p=>p.pct===0&&dagdelen(p)>0&&!(+p.brutoJaar)),ne=document.getElementById('kosten-vpk-note');
+  if(vpk.length){ne.innerHTML='⚠️ <strong>'+vpk.map(p=>p.naam).join(', ')+'</strong> afdracht 0% en geen brutoloon ingevuld in personeelskost.';ne.style.display='block';}else ne.style.display='none';
+}
+
+function renderInvesteringen(){
+  const tb=document.getElementById('inv-tbody');
+  if(!tb)return;
+  if(!investeringen.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#9ca3af;font-size:11px;padding:10px">Nog geen investeringen — voeg er hieronder een toe.</td></tr>';}
+  else{
+    tb.innerHTML=investeringen.map(i=>{const mnd=investeringMnd(i);return'<tr><td><input type="text" value="'+(i.naam||'')+'" oninput="invN(\''+i.id+'\',this.value)" style="min-width:170px"></td><td><input type="number" value="'+(+i.bedrag||0)+'" min="0" style="width:100px" oninput="invB(\''+i.id+'\',+this.value)"></td><td style="white-space:nowrap"><input type="number" value="'+(+i.jaren||0)+'" min="1" max="40" style="width:55px" oninput="invJ(\''+i.id+'\',+this.value)"><span style="font-size:10.5px;color:#9ca3af;margin-left:4px">jaar</span></td><td style="text-align:right;color:#7c3aed;font-weight:600">'+fmt(mnd)+'</td><td><button class="btn-del" onclick="delInvestering(\''+i.id+'\')">×</button></td></tr>';}).join('');
+  }
+  const tot=totaleInvesteringMnd();
+  const totEl=document.getElementById('inv-totaal');
+  if(totEl)totEl.innerHTML='Totaal afschrijving: <strong style="color:#7c3aed">'+fmt(tot)+'</strong> / maand';
+}
+function setHvType(t){huisvesting.type=t;renderKosten();renderFin();renderCapp();onAnyChange();}
+function hvUpd(field,v){huisvesting[field]=v;renderHuisvesting();renderFin();renderCapp();onAnyChange();}
+function invN(id,v){const i=investeringen.find(x=>x.id===id);if(i){i.naam=v;renderKosten();onAnyChange();}}
+function invB(id,v){const i=investeringen.find(x=>x.id===id);if(i){i.bedrag=v;renderKosten();renderFin();renderCapp();onAnyChange();}}
+function invJ(id,v){const i=investeringen.find(x=>x.id===id);if(i){i.jaren=v;renderKosten();renderFin();renderCapp();onAnyChange();}}
+function delInvestering(id){investeringen=investeringen.filter(x=>x.id!==id);renderKosten();renderFin();renderCapp();onAnyChange();}
+function addInvestering(){
+  const n=(document.getElementById('ni-naam')?.value||'').trim();
+  const b=+(document.getElementById('ni-bedrag')?.value)||0;
+  const j=+(document.getElementById('ni-jaren')?.value)||0;
+  if(!n){alert('Geef de investering een omschrijving.');return;}
+  if(b<=0||j<=0){alert('Vul een geldig bedrag en afschrijvingsperiode in.');return;}
+  investeringen.push({id:nextId('inv'),naam:n,bedrag:b,jaren:j});
+  ['ni-naam','ni-bedrag','ni-jaren'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderKosten();renderFin();renderCapp();onAnyChange();
+}
+
+function renderVerdoken(){
+  // Sync state met DOM
+  verdokenKosten=getVerdokenFromDOM();
+  const ns=verdokenKosten.noShow,ie=verdokenKosten.inefficientie;
+  const loss=ohPct()*100; // totale verlies-%
+  const tEl=document.getElementById('verdoken-totaal');
+  if(tEl)tEl.textContent=loss.toFixed(1).replace('.',',')+' %';
+  const uEl=document.getElementById('verdoken-uitleg');
+  if(uEl){
+    if(ns===0&&ie===0)uEl.innerHTML='<strong style="color:#059669">Ideaalscenario actief.</strong> Alle ingeplande consultaties leveren geld op. Geef boven cijfers in om realistischer te rekenen.';
+    else uEl.innerHTML='Op een bruto-inkomen van bv. <strong>€ 1.000</strong> houdt het centrum hier <strong>€ '+Math.round(1000*(1-loss/100)).toLocaleString('nl-BE')+'</strong> aan over (na '+ns.toFixed(1).replace('.',',')+' % no-show en '+ie.toFixed(1).replace('.',',')+' % inefficiëntie).';
+  }
+  const body=document.getElementById('verdoken-tbody');
+  if(body){
+    if(!team.length)body.innerHTML='<tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:8px">Nog geen teamleden ingegeven.</td></tr>';
+    else body.innerHTML=team.map(p=>{
+      // Bruto/mnd = bruto-inkomen zonder verdoken-kosten = brutoPerBlok-zonder-oh × blokken/wk × wk
+      const wk=wkPerMaand(p),dB=dagBlokken(p),avB=avondDelen(p);
+      const brutoDagBlok=brutoEurPerBlokRaw(p,0),brutoAvBlok=brutoEurPerBlokRaw(p,2);
+      const brutoMnd=(brutoDagBlok*dB+brutoAvBlok*avB)*wk;
+      const nettoMnd=brutoMnd*(1-loss/100),verlies=brutoMnd-nettoMnd;
+      return '<tr><td>'+p.naam+'</td><td style="text-align:right">'+fmt(brutoMnd)+'</td><td style="text-align:right;color:#dc2626">-'+fmt(verlies)+'</td><td style="text-align:right;font-weight:600">'+fmt(nettoMnd)+'</td></tr>';
+    }).join('');
+  }
+}
+
+function renderCapp(){
+  const vzwInk=totalVzw(),kost=totalKosten(),overschot=vzwInk-kost,mdo=mdoCappIncome(),mdoBlk=mdoBlokIncome(),adm=adminCappIncome(),av=avondCappIncome(),mixCp=mixCappIncome(),pool=cappPool();
+  const bronnen=mdo+mdoBlk+adm+av+mixCp;
+  // Sync kostendekking checkbox & status
+  const cbKost=document.getElementById('capp-kostendekking');if(cbKost)cbKost.checked=cappKostendekking;
+  const stKost=document.getElementById('capp-kostendekking-status');
+  if(stKost){
+    if(cappKostendekking){
+      if(overschot<0&&bronnen>0){
+        const dekking=Math.min(bronnen,-overschot);
+        stKost.innerHTML='<span style="color:#7c3aed;font-weight:600">✓ Actief</span> — pool-bronnen dekken nu <strong>'+fmt(dekking)+'</strong> van het MOM+-tekort.';
+      } else if(overschot>=0){
+        stKost.innerHTML='<span style="color:#059669;font-weight:600">✓ Actief</span> — geen tekort, alle bronnen vloeien naar de pool.';
+      } else {
+        stKost.innerHTML='<span style="color:#7c3aed;font-weight:600">✓ Actief</span> — geen pool-bronnen beschikbaar om tekort te dekken.';
+      }
+    } else {
+      stKost.innerHTML='<span style="color:#9ca3af;font-weight:600">⊘ Uit</span> — MOM+-tekort wordt niet uit de pool gedekt (klassieke scheiding).';
+    }
+  }
+  const bd=document.getElementById('capp-pool-breakdown');
+  if(bd){
+    let bh='<div style="background:#f9fafb;border-radius:8px;padding:10px;font-size:12px">';
+    bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>MOM+ afdrachten/inkomsten</span><strong style="color:#1a1a1a">'+fmt(vzwInk)+'</strong></div>';
+    bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>− MOM+ kosten</span><strong style="color:#1a1a1a">'+fmt(kost)+'</strong></div>';
+    bh+='<div style="display:flex;justify-content:space-between;padding:5px 0 2px;margin-top:3px;border-top:1px dashed #e5e7eb;font-weight:700;color:'+(overschot>=0?'#059669':'#dc2626')+'"><span>= MOM+ overschot</span><span>'+(overschot>=0?'+':'')+fmt(overschot)+(overschot<0?' ⚠️':'')+'</span></div>';
+    if(overschot<0&&!cappKostendekking)bh+='<div style="font-size:10.5px;color:#dc2626;padding:2px 0 0;font-style:italic">⚠️ Tekort wordt niet bijgedragen aan pool (afgekapt op €0). Schakel "Pool dekt tekort" in om dit te corrigeren.</div>';
+    if(mdoBlk>0)bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#7c3aed"><span>+ 🗣 MDO-blokken</span><strong>'+fmt(mdoBlk)+'</strong></div>';
+    if(mdo>0)bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#7c3aed"><span>+ MDO losse acts</span><strong>'+fmt(mdo)+'</strong></div>';
+    if(adm>0)bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#7c3aed"><span>+ Admin kosten</span><strong>'+fmt(adm)+'</strong></div>';
+    if(av>0)bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#7c3aed"><span>+ Avondtoeslag → ☕</span><strong>'+fmt(av)+'</strong></div>';
+    if(mixCp>0)bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#7c3aed"><span>+ Mix-acts → ☕ pool</span><strong>'+fmt(mixCp)+'</strong></div>';
+    if(cappKostendekking&&overschot<0&&bronnen>0){
+      const dekking=Math.min(bronnen,-overschot);
+      bh+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:#b45309;font-style:italic"><span>− Pool dekt MOM+-tekort</span><strong>-'+fmt(dekking)+'</strong></div>';
+    }
+    bh+='<div style="display:flex;justify-content:space-between;padding:5px 0 0;margin-top:4px;border-top:1px solid #e5e7eb;font-weight:700;color:'+(pool>0?'#059669':'#dc2626')+'"><span>Totaal pool</span><span>'+fmt(pool)+(pool<=0?' ⚠️':'')+'</span></div></div>';
+    bd.innerHTML=bh;
+  }
+  const pL1=(+cappData.pctL1||0)/100,pL2=(+cappData.pctL2||0)/100,pL3=(+cappData.pctL3||0)/100,pL4=(+cappData.pctL4||0)/100,pL5=(+cappData.pctL5||0)/100;
+  // Sliders renderen
+  const lagenEl=document.getElementById('capp-lagen-sliders');
+  if(lagenEl){
+    const lagen=[
+      {k:'pctL1',naam:'Laag 1 — Espresso',sub:'Aanwezigheidspunten (blokken)',kleur:'#7c3aed'},
+      {k:'pctL2',naam:'Laag 2 — Melk',sub:'Relatieve bezetting (ratio max 1,25)',kleur:'#2563eb'},
+      {k:'pctL3',naam:'Laag 3 — Schuim',sub:'Mandaten & expertise',kleur:'#d97706'},
+      {k:'pctL4',naam:'Laag 4 — Kaneel',sub:'Opleidingsniveau & verantwoordelijkheid',kleur:'#c2410c'},
+      {k:'pctL5',naam:'Laag 5 — Reserve',sub:'Opbouw MOM+-reserve (niet uitgekeerd)',kleur:'#94a3b8'}
+    ];
+    lagenEl.innerHTML=lagen.map(L=>{
+      const v=+cappData[L.k]||0;
+      const locked=cappLockedLagen.includes(L.k);
+      const lockBtn='<button class="lock-btn'+(locked?' on':'')+'" onclick="toggleCappLock(\''+L.k+'\')" title="'+(locked?'Klik om te ontgrendelen':'Klik om vast te zetten — slider beweegt niet meer mee bij andere wijzigingen')+'">'+(locked?'🔒':'🔓')+'</button>';
+      const sliderStyle='flex:1;accent-color:'+L.kleur+';min-width:90px;'+(locked?'cursor:not-allowed;opacity:.55':'cursor:pointer');
+      return '<div class="layer-cfg">'
+        +'<div class="layer-cfg-label" style="display:flex;align-items:flex-start;gap:5px">'+lockBtn+'<div><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:'+L.kleur+';margin-right:5px;vertical-align:middle"></span>'+L.naam+'<small>'+L.sub+'</small></div></div>'
+        +'<div style="display:flex;align-items:center;gap:6px;min-width:170px">'
+          +'<input type="range" min="0" max="100" step="0.5" value="'+v.toFixed(1)+'" '
+          +(locked?'disabled ':'')
+          +'oninput="document.getElementById(\'capp-lag-lbl-'+L.k+'\').textContent=(+this.value).toFixed(1)+\'%\'" '
+          +'onchange="setCappLaagPctLocked(\''+L.k+'\',+this.value)" '
+          +'style="'+sliderStyle+'">'
+          +'<span id="capp-lag-lbl-'+L.k+'" style="font-weight:700;color:'+L.kleur+';min-width:46px;text-align:right;font-size:11.5px">'+(locked?'🔒 ':'')+v.toFixed(1)+'%</span>'
+        +'</div>'
+      +'</div>';
+    }).join('');
+  }
+  const totLagen=CAPP_LAAG_KEYS.reduce((s,k)=>s+(+cappData[k]||0),0);
+  const lagenTotEl=document.getElementById('capp-lagen-tot');
+  if(lagenTotEl)lagenTotEl.innerHTML='Som lagen: <strong style="color:'+(Math.abs(totLagen-100)<0.5?'#059669':'#dc2626')+'">'+totLagen.toFixed(1)+'%</strong> / 100% — sliders gekoppeld, verhoog er één → de andere dalen evenredig.';
+  const barEl=document.getElementById('capp-pool-bar');
+  if(barEl)barEl.innerHTML='<div class="capp-layer-bar"><div class="capp-l1" style="width:'+pL1*100+'%"></div><div class="capp-l2" style="width:'+pL2*100+'%"></div><div class="capp-l3" style="width:'+pL3*100+'%"></div><div class="capp-l4" style="width:'+pL4*100+'%"></div><div class="capp-res" style="width:'+pL5*100+'%"></div></div><div class="capp-legend"><div class="capp-leg"><div class="capp-sq capp-l1"></div>L1 '+fmt(pL1*pool)+'</div><div class="capp-leg"><div class="capp-sq capp-l2"></div>L2 '+fmt(pL2*pool)+'</div><div class="capp-leg"><div class="capp-sq capp-l3"></div>L3 '+fmt(pL3*pool)+'</div><div class="capp-leg"><div class="capp-sq capp-l4"></div>L4 '+fmt(pL4*pool)+'</div><div class="capp-leg"><div class="capp-sq capp-res"></div>L5 Reserve '+fmt(pL5*pool)+'</div></div>';
+  const mdtSum=mandaten.reduce((s,m)=>s+(+m.punten||0),0);
+  const mdtTot=document.getElementById('mdt-totaal');
+  if(mdtTot)mdtTot.innerHTML='Som: <strong style="color:#d97706">'+mdtSum.toFixed(1)+'</strong> punten';
+  document.getElementById('mandaten-tbody').innerHTML=mandaten.map(m=>{
+    const p=+m.punten||0;
+    return'<tr><td><input type="text" value="'+m.naam+'" oninput="mn(\''+m.id+'\',this.value)" style="min-width:160px"></td>'
+      +'<td><div style="display:flex;align-items:center;gap:6px">'
+        +'<input type="range" min="0" max="'+PUNTEN_MAX+'" step="0.5" value="'+p.toFixed(1)+'" '
+        +'oninput="document.getElementById(\'mdt-lbl-'+m.id+'\').textContent=(+this.value).toFixed(1)" '
+        +'onchange="setMandaatPunten(\''+m.id+'\',+this.value)" '
+        +'style="flex:1;cursor:pointer;accent-color:#d97706;min-width:90px">'
+        +'<span id="mdt-lbl-'+m.id+'" style="font-weight:700;color:#d97706;min-width:30px;text-align:right;font-size:11.5px">'+p.toFixed(1)+'</span>'
+      +'</div></td>'
+      +'<td><button class="btn-del" onclick="delMandaat(\''+m.id+'\')">×</button></td></tr>';
+  }).join('');
+  // Opleidingen tabel (laag 4)
+  const oplSum=opleidingen.reduce((s,o)=>s+(+o.punten||0),0);
+  const oplTot=document.getElementById('opl-totaal');
+  if(oplTot)oplTot.innerHTML='Som: <strong style="color:#c2410c">'+oplSum.toFixed(1)+'</strong> punten';
+  document.getElementById('opleidingen-tbody').innerHTML=opleidingen.map(o=>{
+    const p=+o.punten||0;
+    return'<tr><td><input type="text" value="'+o.naam+'" oninput="opn(\''+o.id+'\',this.value)" style="min-width:160px"></td>'
+      +'<td><div style="display:flex;align-items:center;gap:6px">'
+        +'<input type="range" min="0" max="'+PUNTEN_MAX+'" step="0.5" value="'+p.toFixed(1)+'" '
+        +'oninput="document.getElementById(\'opl-lbl-'+o.id+'\').textContent=(+this.value).toFixed(1)" '
+        +'onchange="setOpleidingPunten(\''+o.id+'\',+this.value)" '
+        +'style="flex:1;cursor:pointer;accent-color:#c2410c;min-width:90px">'
+        +'<span id="opl-lbl-'+o.id+'" style="font-weight:700;color:#c2410c;min-width:30px;text-align:right;font-size:11.5px">'+p.toFixed(1)+'</span>'
+      +'</div></td>'
+      +'<td><button class="btn-del" onclick="delOpleiding(\''+o.id+'\')">×</button></td></tr>';
+  }).join('');
+  document.getElementById('capp-persoon-tbody').innerHTML=team.map((p,pi)=>{
+    const isBed=p.type==='bediende',dim=isBed?'capp-row-dim':'',dd=dagdelen(p),vw=dd*p.cons*wkPerMaand(p);
+    const hasWC=werkelijkeCons[p.id]!==undefined&&werkelijkeCons[p.id]!==null&&werkelijkeCons[p.id]!=='';
+    const wcRaw=hasWC?+werkelijkeCons[p.id]:vw;  // default werkelijk = verwacht (ratio 1,0)
+    const ratio=vw?Math.min(wcRaw/vw,1.25):1.0;
+    const rc=ratio>=1.2?'#059669':ratio>=0.9?'#374151':ratio>0?'#d97706':'#9ca3af';
+    const werkelijkAfgeleid=Math.round(vw*ratio);
+    const mPts=(personMandaten[p.id]||[]).reduce((s,mid)=>{const m=mandaten.find(x=>x.id===mid);return s+(m?+m.punten:0);},0);
+    const tags=mandaten.map(m=>{const on=(personMandaten[p.id]||[]).includes(m.id);return'<button class="mandaat-tag'+(on?' on':'')+'" onclick="toggleMandaat(\''+p.id+'\',\''+m.id+'\')">'+m.naam.split('/')[0].trim()+'</button>';}).join('');
+    const werkCell=isBed||!vw
+      ?'<span style="color:#d1d5db">—</span>'
+      :'<span style="font-weight:600;color:#374151">'+werkelijkAfgeleid+'</span>';
+    const ratioCell=isBed
+      ?'<span style="font-size:10px;color:#d1d5db">n.v.t.</span>'
+      :!vw
+        ?'<span style="font-size:10px;color:#d1d5db">geen blokken</span>'
+        :'<div style="display:flex;align-items:center;gap:5px">'
+          +'<input type="range" min="0" max="1.25" step="0.01" value="'+ratio.toFixed(2)+'" '
+          +'oninput="document.getElementById(\'capp-ratio-lbl-'+p.id+'\').textContent=(+this.value).toFixed(2);document.getElementById(\'capp-ratio-lbl-'+p.id+'\').style.color=(+this.value)>=1.2?\'#059669\':(+this.value)>=0.9?\'#374151\':(+this.value)>0?\'#d97706\':\'#9ca3af\'" '
+          +'onchange="setRatioSlider(\''+p.id+'\',+this.value)" '
+          +'style="flex:1;cursor:pointer;accent-color:#4f46e5;min-width:70px">'
+          +'<span id="capp-ratio-lbl-'+p.id+'" style="font-weight:700;color:'+rc+';font-size:11.5px;min-width:32px;text-align:right">'+ratio.toFixed(2)+'</span>'
+          +'</div>';
+    const oPts=(personOpleiding[p.id]||[]).reduce((s,oid)=>{const o=opleidingen.find(x=>x.id===oid);return s+(o?+o.punten:0);},0);
+    const oplTags=opleidingen.map(o=>{const on=(personOpleiding[p.id]||[]).includes(o.id);return'<button class="mandaat-tag'+(on?' on':'')+'" style="'+(on?'background:#c2410c;border-color:#c2410c;':'')+'" onclick="toggleOpleiding(\''+p.id+'\',\''+o.id+'\')">'+o.naam.split('/')[0].trim()+'</button>';}).join('');
+    return'<tr class="'+dim+'"><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span>'+p.naam+'</td><td><span class="type-badge '+(isBed?'type-b':'type-z')+'" style="cursor:default">'+(isBed?'B':'Z')+'</span></td><td style="text-align:right;color:#9ca3af">'+Math.round(vw)+'</td><td style="text-align:right">'+werkCell+'</td><td>'+ratioCell+'</td><td>'+(isBed?'<span style="font-size:10px;color:#d1d5db">n.v.t.</span>':tags)+'</td><td style="text-align:right;font-weight:600;color:#d97706">'+(mPts||'—')+'</td><td>'+(isBed?'<span style="font-size:10px;color:#d1d5db">n.v.t.</span>':oplTags)+'</td><td style="text-align:right;font-weight:600;color:#c2410c">'+(oPts||'—')+'</td></tr>';
+  }).join('');
+  // Min-afdracht tabel renderen
+  const minBody=document.getElementById('capp-min-tbody');
+  if(minBody){
+    const zlfs=team.filter(p=>p.type!=='bediende');
+    if(!zlfs.length){minBody.innerHTML='<p class="note">Geen zelfstandige teamleden.</p>';}
+    else{
+      minBody.innerHTML='<table style="font-size:11.5px"><thead><tr><th>Naam</th><th style="width:120px">Min afdracht %</th><th>Status</th></tr></thead><tbody>'
+        +zlfs.map((p,pi)=>{
+          const cur=personMinAfdrachtPct[p.id];
+          const isSet=cur!==''&&cur!==null&&cur!==undefined;
+          const inp='<input type="number" min="0" max="100" step="0.5" value="'+(isSet?cur:'')+'" placeholder="blanco = geen limiet" style="width:110px;border:1px solid #e5e7eb;border-radius:5px;padding:3px 6px;font-size:11.5px" oninput="setPersonMinAfdracht(\''+p.id+'\',this.value)">';
+          const status=isSet?'<span style="font-size:10.5px;color:#7c3aed;font-weight:600">🛡 minimum '+(+cur).toFixed(1)+'% effectief</span>':'<span style="font-size:10.5px;color:#9ca3af">geen limiet</span>';
+          return '<tr><td>'+p.naam+'</td><td>'+inp+'</td><td>'+status+'</td></tr>';
+        }).join('')
+      +'</tbody></table>';
+    }
+  }
+  const res=calcCapp(),rdiv=document.getElementById('capp-result-content');
+  if(!res||res.pool<=0){rdiv.innerHTML='<p class="note">Geen pool of geen deelnemende zelfstandigen.</p>';return;}
+  const{dln,pool:p2,L1,L2,L3,L4,totals,totPool,capped}=res;
+  let h='<div class="sum-grid" style="margin-bottom:10px"><div class="sum-card"><div class="sum-label">Pool</div><div class="sum-val neutral">'+fmt(p2)+'</div></div><div class="sum-card"><div class="sum-label">Verdeeld</div><div class="sum-val green">'+fmt(totPool)+'</div></div><div class="sum-card"><div class="sum-label">Reserve MOM+</div><div class="sum-val neutral">'+fmt(p2-totPool)+'</div></div></div>';
+  h+='<table><thead><tr><th>Naam</th><th style="text-align:right;color:#7c3aed">L1</th><th style="text-align:right;color:#2563eb">L2</th><th style="text-align:right;color:#d97706">L3</th><th style="text-align:right;color:#c2410c">L4</th><th style="text-align:right">Totaal</th><th style="text-align:right">%</th></tr></thead><tbody>';
+  dln.forEach((p,i)=>{const pct=totPool?totals[i]/totPool:0;const capInd=(capped&&capped[i])?' <span title="Gecapped door minimum afdracht%" style="color:#7c3aed">🛡</span>':'';h+='<tr><td style="font-weight:500">'+p.naam+capInd+'</td><td style="text-align:right;color:#7c3aed">'+fmt(L1[i])+'</td><td style="text-align:right;color:#2563eb">'+fmt(L2[i])+'</td><td style="text-align:right;color:#d97706">'+fmt(L3[i])+'</td><td style="text-align:right;color:#c2410c">'+fmt(L4[i])+'</td><td style="text-align:right;font-weight:700">'+fmt(totals[i])+'</td><td style="text-align:right;color:#6b7280">'+(pct*100).toFixed(1)+'%</td></tr>';});
+  h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td>Totaal</td><td style="text-align:right;color:#7c3aed">'+fmt(L1.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right;color:#2563eb">'+fmt(L2.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right;color:#d97706">'+fmt(L3.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right;color:#c2410c">'+fmt(L4.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right">'+fmt(totPool)+'</td><td style="text-align:right">100%</td></tr></tbody></table>';
+  h+='<p class="note" style="margin-top:8px"><strong>L1</strong> = aanwezigheid (dagdelen). <strong>L2</strong> = quota-bonus (puur ratio, ongeacht werkomvang). <strong>L3</strong> = mandaten × werkomvang (merit per gewerkte dag). <strong>L4</strong> = opleiding × werkomvang (kwalificatie per gewerkte dag). Bedienden uitgesloten.</p>';rdiv.innerHTML=h;
+}
+
+function renderMix(){
+  const ROPT='<option value="afdracht">→ afdracht</option><option value="cappuccino">→ ☕ pool</option><option value="instelbaar">⚙ p.p.</option>';
+  const FOPT='<option value="consultatie">💬 Consult</option><option value="technisch">🔬 Technisch</option><option value="mdo">👥 MDO</option><option value="groep">🫂 Groep</option><option value="toeslag">🌙 Toeslag</option><option value="admin">📝 Admin</option>';
+  document.getElementById('acts-tbody').innerHTML=acts.map(a=>{
+    const dur=a.familie==='consultatie'?'<input type="number" value="'+(a.duur||60)+'" style="width:50px" oninput="actD(\''+a.id+'\',+this.value)"> min':a.familie==='technisch'?'<input type="number" value="'+(a.duurDeclarant||8)+'" style="width:38px" oninput="actDD(\''+a.id+'\',+this.value)"> min + <input type="number" value="'+(a.duurPersoneel||15)+'" style="width:38px" oninput="actDP(\''+a.id+'\',+this.value)"> VPK':'—';
+    return'<tr><td><input type="text" value="'+a.naam+'" oninput="actN(\''+a.id+'\',this.value)" style="min-width:140px"></td><td><input type="text" value="'+(a.nomencl||'').replace(/"/g,'&quot;')+'" placeholder="—" oninput="actNom(\''+a.id+'\',this.value)" style="width:105px;font-family:monospace;font-size:11px;color:#374151"></td><td><select onchange="actF(\''+a.id+'\',this.value)">'+FOPT.replace('value="'+a.familie+'"','value="'+a.familie+'" selected')+'</select></td><td><input type="number" value="'+a.tarief+'" style="width:60px" oninput="actT(\''+a.id+'\',+this.value)"></td><td style="font-size:11px">'+dur+'</td><td><select onchange="actR(\''+a.id+'\',this.value)">'+ROPT.replace('value="'+a.routing+'"','value="'+a.routing+'" selected')+'</select></td><td><button class="btn-del" onclick="delAct(\''+a.id+'\')">×</button></td></tr>';
+  }).join('');
+
+  const cActs=acts.filter(a=>a.familie==='consultatie'),tActs=acts.filter(a=>a.familie==='technisch'),mActs=acts.filter(a=>a.familie==='mdo'),adAct=acts.find(a=>a.familie==='admin'),avAct=acts.find(a=>a.familie==='toeslag');
+  const cOpts=cActs.map(a=>'<option value="'+a.id+'">'+a.naam+'</option>').join('');
+
+  document.getElementById('mix-personen').innerHTML=team.map((p,pi)=>{
+    const isBed=p.type==='bediende',dd=dagdelen(p),wk=wkPerMaand(p);
+    const mix=personMix[p.id]||[],tech=personTechnisch[p.id]||{},mdoMap=personMDO[p.id]||{},adminMap=personAdmin[p.id]||{},avMap=personAvond[p.id]||{};
+    const avDD=avondDelen(p),totPct=mix.reduce((s,m)=>s+(+m.pct||0),0),pctOk=mix.length===0||Math.abs(totPct-100)<0.5;
+    let body='';
+    if(!isBed){
+      // Consultatiemix
+      const dB=dagBlokken(p);
+      const mRows=mix.map((m,mi)=>{
+        const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie'),cpb=act?cpbForAct(act,0):0,cpbAv=act?cpbForAct(act,2):0;
+        const blk=dd*(m.pct/100);
+        const vol=act?((dB*(m.pct/100)*cpb)+(avDD*(m.pct/100)*cpbAv))*wk:0;
+        const cpbLbl=act?(avDD>0?cpb+'d · '+cpbAv+'av':cpb+'/blok'):'—';
+        return'<tr><td><select onchange="mixActId(\''+p.id+'\','+mi+',this.value)" style="font-size:11px;border:1px solid #e5e7eb;border-radius:4px;padding:2px 3px"><option value="">— kies —</option>'+cOpts.replace('value="'+m.actId+'"','value="'+m.actId+'" selected')+'</select></td>'
+          +'<td><input type="number" value="'+(m.pct||'')+'" placeholder="0" min="0" max="100" style="width:46px;border:1px solid #e5e7eb;border-radius:4px;padding:2px 4px;font-size:11px" oninput="mixPct(\''+p.id+'\','+mi+',+this.value)"> %</td>'
+          +'<td style="text-align:center"><span class="cpb-pill" title="'+cpb+' consults per dagblok (5u30) · '+cpbAv+' per avondblok (4u30)">'+cpbLbl+'</span></td>'
+          +'<td style="text-align:right;font-size:11px;color:#6b7280">'+(act&&dd?Math.round(vol)+'/mnd':'')+'</td>'
+          +'<td><div style="width:'+Math.min(+m.pct||0,100)+'px;max-width:80px;height:5px;background:#4f46e5;border-radius:3px;min-width:2px"></div></td>'
+          +'<td><button class="btn-del" onclick="delMixRow(\''+p.id+'\','+mi+')">×</button></td></tr>';
+      }).join('');
+      body+='<div class="mix-section"><div class="card-title">Consultatiemix</div>'
+        +'<table style="font-size:11px"><thead><tr><th>Act</th><th>%</th><th style="text-align:center">Cons/blok</th><th style="text-align:right">Volume/mnd</th><th>Verdeling</th><th></th></tr></thead><tbody>'
+        +(mRows||'<tr><td colspan="6" style="color:#9ca3af;padding:5px 0;font-size:11px">Geen mix ingesteld — gebruikt standaard tarief/cons</td></tr>')
+        +'</tbody></table><div style="display:flex;align-items:center;gap:8px;margin-top:6px">'
+        +'<button class="btn btn-primary btn-sm" onclick="addMixRow(\''+p.id+'\')">+ Act toevoegen</button>'
+        +(mix.length>0?'<span class="'+(pctOk?'pct-ok':'pct-warn')+'">'+totPct+'% '+(pctOk?'✓':'← moet 100% zijn')+'</span>':'')
+        +'</div></div>';
+      // Technische prestaties
+      if(tActs.length){
+        const dBtech=dagBlokken(p);
+        const tRows=tActs.map(act=>{const cnt=tech[act.id]||0,inc=cnt*dBtech*wk*act.tarief*(p.pct/100);return'<tr><td>'+act.naam+' <span style="font-size:9px;color:#9ca3af">'+act.duurDeclarant+'min decl + '+act.duurPersoneel+'min VPK</span></td><td><input type="number" value="'+(cnt||'')+'" placeholder="0" min="0" style="width:46px;border:1px solid #e5e7eb;border-radius:4px;padding:2px 4px;font-size:11px" oninput="setTech(\''+p.id+'\',\''+act.id+'\',+this.value)"> /dagblok</td><td style="text-align:right;color:#059669;font-size:11px">'+(cnt&&dBtech?fmt(inc):'—')+'</td></tr>';}).join('');
+        body+='<div class="mix-section"><div class="card-title">Technische prestaties (→ afdracht) <span style="font-size:10px;color:#9ca3af;font-weight:400">enkel dagblokken — geen avond</span></div><table style="font-size:11px"><thead><tr><th>Prestatie</th><th>Volume</th><th style="text-align:right">MOM+/mnd</th></tr></thead><tbody>'+tRows+'</tbody></table>'+(avDD>0?'<p class="note" style="margin-top:5px;font-size:10.5px">⚠ '+avDD+' avondblok'+(avDD>1?'ken':'')+'/wk staat ingepland — technische prestaties tellen daar niet (vb. geen EEG \'s avonds).</p>':'')+'</div>';
+      }
+      // MDO — eenvoudige invoer: aantal MDO's per week per teamlid
+      const mdoMDOs=+mdoBlokken[p.id]||0,mdoTar=mdoTariefAct(),mdoInc=mdoMDOs*mdoTar*wk;
+      let mdoBlockHtml='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:11.5px;border-bottom:1px solid #f3f4f6;margin-bottom:6px">'
+        +'<span style="font-weight:600">🗣 MDO\'s/week</span>'
+        +'<input type="number" value="'+(mdoMDOs||'')+'" placeholder="0" min="0" max="40" style="width:50px;border:1px solid #e5e7eb;border-radius:5px;padding:3px 6px;text-align:center;font-weight:600" oninput="setMdoBlokken(\''+p.id+'\',+this.value)">'
+        +(mdoMDOs?'<span style="color:#6b7280;font-size:10.5px">× €'+mdoTar+' × '+wk.toFixed(2)+' wk/mnd</span><span style="color:#7c3aed;font-weight:600;margin-left:auto">→ '+fmt(mdoInc)+'/mnd</span><span class="capp-badge">→ ☕</span>':'<span style="color:#9ca3af;font-size:10.5px;margin-left:auto">aantal cliënt-besprekingen/week voor dit teamlid</span>')
+        +'</div>';
+      if(mActs.length){
+        const mRows2=mActs.map(act=>{const pw=mdoMap[act.id]||0,inc=pw*act.tarief*wk;return'<tr><td>'+act.naam+'</td><td><input type="number" value="'+(pw||'')+'" placeholder="0" min="0" style="width:46px;border:1px solid #e5e7eb;border-radius:4px;padding:2px 4px;font-size:11px" oninput="setMDO(\''+p.id+'\',\''+act.id+'\',+this.value)"> /week</td><td style="text-align:right;color:#7c3aed;font-size:11px">'+(pw?fmt(inc):'—')+'</td><td><span class="capp-badge">→ ☕</span></td></tr>';}).join('');
+        body+='<div class="mix-section"><div class="card-title">MDO (→ ☕ pool)</div>'+mdoBlockHtml+'<div style="font-size:10.5px;color:#9ca3af;margin:4px 0 3px">Of losse MDO-acts (oude manier, per act-type):</div><table style="font-size:11px"><thead><tr><th>Type</th><th>Frequentie</th><th style="text-align:right">Pool/mnd</th><th></th></tr></thead><tbody>'+mRows2+'</tbody></table></div>';
+      } else {
+        body+='<div class="mix-section"><div class="card-title">MDO (→ ☕ pool)</div>'+mdoBlockHtml+'</div>';
+      }
+      // Admin
+      if(adAct){const pm=adminMap[adAct.id]||0,inc=pm*adAct.tarief;body+='<div class="mix-section"><div class="card-title">Administratieve kost €'+adAct.tarief+' (→ ☕ pool)</div><div style="display:flex;align-items:center;gap:8px;font-size:11.5px"><input type="number" value="'+(pm||'')+'" placeholder="0" min="0" style="width:65px;border:1px solid #e5e7eb;border-radius:5px;padding:3px 6px" oninput="setAdmin(\''+p.id+'\',\''+adAct.id+'\',+this.value)"> handelingen/mnd'+(pm?'<span style="color:#7c3aed;font-weight:600">→ '+fmt(inc)+'/mnd</span>':'')+'<span class="capp-badge">→ ☕</span></div></div>';}
+      // Avond
+      if(avDD>0){
+        const avPctStr=personAvondPct[p.id];
+        const avOver=hasAvondOverride(p);
+        const avPctVal=avOver?(+avPctStr||0):(+p.pct||0);
+        const avBruto=brutoEurPerBlok(p,2)*avDD*wk;
+        const avAfd=avBruto*(avPctVal/100);
+        let inner='🌙 <strong>'+avDD+' avondblok'+(avDD>1?'ken':'')+'/week</strong> <span style="color:#9ca3af;font-size:10.5px">(4u30/blok)</span>';
+        // Aparte avondafdracht%
+        inner+='<div style="display:flex;align-items:center;gap:6px;margin-left:auto">'
+          +'<span style="font-size:10.5px;color:'+(avOver?'#7c3aed':'#9ca3af')+'">Avond afdracht%:</span>'
+          +'<input type="number" min="0" max="100" step="0.5" value="'+(avPctStr??'')+'" placeholder="= dag" style="width:60px;border:1px solid '+(avOver?'#7c3aed':'#e5e7eb')+';border-radius:5px;padding:2px 5px;font-size:11px;text-align:right" oninput="setAvondPct(\''+p.id+'\',this.value)" title="Leeg laten = zelfde % als dag. Andere waarde = aparte avond-afdracht.">'
+          +'<span style="font-size:11px;color:'+(avOver?'#7c3aed':'#6b7280')+';font-weight:600">%</span>'
+        +'</div>';
+        body+='<div class="avond-row">'+inner+'</div>';
+        body+='<div style="font-size:10.5px;color:#6b7280;padding:5px 9px 0 9px">Bruto avond/mnd ≈ <strong>'+fmt(avBruto)+'</strong> · MOM+-afdracht ≈ <strong style="color:#4f46e5">'+fmt(avAfd)+'</strong> '+(avOver?'<span style="color:#7c3aed">(apart % avond)</span>':'<span style="color:#9ca3af">(gebruikt dag-%)</span>')+'</div>';
+        // Avondtoeslag (apart, optioneel)
+        if(avAct){const routing=avMap[avAct.id]||'afdracht',inc=avDD*wk*avAct.tarief;body+='<div class="avond-row" style="margin-top:5px">➕ <strong>Avondtoeslag</strong> €'+avAct.tarief+'/blok → '+fmt(inc)+'/mnd <select onchange="setAvond(\''+p.id+'\',\''+avAct.id+'\',this.value)" style="margin-left:auto;padding:2px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px"><option value="afdracht"'+(routing==='afdracht'?' selected':'')+'>→ persoonlijk</option><option value="cappuccino"'+(routing==='cappuccino'?' selected':'')+'>→ ☕ pool</option></select></div>';}
+      }
+    }else{body='<p class="note">Bediende — geen consultatiemix of cappuccinodeelname.</p>';}
+    return'<div class="mix-person" style="border-left:3px solid '+clr(pi)+'"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div class="color-dot" style="background:'+clr(pi)+';width:10px;height:10px"></div><strong style="font-size:13px">'+p.naam+'</strong><span class="type-badge '+(isBed?'type-b':'type-z')+'" style="cursor:default">'+(isBed?'B':'Z')+'</span>'+(dd?'<span style="font-size:11px;color:#6b7280;margin-left:auto">'+dd+' blokken/wk</span>':'<span style="font-size:11px;color:#dc2626;margin-left:auto">⚠️ geen roosterblokken</span>')+'</div>'+body+'</div>';
+  }).join('');
+}
+
+function renderCap(){
+  const rows=team.map((p,pi)=>{
+    const dd=dagdelen(p),dB=dagBlokken(p),avB=avondDelen(p),wk=wkPerMaand(p),mix=personMix[p.id]||[],tech=personTechnisch[p.id]||{},mdoMap=personMDO[p.id]||{};
+    let cMnd=0;
+    if(mix.length>0){
+      for(const m of mix){
+        const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act)continue;
+        cMnd+=dB*(m.pct/100)*cpbForAct(act,0)*wk;
+        cMnd+=avB*(m.pct/100)*cpbForAct(act,2)*wk;
+      }
+    } else if(p.type!=='bediende'&&dd>0){
+      // p.cons = per dagblok; avondblok pro rata korter
+      cMnd=(dB+avB*avondShare())*(+p.cons||0)*wk;
+    }
+    // Technisch: enkel overdag (geen tech tijdens avondblokken — bv. geen EEG)
+    let tMnd=0;for(const[aId,cnt]of Object.entries(tech)){const act=acts.find(a=>a.id===aId);if(act&&cnt)tMnd+=cnt*dB*wk;}
+    let mMnd=0;for(const[,pw]of Object.entries(mdoMap)){if(pw)mMnd+=pw*wk;}
+    return{p,pi,dd,cMnd,tMnd,mMnd,hasMix:mix.length>0};
+  });
+  const tC=rows.reduce((s,r)=>s+r.cMnd,0),tT=rows.reduce((s,r)=>s+r.tMnd,0),tM=rows.reduce((s,r)=>s+r.mMnd,0);
+  const tl=+trajLen||DEFAULT_TRAJLEN,newPat=tl>0?tC/tl:0;
+  let h='<div class="cap-stat-grid"><div class="sum-card"><div class="sum-label">Consultaties/mnd</div><div class="sum-val neutral">'+Math.round(tC)+'</div></div><div class="sum-card"><div class="sum-label">Tech. prestaties/mnd</div><div class="sum-val neutral">'+Math.round(tT)+'</div></div><div class="sum-card"><div class="sum-label">MDOs/mnd</div><div class="sum-val neutral">'+Math.round(tM)+'</div></div><div class="sum-card"><div class="sum-label">Nieuwe patiënten/mnd</div><div class="sum-val green">'+Math.round(newPat)+'</div></div></div>';
+  h+='<div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px"><div style="font-weight:600;color:#374151;font-size:12.5px">Trajectlengte (gesprekken per traject)</div><p class="note" style="margin-top:2px">Gemiddeld aantal gesprekken dat een traject duurt. Gebruikt om "nieuwe patiënten/mnd" te berekenen.</p></div><input type="number" id="p-trajlen-cap" value="'+tl+'" min="1" max="100" step="1" style="width:80px;border:1px solid #e5e7eb;border-radius:6px;padding:6px 8px;font-size:14px;text-align:right" onchange="setTrajLen(+this.value)"><span style="font-size:12px;color:#9ca3af">gesprekken</span></div>';
+  h+='<div class="card"><div class="card-title">Capaciteit per teamlid</div><table><thead><tr><th>Naam</th><th style="text-align:right">Blokken/wk</th><th style="text-align:right">Consult/mnd</th><th style="text-align:right">Tech/mnd</th><th style="text-align:right">MDO/mnd</th><th style="text-align:right">Bron</th></tr></thead><tbody>';
+  rows.forEach(({p,pi,dd,cMnd,tMnd,mMnd,hasMix})=>{h+='<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+clr(pi)+';margin-right:5px"></span>'+p.naam+'</td><td style="text-align:right">'+dd+'</td><td style="text-align:right;font-weight:600">'+(Math.round(cMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(tMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(mMnd)||'—')+'</td><td style="text-align:right"><span style="font-size:10px;padding:1px 5px;border-radius:3px;background:'+(hasMix?'#ede9fe':'#f3f4f6')+';color:'+(hasMix?'#6d28d9':'#9ca3af')+'">'+(hasMix?'mix':'standaard')+'</span></td></tr>';});
+  h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td>Totaal</td><td style="text-align:right">'+rows.reduce((s,r)=>s+r.dd,0)+'</td><td style="text-align:right">'+Math.round(tC)+'</td><td style="text-align:right">'+Math.round(tT)+'</td><td style="text-align:right">'+Math.round(tM)+'</td><td></td></tr></tbody></table><p class="note" style="margin-top:7px">Trajectlengte: '+tl+' gesprekken. Nieuwe patiënten/mnd = consultaties ÷ trajectlengte.</p></div>';
+  document.getElementById('cap-content').innerHTML=h;
+}
+
+function hv_naam(id,v){const p=team.find(x=>x.id===id);if(p){p.naam=v;refreshAll();onAnyChange();}}
+function hv_v(id,f,v){const p=team.find(x=>x.id===id);if(p){p[f]=v;renderFin();renderCapp();onAnyChange();}}
+function setPctSlider(pid,v){
+  const p=team.find(x=>x.id===pid);
+  if(!p)return;
+  p.pct=v;
+  const teamInput=document.querySelector('input[data-team-pct="'+pid+'"]');
+  if(teamInput)teamInput.value=v;
+  renderFin();renderCapp();
+  if(document.getElementById('tab-mix').classList.contains('active'))renderMix();
+  onAnyChange();
+}
+function toggleFinExpand(pid){finExpanded[pid]=!finExpanded[pid];renderFin();}
+function setActPctOverride(pid,actId,pct){if(!personActPct[pid])personActPct[pid]={};personActPct[pid][actId]=Math.max(0,Math.min(100,+pct||0));renderFin();renderCapp();onAnyChange();}
+function clearActPctOverride(pid,actId){if(personActPct[pid]){delete personActPct[pid][actId];if(Object.keys(personActPct[pid]).length===0)delete personActPct[pid];}renderFin();renderCapp();onAnyChange();}
+function toggleCappOptIn(pid){
+  const p=team.find(x=>x.id===pid);
+  if(!p||p.type==='bediende')return;
+  cappOptIn[pid]=cappOptIn[pid]===false?true:false;
+  renderFin();renderCapp();onAnyChange();
+}
+function setEurBlokSlider(pid,eur){
+  const p=team.find(x=>x.id===pid);
+  if(!p)return;
+  const bruto=brutoEurPerBlok(p);
+  if(bruto<=0){return;}
+  let newPct=(eur/bruto)*100;
+  newPct=Math.max(0,Math.min(100,newPct));
+  p.pct=Math.round(newPct*10)/10;
+  const teamInput=document.querySelector('input[data-team-pct="'+pid+'"]');
+  if(teamInput)teamInput.value=p.pct;
+  renderFin();renderCapp();
+  if(document.getElementById('tab-mix').classList.contains('active'))renderMix();
+  onAnyChange();
+}
+function updateFinLabels(pid,val,type){
+  // Live sync tussen %-slider en €/blok-slider tijdens slepen (geen volledige re-render)
+  const p=team.find(x=>x.id===pid);
+  if(!p)return;
+  const bruto=brutoEurPerBlok(p,0),brutoAv=brutoEurPerBlok(p,2),dB=dagBlokken(p),avB=avondDelen(p);
+  let pct,eur;
+  if(type==='pct'){pct=+val;eur=(pct/100)*bruto;}
+  else{eur=+val;pct=bruto>0?(eur/bruto)*100:0;}
+  const avPct=hasAvondOverride(p)?(+personAvondPct[p.id]||0):pct;
+  const wk=eur*dB+brutoAv*(avPct/100)*avB;
+  const elP=document.getElementById('fin-pct-lbl-'+pid);if(elP)elP.textContent=pct.toFixed(1)+'%';
+  const elE=document.getElementById('fin-eur-lbl-'+pid);if(elE)elE.textContent='€'+Math.round(eur)+'/blok';
+  const elW=document.getElementById('fin-week-lbl-'+pid);if(elW)elW.textContent=(dB+avB)?'= €'+Math.round(wk)+'/wk':'—';
+  if(type==='pct'){const slE=document.querySelector('input[data-fin-eur="'+pid+'"]');if(slE)slE.value=eur.toFixed(1);}
+  else{const slP=document.querySelector('input[data-fin-pct="'+pid+'"]');if(slP)slP.value=pct.toFixed(1);}
+}
+function toggleType(id){const p=team.find(x=>x.id===id);if(p){p.type=p.type==='bediende'?'zelfstandige':'bediende';renderTeam();renderCapp();renderMix();onAnyChange();}}
+function kn(id,v){const k=kostenData.find(x=>x.id===id);if(k){k.naam=v;onAnyChange();}}
+function kb(id,v){const k=kostenData.find(x=>x.id===id);if(k){k.bedrag=v;renderKosten();renderFin();renderCapp();onAnyChange();}}
+function kp(id){const k=kostenData.find(x=>x.id===id);if(k){k.periode=k.periode==='jr'?'mnd':'jr';renderKosten();renderFin();renderCapp();onAnyChange();}}
+function delKost(id){kostenData=kostenData.filter(x=>x.id!==id);renderKosten();renderFin();renderCapp();onAnyChange();}
+function addKost(){const n=document.getElementById('nk-naam').value.trim(),b=+document.getElementById('nk-bedrag').value||0,per=document.getElementById('nk-periode').value||'mnd';if(!n)return;kostenData.push({id:nextId('k'),naam:n,bedrag:b,periode:per});document.getElementById('nk-naam').value='';document.getElementById('nk-bedrag').value='';renderKosten();renderFin();renderCapp();onAnyChange();}
+function addBediende(){
+  const n=(document.getElementById('np-naam')?.value||'').trim();
+  const ific=(document.getElementById('np-ific')?.value||'').trim();
+  const bj=+(document.getElementById('np-bruto')?.value)||0;
+  if(!n){alert('Geef de bediende een naam.');return;}
+  const pid=nextId('t');
+  team.push({id:pid,naam:n,tarief:0,cons:0,pct:0,wkjr:46,type:'bediende',brutoJaar:bj,ific:ific});
+  slots[pid]=mkDef();
+  ['np-naam','np-ific','np-bruto'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  refreshAll();onAnyChange();
+}
+function setBedJaar(pid,v){const p=team.find(x=>x.id===pid);if(!p)return;p.brutoJaar=Math.max(0,+v||0);renderKosten();renderFin();renderCapp();onAnyChange();}
+function setBedIfic(pid,v){const p=team.find(x=>x.id===pid);if(!p)return;p.ific=(v||'').toString().trim();renderKosten();onAnyChange();}
+const PUNTEN_MAX=20;
+function setMandaatPunten(id,newVal){const m=mandaten.find(x=>x.id===id);if(!m)return;m.punten=Math.max(0,Math.min(PUNTEN_MAX,+newVal||0));renderCapp();onAnyChange();}
+function setOpleidingPunten(id,newVal){const o=opleidingen.find(x=>x.id===id);if(!o)return;o.punten=Math.max(0,Math.min(PUNTEN_MAX,+newVal||0));renderCapp();onAnyChange();}
+function opn(id,v){const o=opleidingen.find(x=>x.id===id);if(o){o.naam=v;onAnyChange();}}
+function delOpleiding(id){opleidingen=opleidingen.filter(x=>x.id!==id);Object.keys(personOpleiding).forEach(pid=>{personOpleiding[pid]=(personOpleiding[pid]||[]).filter(oid=>oid!==id);});renderCapp();onAnyChange();}
+function addOpleiding(){const n=document.getElementById('no-naam').value.trim();if(!n)return;opleidingen.push({id:nextId('op'),naam:n,punten:0});document.getElementById('no-naam').value='';renderCapp();onAnyChange();}
+function toggleOpleiding(pid,oid){if(!personOpleiding[pid])personOpleiding[pid]=[];const idx=personOpleiding[pid].indexOf(oid);if(idx>=0)personOpleiding[pid].splice(idx,1);else personOpleiding[pid].push(oid);renderCapp();onAnyChange();}
+function mn(id,v){const m=mandaten.find(x=>x.id===id);if(m){m.naam=v;onAnyChange();}}
+function mpx(id,v){const m=mandaten.find(x=>x.id===id);if(m){m.punten=v;renderCapp();onAnyChange();}}
+function delMandaat(id){mandaten=mandaten.filter(x=>x.id!==id);Object.keys(personMandaten).forEach(pid=>{personMandaten[pid]=(personMandaten[pid]||[]).filter(mid=>mid!==id);});renderCapp();onAnyChange();}
+function addMandaat(){const n=document.getElementById('nm-naam').value.trim();if(!n)return;mandaten.push({id:nextId('md'),naam:n,punten:0});document.getElementById('nm-naam').value='';const np=document.getElementById('nm-punten');if(np)np.value='';renderCapp();onAnyChange();}
+function toggleMandaat(pid,mid){if(!personMandaten[pid])personMandaten[pid]=[];const idx=personMandaten[pid].indexOf(mid);if(idx>=0)personMandaten[pid].splice(idx,1);else personMandaten[pid].push(mid);renderCapp();onAnyChange();}
+function setWC(pid,v){werkelijkeCons[pid]=v;renderCapp();onAnyChange();}
+function setRatioSlider(pid,ratio){
+  const p=team.find(x=>x.id===pid);
+  if(!p)return;
+  const vw=dagdelen(p)*p.cons*wkPerMaand(p);
+  werkelijkeCons[pid]=Math.round(vw*ratio);
+  renderCapp();
+  renderFin();
+  onAnyChange();
+}
+function onCappChange(){renderCapp();onAnyChange();}
+let cappLockedLagen=[]; // namen van gelockte lagen (bv. ['pctL2','pctL5'])
+function toggleCappLock(field){
+  const i=cappLockedLagen.indexOf(field);
+  if(i>=0)cappLockedLagen.splice(i,1);else cappLockedLagen.push(field);
+  renderCapp();onAnyChange();
+}
+function setCappLaagPctLocked(field,newVal){
+  if(!CAPP_LAAG_KEYS.includes(field))return;
+  if(cappLockedLagen.includes(field))return; // gelocked → niet wijzigen
+  const lockedSum=cappLockedLagen.reduce((s,k)=>s+(+cappData[k]||0),0);
+  const available=Math.max(0,100-lockedSum);
+  newVal=Math.max(0,Math.min(available,+newVal||0));
+  cappData[field]=newVal;
+  const others=CAPP_LAAG_KEYS.filter(k=>k!==field&&!cappLockedLagen.includes(k));
+  const sumOthers=others.reduce((s,k)=>s+(+cappData[k]||0),0);
+  const targetOthers=available-newVal;
+  if(sumOthers>0.001){const f=targetOthers/sumOthers;others.forEach(k=>cappData[k]=Math.max(0,(+cappData[k]||0)*f));}
+  else if(targetOthers>0&&others.length){const each=targetOthers/others.length;others.forEach(k=>cappData[k]=each);}
+  renderCapp();onAnyChange();
+}
+function toggleCappKostendekking(active){cappKostendekking=!!active;renderCapp();renderFin();onAnyChange();}
+function setPersonMinAfdracht(pid,v){
+  const s=(v||'').toString().trim();
+  if(s===''){delete personMinAfdrachtPct[pid];}
+  else{const n=+s;if(!isNaN(n))personMinAfdrachtPct[pid]=Math.max(0,Math.min(100,n));}
+  renderCapp();renderFin();onAnyChange();
+}
+function toggleSlot(pid,di,bi){if(!slots[pid])slots[pid]=mkDef();slots[pid][di][bi]=!slotOn(slots[pid][di][bi]);renderRooster();renderFin();renderCapp();renderMix();renderCap();onAnyChange();}
+function setSlot(pid,di,bi,val){
+  if(!slots[pid])slots[pid]=mkDef();
+  // val van <select>: '' = niet aanwezig, 'X' = aanwezig zonder ruimte, anders ruimte-id
+  if(val===''||val===null||val===undefined)slots[pid][di][bi]=false;
+  else if(val==='X')slots[pid][di][bi]='X';
+  else slots[pid][di][bi]=val;
+  renderRooster();renderFin();renderCapp();renderMix();renderCap();onAnyChange();
+}
+function addRuimte(){
+  const naam=(document.getElementById('nr-naam')?.value||'').trim();
+  const kleur=document.getElementById('nr-kleur')?.value||'#4f46e5';
+  if(!naam){alert('Geef de ruimte een naam.');return;}
+  ruimtes.push({id:nextId('r'),naam,kleur});
+  const elN=document.getElementById('nr-naam');if(elN)elN.value='';
+  renderRooster();onAnyChange();
+}
+function delRuimte(id){
+  const r=ruimtes.find(x=>x.id===id);if(!r)return;
+  if(!confirm('Ruimte "'+(r.naam||'(naamloos)')+'" verwijderen? Alle toegewezen blokken aan deze ruimte worden gereset naar ✓ (aanwezig zonder ruimte).'))return;
+  ruimtes=ruimtes.filter(x=>x.id!==id);
+  // Cleanup slots: vervang verwijderde ruimte-id door 'X' (= behoud aanwezigheid maar zonder ruimte)
+  Object.keys(slots).forEach(pid=>{
+    const dd=slots[pid];if(!Array.isArray(dd))return;
+    for(let di=0;di<dd.length;di++){const row=dd[di];if(!Array.isArray(row))continue;for(let bi=0;bi<row.length;bi++){if(row[bi]===id)row[bi]='X';}}
+  });
+  renderRooster();renderFin();renderCapp();onAnyChange();
+}
+function renameRuimte(id,v){const r=ruimtes.find(x=>x.id===id);if(!r)return;r.naam=(v||'').toString();onAnyChange();const info=document.getElementById('ruimtes-info');if(info)info.innerHTML='<strong>'+ruimtes.length+'</strong> ruimte(s) beschikbaar.';/* light re-render: hover-titles updaten */ const sels=document.querySelectorAll('.slot-sel');sels.forEach(s=>{if(s.value===id)s.setAttribute('title',r.naam);});}
+function recolorRuimte(id,v){const r=ruimtes.find(x=>x.id===id);if(!r)return;r.kleur=v||'#4f46e5';renderRooster();onAnyChange();}
+function addPersoon(){const n=document.getElementById('nh-naam').value.trim();if(!n)return;const id=nextId('tp'),t=document.getElementById('nh-type').value||'zelfstandige';const pctStr=document.getElementById('nh-pct').value;const pct=pctStr===''||pctStr==null?(t==='bediende'?0:20):+pctStr;team.push({id,naam:n,type:t,tarief:+document.getElementById('nh-tarief').value||80,cons:+document.getElementById('nh-cons').value||4,pct:pct,wkjr:+document.getElementById('nh-wkjr').value||46,brutoJaar:0,ific:''});slots[id]=mkDef();['nh-naam','nh-tarief','nh-cons','nh-pct','nh-wkjr'].forEach(x=>document.getElementById(x).value='');refreshAll();onAnyChange();}
+function delPersoon(id){team=team.filter(p=>p.id!==id);delete slots[id];delete personMandaten[id];delete personOpleiding[id];delete werkelijkeCons[id];delete personMix[id];delete personTechnisch[id];delete personMDO[id];delete personAdmin[id];delete personAvond[id];delete mdoBlokken[id];delete cappOptIn[id];delete personActPct[id];delete personMinAfdrachtPct[id];delete personAvondPct[id];delete finExpanded[id];refreshAll();onAnyChange();}
+function onVerdoken(){verdokenKosten=getVerdokenFromDOM();renderVerdoken();renderFin();renderRooster();renderCap();renderCapp();if(document.getElementById('tab-mix').classList.contains('active'))renderMix();onAnyChange();}
+function dismissDisclaimer(){const b=document.getElementById('disclaimer-banner');if(b)b.style.display='none';}
+function setTrajLen(v){trajLen=Math.max(1,+v||DEFAULT_TRAJLEN);renderCap();onAnyChange();}
+function actN(id,v){const a=acts.find(x=>x.id===id);if(a){a.naam=v;onAnyChange();}}
+function actNom(id,v){const a=acts.find(x=>x.id===id);if(a){a.nomencl=v;onAnyChange();}}
+function actF(id,v){const a=acts.find(x=>x.id===id);if(a){a.familie=v;renderMix();onAnyChange();}}
+function actT(id,v){const a=acts.find(x=>x.id===id);if(a){a.tarief=v;renderFin();renderCapp();renderMix();renderCap();renderTeam();onAnyChange();}}
+function actD(id,v){const a=acts.find(x=>x.id===id);if(a){a.duur=v;renderMix();renderCap();renderTeam();renderFin();onAnyChange();}}
+function actDD(id,v){const a=acts.find(x=>x.id===id);if(a){a.duurDeclarant=v;renderMix();onAnyChange();}}
+function actDP(id,v){const a=acts.find(x=>x.id===id);if(a){a.duurPersoneel=v;renderMix();onAnyChange();}}
+function actR(id,v){const a=acts.find(x=>x.id===id);if(a){a.routing=v;renderMix();onAnyChange();}}
+function delAct(id){acts=acts.filter(x=>x.id!==id);Object.keys(personMix).forEach(pid=>{personMix[pid]=(personMix[pid]||[]).filter(m=>m.actId!==id);});['personTechnisch','personMDO','personAdmin','personAvond'].forEach(k=>{Object.keys(window[k]).forEach(pid=>{delete window[k][pid][id];});});Object.keys(personActPct).forEach(pid=>{if(personActPct[pid])delete personActPct[pid][id];});renderMix();renderFin();renderCapp();renderCap();renderTeam();onAnyChange();}
+function addAct(){const n=document.getElementById('na-naam').value.trim(),f=document.getElementById('na-familie').value,t=+document.getElementById('na-tarief').value||0,d=+document.getElementById('na-duur').value||60,nom=(document.getElementById('na-nomencl')?.value||'').trim();if(!n)return;acts.push({id:nextId('ac'),naam:n,nomencl:nom,familie:f,tarief:t,duur:d,duurDeclarant:null,duurPersoneel:null,routing:'afdracht'});['na-naam','na-tarief','na-duur','na-nomencl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});renderMix();onAnyChange();}
+function addMixRow(pid){if(!personMix[pid])personMix[pid]=[];const fc=acts.find(a=>a.familie==='consultatie');personMix[pid].push({actId:fc?fc.id:'',pct:0});renderMix();renderTeam();onAnyChange();}
+function delMixRow(pid,idx){if(!personMix[pid])return;personMix[pid].splice(idx,1);if(personMix[pid].length===0)delete personMix[pid];renderMix();renderFin();renderCap();renderTeam();onAnyChange();}
+function mixActId(pid,idx,v){if(!personMix[pid])return;personMix[pid][idx].actId=v;renderMix();renderFin();renderCap();renderTeam();onAnyChange();}
+function mixPct(pid,idx,v){if(!personMix[pid])return;personMix[pid][idx].pct=v;renderMix();renderFin();renderCap();renderTeam();onAnyChange();}
+function setTech(pid,actId,v){if(!personTechnisch[pid])personTechnisch[pid]={};personTechnisch[pid][actId]=v;renderMix();renderFin();renderCap();onAnyChange();}
+function setMDO(pid,actId,v){if(!personMDO[pid])personMDO[pid]={};personMDO[pid][actId]=v;renderCapp();renderMix();onAnyChange();}
+function setAdmin(pid,actId,v){if(!personAdmin[pid])personAdmin[pid]={};personAdmin[pid][actId]=v;renderCapp();renderMix();onAnyChange();}
+function setAvond(pid,actId,v){if(!personAvond[pid])personAvond[pid]={};personAvond[pid][actId]=v;renderCapp();renderMix();onAnyChange();}
+function setAvondPct(pid,v){
+  const s=(v||'').toString().trim();
+  if(s===''){delete personAvondPct[pid];}
+  else{const n=+s;if(isNaN(n))return;personAvondPct[pid]=Math.max(0,Math.min(100,n));}
+  renderFin();renderCapp();renderMix();onAnyChange();
+}
+function setMdoConfig(field,v){mdoConfig[field]=v;renderRooster();renderCapp();renderFin();renderMix();onAnyChange();}
+function setMdoBlokken(pid,v){mdoBlokken[pid]=v;renderRooster();renderCapp();renderFin();renderMix();onAnyChange();}
+function addMdoBooking(day,startHour){
+  const dur=+mdoConfig.blokUren||2;
+  const end=startHour+dur;
+  if(end>24.0){alert('MDO-blok loopt na middernacht — kies vroegere starttijd.');return;}
+  if(!mdoBureauVrij(day,startHour,end)){alert('Geen vrij bureau in dit tijdsblok — alle bureaus zijn bezet door consultaties.');return;}
+  if(mdoBookingOverlap(day,startHour,end,null)){alert('Overlapt met bestaande MDO-booking.');return;}
+  mdoBookings.push({id:nextId('mdb'),day,startHour,durationHours:dur});
+  renderRooster();renderCapp();renderFin();onAnyChange();
+}
+function delMdoBooking(id){mdoBookings=mdoBookings.filter(b=>b.id!==id);renderRooster();renderCapp();renderFin();onAnyChange();}
+
+function refreshFin(){const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('fin'))renderFin();if(a('kosten'))renderKosten();}
+function refreshAll(){renderTeam();renderRooster();renderFin();renderKosten();renderVerdoken();renderMdoTab();const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('capp'))renderCapp();if(a('mix'))renderMix();if(a('cap'))renderCap();}
+function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='verdoken')renderVerdoken();else if(id==='mdo')renderMdoTab();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();}
+
+document.getElementById('save-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+document.getElementById('scenarios-modal').addEventListener('click',function(e){if(e.target===this)closeScenariosModal();});
+
+// ===== Auth UI handlers =====
+function showAuthMsg(txt,type){const el=document.getElementById('auth-msg');if(!el)return;el.innerHTML=txt?'<div class="msg '+(type||'err')+'">'+txt+'</div>':'';}
+function showLogin(){document.getElementById('auth-form-login').style.display='';document.getElementById('auth-form-signup').style.display='none';document.getElementById('auth-sub').textContent='Log in om verder te gaan';showAuthMsg('');}
+function showSignup(){document.getElementById('auth-form-login').style.display='none';document.getElementById('auth-form-signup').style.display='';document.getElementById('auth-sub').textContent='Maak een account aan';showAuthMsg('');}
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';
+  showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+async function doSignup(){
+  const name=document.getElementById('auth-name').value.trim(),email=document.getElementById('auth-email-s').value.trim(),pw=document.getElementById('auth-pw-s').value;
+  if(!name||!email||!pw){showAuthMsg('Vul alle velden in.');return;}
+  if(pw.length<6){showAuthMsg('Wachtwoord moet minstens 6 tekens hebben.');return;}
+  const btn=document.getElementById('auth-btn-signup');btn.disabled=true;btn.textContent='Bezig…';
+  showAuthMsg('');
+  const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{display_name:name}}});
+  btn.disabled=false;btn.textContent='Account aanmaken';
+  if(error){showAuthMsg('Registratie mislukt: '+error.message);return;}
+  if(data.session){await afterLogin(data.session);}
+  else{showAuthMsg('Account aangemaakt. Een beheerder moet je nog toegang geven tot de planner.','ok');setTimeout(showLogin,2500);}
+}
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();
+  currentUser=null;currentProfile=null;
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('btn-logout').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';
+  showLogin();
+}
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:access,error:accErr}=await sb.from('user_tool_access').select('tool_id').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+  if(accErr||!access){
+    showAuthMsg('Je account heeft (nog) geen toegang tot deze planner. Vraag een beheerder om je toe te voegen.','err');
+    await sb.auth.signOut();currentUser=null;
+    return;
+  }
+  const {data:prof}=await sb.from('profiles').select('id,display_name,role').eq('id',currentUser.id).maybeSingle();
+  currentProfile=prof||{display_name:currentUser.email,role:'user'};
+  document.getElementById('auth-overlay').style.display='none';
+  const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
+  document.getElementById('user-name').textContent=currentProfile.display_name+(currentProfile.role==='admin'?' ⭐':'');
+  document.getElementById('btn-logout').style.display='';
+  const loadedCloud=await cloudLoad();
+  if(!loadedCloud){lsLoad();}
+  refreshAll();
+  setSyncStatus('saved',loadedCloud?'✓ Geladen uit cloud':'✓ Standaardinstellingen');
+}
+
+// ===== Init bij page load =====
+(async function(){
+  try{
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  }catch(e){
+    console.error('Supabase init mislukt',e);
+    document.getElementById('auth-overlay').style.display='none';
+    lsLoad();refreshAll();
+    setStatus('⚠ Offline modus (lokaal)','saved');
+    return;
+  }
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){
+    await afterLogin(session);
+  } else {
+    document.getElementById('auth-overlay').style.display='flex';
+    refreshAll();
+  }
+  sb.auth.onAuthStateChange((event,session)=>{
+    if(event==='SIGNED_OUT'){currentUser=null;currentProfile=null;}
+  });
+})();
+</script>
+</body>
+</html>
