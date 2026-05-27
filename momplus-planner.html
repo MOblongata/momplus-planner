@@ -229,24 +229,10 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
     </div>
   </div>
 </div>
-<div class="modal-bg" id="save-modal">
-  <div class="modal">
-    <h3>💾 Instellingen opslaan</h3>
-    <p>Kopieer onderstaande JSON en sla op als <strong>.json</strong> bestand. Laad terug via "📂 Laden".</p>
-    <textarea id="modal-json" readonly onclick="this.select()"></textarea>
-    <div class="modal-btns">
-      <button class="btn-sv primary" onclick="copyJSON()">📋 Kopieer alles</button>
-      <button class="btn-sv" onclick="closeModal()">Sluiten</button>
-    </div>
-    <p id="copy-confirm" style="text-align:right;font-size:11px;color:#059669;margin-top:6px;display:none">✓ Gekopieerd!</p>
-  </div>
-</div>
 <div class="save-bar">
   <span class="user-pill" id="user-pill" style="display:none"><span class="dot"></span><span id="user-name">—</span></span>
   <span class="save-status" id="save-status">Laden...</span>
   <button class="btn-sv primary" onclick="openScenariosModal()">📚 Scenario's</button>
-  <button class="btn-sv" onclick="exportJSON()">💾 Export JSON</button>
-  <label class="btn-sv" style="cursor:pointer">📂 Import<input type="file" accept=".json" style="display:none" onchange="importJSON(this)"></label>
   <button class="btn-sv danger" onclick="resetConfirm()">↺ Reset</button>
   <button class="btn-logout" id="btn-logout" onclick="doLogout()" style="display:none">⏻ Uitloggen</button>
 </div>
@@ -605,8 +591,6 @@ let personMDO={};        // {pid:{actId:perWeek}}
 let personAdmin={};      // {pid:{actId:perMaand}}
 let personAvond={};      // {pid:{actId:routing}}
 
-function openModal(){document.getElementById('save-modal').classList.add('open');}
-function closeModal(){document.getElementById('save-modal').classList.remove('open');document.getElementById('copy-confirm').style.display='none';}
 
 // Scenario's: primair via Supabase (gedeeld per tool), fallback naar localStorage
 const SCENARIOS_KEY='mom-plus-planner-scenarios-v1';
@@ -702,7 +686,6 @@ function renderScenariosList(){
       +'</div>';
   }).join('');
 }
-function copyJSON(){const ta=document.getElementById('modal-json');ta.select();try{document.execCommand('copy');}catch(e){navigator.clipboard&&navigator.clipboard.writeText(ta.value);}document.getElementById('copy-confirm').style.display='block';}
 
 function getVerdokenFromDOM(){const ns=+(document.getElementById('p-noshow')?.value)||0,ie=+(document.getElementById('p-ineff')?.value)||0;return{noShow:Math.max(0,Math.min(100,ns)),inefficientie:Math.max(0,Math.min(100,ie))};}
 function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
@@ -794,8 +777,6 @@ function cloudSaveDebounced(){if(saveDebounceTimer)clearTimeout(saveDebounceTime
 function setSyncStatus(cls,txt){const el=document.getElementById('save-status');if(el){el.className='save-status sync-status '+cls;el.textContent=txt;}}
 function setStatus(t,c){const el=document.getElementById('save-status');if(el){el.textContent=t;el.className='save-status'+(c?' '+c:'');}}
 function onAnyChange(){lsAutoSave();if(sb&&currentUser){cloudSaveDebounced();}else{setStatus('✓ Lokaal opgeslagen','saved');}}
-function exportJSON(){document.getElementById('modal-json').value=JSON.stringify(buildState(),null,2);openModal();}
-function importJSON(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{applyState(JSON.parse(e.target.result));refreshAll();lsAutoSave();setStatus('✓ Geladen','saved');}catch(err){alert('Fout: '+err.message);}};r.readAsText(f);inp.value='';}
 function resetConfirm(){
   if(!confirm('Alles resetten naar standaard?'))return;
   team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());
@@ -1982,7 +1963,6 @@ function refreshFin(){const a=id=>document.getElementById('tab-'+id).classList.c
 function refreshAll(){renderTeam();renderRooster();renderFin();renderKosten();renderVerdoken();renderMdoTab();const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('capp'))renderCapp();if(a('mix'))renderMix();if(a('cap'))renderCap();}
 function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='verdoken')renderVerdoken();else if(id==='mdo')renderMdoTab();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();}
 
-document.getElementById('save-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 document.getElementById('scenarios-modal').addEventListener('click',function(e){if(e.target===this)closeScenariosModal();});
 
 // ===== Auth UI handlers =====
