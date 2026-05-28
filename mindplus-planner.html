@@ -656,7 +656,7 @@ function renderScenariosList(){
     const isOwn=s.created_by&&s.created_by===myId;
     const auteur=s.created_by_name?'<span style="font-size:10px;color:'+(isOwn?'#059669':'#9ca3af')+'">'+(isOwn?'👤 jij':'👥 '+s.created_by_name)+'</span>':'';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid #f3f4f6">'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+s.naam+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.naam)+'</div>'
       +'<div style="font-size:10.5px;color:#9ca3af">'+teamN+' teamleden • '+dStr+' '+auteur+'</div></div>'
       +'<button class="btn-sv primary" style="padding:4px 10px" onclick="loadScenarioFromLS(\''+s.id+'\')">Laden</button>'
       +'<button class="btn-del" onclick="deleteScenario(\''+s.id+'\')" title="Verwijderen">×</button>'
@@ -688,7 +688,8 @@ function applyState(st){
   huisvesting.verbouwingBedrag=0;huisvesting.verbouwingJaren=0;
   mandaten=st.mandaten||DEFAULT_MANDATEN.map(m=>({...m}));
   opleidingen=st.opleidingen||DEFAULT_OPLEIDINGEN.map(o=>({...o}));
-  personMandaten=st.personMandaten||{};personOpleiding=st.personOpleiding||{};werkelijkeCons=st.werkelijkeCons||{};
+  const _clone=v=>v?JSON.parse(JSON.stringify(v)):{};
+  personMandaten=_clone(st.personMandaten);personOpleiding=_clone(st.personOpleiding);werkelijkeCons=_clone(st.werkelijkeCons);
   // Migratie: oude pctL4cap (cap-percentage) → omzetten naar absolute pctL4 + pctL5 (reserve)
   const oldCp=st.cappData||{};
   if(oldCp.pctL4cap!==undefined&&oldCp.pctL4===undefined){
@@ -702,18 +703,18 @@ function applyState(st){
   const totL=CAPP_LAAG_KEYS.reduce((s,k)=>s+(+cappData[k]||0),0);
   if(totL>0.01&&Math.abs(totL-100)>0.1){const f=100/totL;CAPP_LAAG_KEYS.forEach(k=>cappData[k]=(+cappData[k]||0)*f);}
   acts=(st.acts||DEFAULT_ACTS.map(a=>({...a}))).map(a=>({routing:'afdracht',nomencl:'',...a}));
-  personMix=st.personMix||{};personTechnisch=st.personTechnisch||{};
-  personMDO=st.personMDO||{};personAdmin=st.personAdmin||{};personAvond=st.personAvond||{};
+  personMix=_clone(st.personMix);personTechnisch=_clone(st.personTechnisch);
+  personMDO=_clone(st.personMDO);personAdmin=_clone(st.personAdmin);personAvond=_clone(st.personAvond);
   mdoConfig={...DEFAULT_MDO_CONFIG,...(st.mdoConfig||{})};
   mdoBookings=Array.isArray(st.mdoBookings)?JSON.parse(JSON.stringify(st.mdoBookings)):[];
-  mdoBlokken=st.mdoBlokken||{};
-  cappOptIn=st.cappOptIn||{};
+  mdoBlokken=_clone(st.mdoBlokken);
+  cappOptIn=_clone(st.cappOptIn);
   overlegOhActief=st.overlegOhActief!==undefined?!!st.overlegOhActief:true;
   cappKostendekking=st.cappKostendekking!==undefined?!!st.cappKostendekking:false;
   cappLockedLagen=Array.isArray(st.cappLockedLagen)?[...st.cappLockedLagen]:[];
-  personActPct=st.personActPct||{};
-  personMinAfdrachtPct=st.personMinAfdrachtPct||{};
-  personAvondPct=st.personAvondPct||{};
+  personActPct=_clone(st.personActPct);
+  personMinAfdrachtPct=_clone(st.personMinAfdrachtPct);
+  personAvondPct=_clone(st.personAvondPct);
   ruimtes=Array.isArray(st.ruimtes)?JSON.parse(JSON.stringify(st.ruimtes)):[];
   // Migratie: oude slots[pid][di][bi] kon true/false zijn. Nu mag het null / 'X' (aanwezig zonder ruimte) / ruimteId (string). Truthy = aanwezig, dus oude data blijft werken.
   const ov={...DEFAULT_OVERLEG,...(st.overleg||{})};
@@ -753,6 +754,8 @@ function onAnyChange(){lsAutoSave();if(sb&&currentUser){cloudSaveDebounced();}el
 function resetConfirm(){if(!confirm('Alles resetten naar standaard?'))return;team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));personMandaten={};personOpleiding={};werkelijkeCons={};cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};cappOptIn={};overlegOhActief=true;cappKostendekking=false;cappLockedLagen=[];personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};ruimtes=[];acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};Object.entries(DEFAULT_OVERLEG).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;const om=document.getElementById('capp-overschot-manual');if(om)om.value='';refreshAll();lsAutoSave();setStatus('↺ Reset','saved');}
 
 function clr(i){return COLORS[i%COLORS.length];}
+// XSS-bescherming: escape user-input vóór invoegen in innerHTML
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmt(n){return'€\u202F'+Math.round(n).toLocaleString('nl-BE');}
 function ohPct(){if(!overlegOhActief)return 0;const g=id=>+(document.getElementById(id)?.value)||0;const op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60,oh=op+nt*mt+Math.floor(tl/mf)*mm;return oh/(oh+tl*cd);}
 function ohPctRaw(){const g=id=>+(document.getElementById(id)?.value)||0;const op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60,oh=op+nt*mt+Math.floor(tl/mf)*mm;return oh/(oh+tl*cd);}
@@ -926,13 +929,21 @@ function breakEvenPct(){
 }
 function actueelGewogenPct(){
   // Gewogen gemiddelde van pct, naar gewicht van bruto/maand (dag + avond apart gewogen)
+  // Voor mix-leden gebruiken we gewogenGemPctActs() zodat per-act overrides (personActPct) correct meetellen.
   let totBruto=0,totAfd=0;
   for(const p of team){
     if(p.type==='bediende')continue;
     const dB=dagBlokken(p),avB=avondDelen(p);if(!(dB+avB))continue;
     const wk=wkPerMaand(p);
     const bDag=brutoEurPerBlok(p,0)*dB*wk,bAv=brutoEurPerBlok(p,2)*avB*wk;
-    const pctDag=(+p.pct||0)/100,pctAv=hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag;
+    let pctDag,pctAv;
+    if(hasAnyOverride(p)){
+      // Mix met per-act overrides: gewogen gemiddelde over alle acts en blokken
+      pctDag=pctAv=(gewogenGemPctActs(p)/100);
+    } else {
+      pctDag=(+p.pct||0)/100;
+      pctAv=hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag;
+    }
     totBruto+=bDag+bAv;totAfd+=bDag*pctDag+bAv*pctAv;
   }
   return totBruto>0?(totAfd/totBruto)*100:0;
@@ -1059,7 +1070,7 @@ function renderFin(){
     }
   }
   const vpkW=team.filter(p=>p.pct===0&&dagdelen(p)>0);
-  document.getElementById('fin-alerts').innerHTML=vpkW.map(p=>'<div class="alert alert-warn">⚠️ <strong>'+p.naam+'</strong> heeft afdracht 0% — controleer kostenpost.</div>').join('');
+  document.getElementById('fin-alerts').innerHTML=vpkW.map(p=>'<div class="alert alert-warn">⚠️ <strong>'+esc(p.naam)+'</strong> heeft afdracht 0% — controleer kostenpost.</div>').join('');
   // Cappuccino payouts per persoon ophalen
   const cappRes=calcCapp(),cappMap={};
   if(cappRes){cappRes.dln.forEach((p,i)=>{cappMap[p.id]=cappRes.totals[i];});}
@@ -1118,7 +1129,7 @@ function renderFin(){
     const expandBtn=afdActs.length>0
       ?'<button class="fin-expand-btn'+(isExp?' on':'')+'" onclick="toggleFinExpand(\''+p.id+'\')" title="'+(isExp?'Sluit':'Toon')+' overrides per act">'+(isExp?'▾':'▸')+' '+afdActs.length+' act'+(afdActs.length===1?'':'s')+(overrideCount?' <span style="color:#7c3aed">('+overrideCount+' over)</span>':'')+'</button>'
       :'';
-    const mainRow='<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span>'+p.naam+expandBtn+'</td><td>'+prof+'</td><td style="text-align:right;font-weight:600;color:'+(dd?'#4f46e5':'#d1d5db')+'">'+dd+'</td><td style="text-align:right;font-weight:600">'+(dd?fmt(vzwM):'—')+'</td><td style="text-align:right;font-size:11px">'+pers+'</td><td style="text-align:right;font-size:11px">'+capp+'</td><td style="text-align:right;font-weight:600">'+totaal+'</td></tr>';
+    const mainRow='<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span>'+esc(p.naam)+expandBtn+'</td><td>'+prof+'</td><td style="text-align:right;font-weight:600;color:'+(dd?'#4f46e5':'#d1d5db')+'">'+dd+'</td><td style="text-align:right;font-weight:600">'+(dd?fmt(vzwM):'—')+'</td><td style="text-align:right;font-size:11px">'+pers+'</td><td style="text-align:right;font-size:11px">'+capp+'</td><td style="text-align:right;font-weight:600">'+totaal+'</td></tr>';
     let subRows='';
     if(isExp&&afdActs.length>0){
       const oh=ohPct();
@@ -1184,7 +1195,7 @@ function renderRooster(){
   const baseOpts='<option value="">—</option><option value="X">✓</option>'+ruimtes.map((r,ri)=>'<option value="'+r.id+'">'+(ri+1)+'</option>').join('');
   team.forEach((p,pi)=>{
     const c=clr(pi);
-    h+='<tr class="prow"><td class="nm-cell"><div class="color-dot" style="background:'+c+'"></div><span title="'+p.naam+'">'+p.naam+'</span><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td>';
+    h+='<tr class="prow"><td class="nm-cell"><div class="color-dot" style="background:'+c+'"></div><span title="'+esc(p.naam)+'">'+esc(p.naam)+'</span><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td>';
     for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){
       const v=slots[p.id]?.[di]?.[bi];
       let valStr='',cls='slot-sel',bg='',title='Niet aanwezig';
@@ -1237,12 +1248,12 @@ function renderMdoConfig(){
   const mo=document.getElementById('mdo-overzicht');
   if(!mo)return;
   const ok=mogelijk>=gewenst;
-  const teamRows=team.filter(p=>p.type!=='bediende'&&(+mdoBlokken[p.id]||0)>0).map(p=>{const m=+mdoBlokken[p.id]||0;return'<div style="display:flex;justify-content:space-between;padding:1px 0;color:#6b7280;font-size:11.5px"><span>'+p.naam+'</span><span>'+m+' MDO'+(m>1?'\'s':'')+'/wk</span></div>';}).join('');
+  const teamRows=team.filter(p=>p.type!=='bediende'&&(+mdoBlokken[p.id]||0)>0).map(p=>{const m=+mdoBlokken[p.id]||0;return'<div style="display:flex;justify-content:space-between;padding:1px 0;color:#6b7280;font-size:11.5px"><span>'+esc(p.naam)+'</span><span>'+m+' MDO'+(m>1?'\'s':'')+'/wk</span></div>';}).join('');
   // losse MDO-acts uit personMDO
   let losseRows='';
   for(const pid in personMDO){
     const p=team.find(x=>x.id===pid);if(!p)continue;
-    for(const aId in personMDO[pid]){const act=acts.find(a=>a.id===aId&&a.familie==='mdo');const n=+personMDO[pid][aId]||0;if(act&&n>0)losseRows+='<div style="display:flex;justify-content:space-between;padding:1px 0;color:#9ca3af;font-size:11px"><span>'+p.naam+' — '+act.naam+'</span><span>'+n+'/wk</span></div>';}
+    for(const aId in personMDO[pid]){const act=acts.find(a=>a.id===aId&&a.familie==='mdo');const n=+personMDO[pid][aId]||0;if(act&&n>0)losseRows+='<div style="display:flex;justify-content:space-between;padding:1px 0;color:#9ca3af;font-size:11px"><span>'+esc(p.naam)+' — '+act.naam+'</span><span>'+n+'/wk</span></div>';}
   }
   const urenNodig=ses>0?(gewenst/(+mdoConfig.mdoPerUur||1)):0;
   const blokkenNodig=(+mdoConfig.blokUren||0)>0?urenNodig/(+mdoConfig.blokUren||1):0;
@@ -1310,8 +1321,8 @@ function renderMdoAgenda(){
     const deelnemers=mdoDeelnemers(b.day,b.startHour,eind);
     const aanwezig=deelnemers.filter(d=>d.aanwezig);
     const niet=deelnemers.filter(d=>!d.aanwezig);
-    const mems=aanwezig.map(({p})=>'<span class="mdo-bk-mem">'+p.naam+'</span>').join('');
-    const nietMems=niet.map(({p})=>'<span class="mdo-bk-mem absent">'+p.naam+' (niet aanwezig)</span>').join('');
+    const mems=aanwezig.map(({p})=>'<span class="mdo-bk-mem">'+esc(p.naam)+'</span>').join('');
+    const nietMems=niet.map(({p})=>'<span class="mdo-bk-mem absent">'+esc(p.naam)+' (niet aanwezig)</span>').join('');
     const sessies=(+mdoConfig.mdoPerUur||0)*b.durationHours;
     return '<div class="mdo-bk-card">'
       +'<div class="mdo-bk-title">🗣 '+DAYS[b.day]+' '+fmtHour(b.startHour)+'–'+fmtHour(eind)+' <span class="mdo-bk-pill">'+sessies+' MDO\'s</span><button class="btn-del" style="margin-left:auto" onclick="delMdoBooking(\''+b.id+'\')">×</button></div>'
@@ -1331,7 +1342,7 @@ function renderTeam(){
     const consCell=hasMix
       ?'<input type="number" value="'+gcons.toFixed(2)+'" readonly title="Automatisch vanuit Mix-tab" style="background:#ede9fe;color:#6d28d9;font-weight:600;cursor:not-allowed">'
       :'<input type="number" value="'+p.cons+'" oninput="hv_v(\''+p.id+'\',\'cons\',+this.value)">';
-    return'<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span><input type="text" value="'+p.naam+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:100px"></td><td><button class="type-badge '+(isZ?'type-z':'type-b')+'" onclick="toggleType(\''+p.id+'\')">'+(isZ?'Z':'B')+'</button></td><td>'+tarCell+'</td><td>'+consCell+'</td><td><input type="number" data-team-pct="'+p.id+'" value="'+p.pct+'" min="0" max="100" oninput="hv_v(\''+p.id+'\',\'pct\',+this.value)"></td><td><input type="number" value="'+p.wkjr+'" min="1" max="52" oninput="hv_v(\''+p.id+'\',\'wkjr\',+this.value)"></td><td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td></tr>';
+    return'<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span><input type="text" value="'+esc(p.naam)+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:100px"></td><td><button class="type-badge '+(isZ?'type-z':'type-b')+'" onclick="toggleType(\''+p.id+'\')">'+(isZ?'Z':'B')+'</button></td><td>'+tarCell+'</td><td>'+consCell+'</td><td><input type="number" data-team-pct="'+p.id+'" value="'+p.pct+'" min="0" max="100" oninput="hv_v(\''+p.id+'\',\'pct\',+this.value)"></td><td><input type="number" value="'+p.wkjr+'" min="1" max="52" oninput="hv_v(\''+p.id+'\',\'wkjr\',+this.value)"></td><td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td></tr>';
   }).join('');
 }
 
@@ -1373,7 +1384,7 @@ function renderKosten(){
   renderPersoneel();
   const invRows=investeringen.map(i=>{const mnd=investeringMnd(i);return'<tr style="background:#faf5ff"><td><span style="color:#7c3aed;font-weight:600">🛠 '+(i.naam||'(naamloos)')+'</span><span style="font-size:10px;color:#9ca3af;margin-left:5px">€'+(+i.bedrag||0).toLocaleString('nl-BE')+' / '+(+i.jaren||0)+'j</span></td><td style="color:#9ca3af;font-size:10.5px;font-style:italic">auto uit investering</td><td style="color:#7c3aed;font-weight:600;text-align:right">'+fmt(mnd)+'/mnd</td></tr>';}).join('');
   const persRows=team.filter(p=>p.type==='bediende').map(p=>{const mnd=(+p.brutoJaar||0)/12;if(mnd<=0)return '';return'<tr style="background:#fef2f2"><td><span style="color:#dc2626;font-weight:600">👤 '+(p.naam||'(naamloos)')+'</span>'+(p.ific?'<span style="font-size:10px;color:#9ca3af;margin-left:5px">IFIC '+p.ific+'</span>':'')+'<span style="font-size:10px;color:#9ca3af;margin-left:5px">€'+(+p.brutoJaar||0).toLocaleString('nl-BE')+'/jr bruto</span></td><td style="color:#9ca3af;font-size:10.5px;font-style:italic">auto uit personeel</td><td style="color:#dc2626;font-weight:600;text-align:right">'+fmt(mnd)+'/mnd</td></tr>';}).filter(Boolean).join('');
-  const handRows=kostenData.map(k=>{const isJr=k.periode==='jr',mnd=maandBedrag(k),hint=isJr&&k.bedrag?'<span style="font-size:10px;color:#9ca3af;margin-left:4px">= '+fmt(mnd)+'/mnd</span>':'';return'<tr><td><input type="text" value="'+k.naam+'" oninput="kn(\''+k.id+'\',this.value)"></td><td style="white-space:nowrap"><input type="number" value="'+k.bedrag+'" style="width:90px" oninput="kb(\''+k.id+'\',+this.value)"><button onclick="kp(\''+k.id+'\')" style="margin-left:4px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;font-size:10.5px;font-weight:600;background:'+(isJr?'#4f46e5':'#f9fafb')+';color:'+(isJr?'#fff':'#6b7280')+'">'+(isJr?'jr':'mnd')+'</button>'+hint+'</td><td><button class="btn-del" onclick="delKost(\''+k.id+'\')">×</button></td></tr>';}).join('');
+  const handRows=kostenData.map(k=>{const isJr=k.periode==='jr',mnd=maandBedrag(k),hint=isJr&&k.bedrag?'<span style="font-size:10px;color:#9ca3af;margin-left:4px">= '+fmt(mnd)+'/mnd</span>':'';return'<tr><td><input type="text" value="'+esc(k.naam)+'" oninput="kn(\''+k.id+'\',this.value)"></td><td style="white-space:nowrap"><input type="number" value="'+k.bedrag+'" style="width:90px" oninput="kb(\''+k.id+'\',+this.value)"><button onclick="kp(\''+k.id+'\')" style="margin-left:4px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;font-size:10.5px;font-weight:600;background:'+(isJr?'#4f46e5':'#f9fafb')+';color:'+(isJr?'#fff':'#6b7280')+'">'+(isJr?'jr':'mnd')+'</button>'+hint+'</td><td><button class="btn-del" onclick="delKost(\''+k.id+'\')">×</button></td></tr>';}).join('');
   document.getElementById('kosten-tbody').innerHTML=invRows+persRows+handRows;
   const ov=kostenData.reduce((s,k)=>s+maandBedrag(k),0),hv=hvMaandlast(),inv=totaleInvesteringMnd(),pers=personeelKostenMnd(),tot=ov+hv+inv+pers;
   document.getElementById('kosten-totaal').innerHTML='Huisvesting: <strong>'+fmt(hv)+'</strong> + investeringen: <strong style="color:#7c3aed">'+fmt(inv)+'</strong> + personeel: <strong style="color:#dc2626">'+fmt(pers)+'</strong> + overige: <strong>'+fmt(ov)+'</strong> = <strong style="color:#4f46e5">'+fmt(tot)+'</strong> / maand';
@@ -1422,7 +1433,7 @@ function renderOverleg(){
   const ohTot=op+nt*mt+Math.floor(tl/mf)*mm,cons=tl*cd,grand=ohTot+cons,bill=cons/grand,over=ohTot/grand;
   document.getElementById('oh-bar').innerHTML='<div class="oh-bill" style="width:'+bill*100+'%">'+(bill*100).toFixed(1)+'%</div><div class="oh-over" style="width:'+over*100+'%">'+(over*100).toFixed(1)+'%</div>';
   document.getElementById('oh-summary').innerHTML='<strong>Overleg/traject:</strong> '+ohTot+' min &nbsp;|&nbsp; <strong>Factureerbaar: <span style="color:#059669">'+(bill*100).toFixed(1)+'%</span></strong>'+(overlegOhActief?'':' &nbsp;<span style="color:#dc2626;font-size:11px">⚠ overhead-aftrek staat uit</span>');
-  document.getElementById('impact-tbody').innerHTML=team.map(p=>{const z=p.tarief*p.cons*(p.pct/100),m=z*bill,d=m-z;return'<tr><td>'+p.naam+'</td><td style="text-align:right">'+fmt(z)+'/blok</td><td style="text-align:right">'+fmt(m)+'/blok</td><td style="text-align:right;color:'+(d<-.01?'#dc2626':'#6b7280')+'">'+(d<-.01?'':'+')+fmt(d)+'/blok</td></tr>';}).join('');
+  document.getElementById('impact-tbody').innerHTML=team.map(p=>{const z=p.tarief*p.cons*(p.pct/100),m=z*bill,d=m-z;return'<tr><td>'+esc(p.naam)+'</td><td style="text-align:right">'+fmt(z)+'/blok</td><td style="text-align:right">'+fmt(m)+'/blok</td><td style="text-align:right;color:'+(d<-.01?'#dc2626':'#6b7280')+'">'+(d<-.01?'':'+')+fmt(d)+'/blok</td></tr>';}).join('');
 }
 
 function renderCapp(){
@@ -1503,7 +1514,7 @@ function renderCapp(){
   if(mdtTot)mdtTot.innerHTML='Som: <strong style="color:#d97706">'+mdtSum.toFixed(1)+'</strong> punten';
   document.getElementById('mandaten-tbody').innerHTML=mandaten.map(m=>{
     const p=+m.punten||0;
-    return'<tr><td><input type="text" value="'+m.naam+'" oninput="mn(\''+m.id+'\',this.value)" style="min-width:160px"></td>'
+    return'<tr><td><input type="text" value="'+esc(m.naam)+'" oninput="mn(\''+m.id+'\',this.value)" style="min-width:160px"></td>'
       +'<td><div style="display:flex;align-items:center;gap:6px">'
         +'<input type="range" min="0" max="'+PUNTEN_MAX+'" step="0.5" value="'+p.toFixed(1)+'" '
         +'oninput="document.getElementById(\'mdt-lbl-'+m.id+'\').textContent=(+this.value).toFixed(1)" '
@@ -1519,7 +1530,7 @@ function renderCapp(){
   if(oplTot)oplTot.innerHTML='Som: <strong style="color:#c2410c">'+oplSum.toFixed(1)+'</strong> punten';
   document.getElementById('opleidingen-tbody').innerHTML=opleidingen.map(o=>{
     const p=+o.punten||0;
-    return'<tr><td><input type="text" value="'+o.naam+'" oninput="opn(\''+o.id+'\',this.value)" style="min-width:160px"></td>'
+    return'<tr><td><input type="text" value="'+esc(o.naam)+'" oninput="opn(\''+o.id+'\',this.value)" style="min-width:160px"></td>'
       +'<td><div style="display:flex;align-items:center;gap:6px">'
         +'<input type="range" min="0" max="'+PUNTEN_MAX+'" step="0.5" value="'+p.toFixed(1)+'" '
         +'oninput="document.getElementById(\'opl-lbl-'+o.id+'\').textContent=(+this.value).toFixed(1)" '
@@ -1537,7 +1548,7 @@ function renderCapp(){
     const rc=ratio>=1.2?'#059669':ratio>=0.9?'#374151':ratio>0?'#d97706':'#9ca3af';
     const werkelijkAfgeleid=Math.round(vw*ratio);
     const mPts=(personMandaten[p.id]||[]).reduce((s,mid)=>{const m=mandaten.find(x=>x.id===mid);return s+(m?+m.punten:0);},0);
-    const tags=mandaten.map(m=>{const on=(personMandaten[p.id]||[]).includes(m.id);return'<button class="mandaat-tag'+(on?' on':'')+'" onclick="toggleMandaat(\''+p.id+'\',\''+m.id+'\')">'+m.naam.split('/')[0].trim()+'</button>';}).join('');
+    const tags=mandaten.map(m=>{const on=(personMandaten[p.id]||[]).includes(m.id);return'<button class="mandaat-tag'+(on?' on':'')+'" onclick="toggleMandaat(\''+p.id+'\',\''+m.id+'\')">'+esc(m.naam.split('/')[0].trim())+'</button>';}).join('');
     const werkCell=isBed||!vw
       ?'<span style="color:#d1d5db">—</span>'
       :'<span style="font-weight:600;color:#374151">'+werkelijkAfgeleid+'</span>';
@@ -1553,8 +1564,8 @@ function renderCapp(){
           +'<span id="capp-ratio-lbl-'+p.id+'" style="font-weight:700;color:'+rc+';font-size:11.5px;min-width:32px;text-align:right">'+ratio.toFixed(2)+'</span>'
           +'</div>';
     const oPts=(personOpleiding[p.id]||[]).reduce((s,oid)=>{const o=opleidingen.find(x=>x.id===oid);return s+(o?+o.punten:0);},0);
-    const oplTags=opleidingen.map(o=>{const on=(personOpleiding[p.id]||[]).includes(o.id);return'<button class="mandaat-tag'+(on?' on':'')+'" style="'+(on?'background:#c2410c;border-color:#c2410c;':'')+'" onclick="toggleOpleiding(\''+p.id+'\',\''+o.id+'\')">'+o.naam.split('/')[0].trim()+'</button>';}).join('');
-    return'<tr class="'+dim+'"><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span>'+p.naam+'</td><td><span class="type-badge '+(isBed?'type-b':'type-z')+'" style="cursor:default">'+(isBed?'B':'Z')+'</span></td><td style="text-align:right;color:#9ca3af">'+Math.round(vw)+'</td><td style="text-align:right">'+werkCell+'</td><td>'+ratioCell+'</td><td>'+(isBed?'<span style="font-size:10px;color:#d1d5db">n.v.t.</span>':tags)+'</td><td style="text-align:right;font-weight:600;color:#d97706">'+(mPts||'—')+'</td><td>'+(isBed?'<span style="font-size:10px;color:#d1d5db">n.v.t.</span>':oplTags)+'</td><td style="text-align:right;font-weight:600;color:#c2410c">'+(oPts||'—')+'</td></tr>';
+    const oplTags=opleidingen.map(o=>{const on=(personOpleiding[p.id]||[]).includes(o.id);return'<button class="mandaat-tag'+(on?' on':'')+'" style="'+(on?'background:#c2410c;border-color:#c2410c;':'')+'" onclick="toggleOpleiding(\''+p.id+'\',\''+o.id+'\')">'+esc(o.naam.split('/')[0].trim())+'</button>';}).join('');
+    return'<tr class="'+dim+'"><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span>'+esc(p.naam)+'</td><td><span class="type-badge '+(isBed?'type-b':'type-z')+'" style="cursor:default">'+(isBed?'B':'Z')+'</span></td><td style="text-align:right;color:#9ca3af">'+Math.round(vw)+'</td><td style="text-align:right">'+werkCell+'</td><td>'+ratioCell+'</td><td>'+(isBed?'<span style="font-size:10px;color:#d1d5db">n.v.t.</span>':tags)+'</td><td style="text-align:right;font-weight:600;color:#d97706">'+(mPts||'—')+'</td><td>'+(isBed?'<span style="font-size:10px;color:#d1d5db">n.v.t.</span>':oplTags)+'</td><td style="text-align:right;font-weight:600;color:#c2410c">'+(oPts||'—')+'</td></tr>';
   }).join('');
   // Min-afdracht tabel renderen
   const minBody=document.getElementById('capp-min-tbody');
@@ -1568,7 +1579,7 @@ function renderCapp(){
           const isSet=cur!==''&&cur!==null&&cur!==undefined;
           const inp='<input type="number" min="0" max="100" step="0.5" value="'+(isSet?cur:'')+'" placeholder="blanco = geen limiet" style="width:110px;border:1px solid #e5e7eb;border-radius:5px;padding:3px 6px;font-size:11.5px" oninput="setPersonMinAfdracht(\''+p.id+'\',this.value)">';
           const status=isSet?'<span style="font-size:10.5px;color:#7c3aed;font-weight:600">🛡 minimum '+(+cur).toFixed(1)+'% effectief</span>':'<span style="font-size:10.5px;color:#9ca3af">geen limiet</span>';
-          return '<tr><td>'+p.naam+'</td><td>'+inp+'</td><td>'+status+'</td></tr>';
+          return '<tr><td>'+esc(p.naam)+'</td><td>'+inp+'</td><td>'+status+'</td></tr>';
         }).join('')
       +'</tbody></table>';
     }
@@ -1578,7 +1589,7 @@ function renderCapp(){
   const{dln,pool:p2,L1,L2,L3,L4,totals,totPool,capped}=res;
   let h='<div class="sum-grid" style="margin-bottom:10px"><div class="sum-card"><div class="sum-label">Pool</div><div class="sum-val neutral">'+fmt(p2)+'</div></div><div class="sum-card"><div class="sum-label">Verdeeld</div><div class="sum-val green">'+fmt(totPool)+'</div></div><div class="sum-card"><div class="sum-label">Reserve MINDplus</div><div class="sum-val neutral">'+fmt(p2-totPool)+'</div></div></div>';
   h+='<table><thead><tr><th>Naam</th><th style="text-align:right;color:#7c3aed">L1</th><th style="text-align:right;color:#2563eb">L2</th><th style="text-align:right;color:#d97706">L3</th><th style="text-align:right;color:#c2410c">L4</th><th style="text-align:right">Totaal</th><th style="text-align:right">%</th></tr></thead><tbody>';
-  dln.forEach((p,i)=>{const pct=totPool?totals[i]/totPool:0;const capInd=(capped&&capped[i])?' <span title="Gecapped door minimum afdracht%" style="color:#7c3aed">🛡</span>':'';h+='<tr><td style="font-weight:500">'+p.naam+capInd+'</td><td style="text-align:right;color:#7c3aed">'+fmt(L1[i])+'</td><td style="text-align:right;color:#2563eb">'+fmt(L2[i])+'</td><td style="text-align:right;color:#d97706">'+fmt(L3[i])+'</td><td style="text-align:right;color:#c2410c">'+fmt(L4[i])+'</td><td style="text-align:right;font-weight:700">'+fmt(totals[i])+'</td><td style="text-align:right;color:#6b7280">'+(pct*100).toFixed(1)+'%</td></tr>';});
+  dln.forEach((p,i)=>{const pct=totPool?totals[i]/totPool:0;const capInd=(capped&&capped[i])?' <span title="Gecapped door minimum afdracht%" style="color:#7c3aed">🛡</span>':'';h+='<tr><td style="font-weight:500">'+esc(p.naam)+capInd+'</td><td style="text-align:right;color:#7c3aed">'+fmt(L1[i])+'</td><td style="text-align:right;color:#2563eb">'+fmt(L2[i])+'</td><td style="text-align:right;color:#d97706">'+fmt(L3[i])+'</td><td style="text-align:right;color:#c2410c">'+fmt(L4[i])+'</td><td style="text-align:right;font-weight:700">'+fmt(totals[i])+'</td><td style="text-align:right;color:#6b7280">'+(pct*100).toFixed(1)+'%</td></tr>';});
   h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td>Totaal</td><td style="text-align:right;color:#7c3aed">'+fmt(L1.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right;color:#2563eb">'+fmt(L2.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right;color:#d97706">'+fmt(L3.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right;color:#c2410c">'+fmt(L4.reduce((s,x)=>s+x,0))+'</td><td style="text-align:right">'+fmt(totPool)+'</td><td style="text-align:right">100%</td></tr></tbody></table>';
   h+='<p class="note" style="margin-top:8px"><strong>L1</strong> = aanwezigheid (dagdelen). <strong>L2</strong> = quota-bonus (puur ratio, ongeacht werkomvang). <strong>L3</strong> = mandaten × werkomvang (merit per gewerkte dag). <strong>L4</strong> = opleiding × werkomvang (kwalificatie per gewerkte dag). Bedienden uitgesloten.</p>';rdiv.innerHTML=h;
 }
@@ -1588,11 +1599,11 @@ function renderMix(){
   const FOPT='<option value="consultatie">💬 Consult</option><option value="technisch">🔬 Technisch</option><option value="mdo">👥 MDO</option><option value="groep">🫂 Groep</option><option value="toeslag">🌙 Toeslag</option><option value="admin">📝 Admin</option>';
   document.getElementById('acts-tbody').innerHTML=acts.map(a=>{
     const dur=a.familie==='consultatie'?'<input type="number" value="'+(a.duur||60)+'" style="width:50px" oninput="actD(\''+a.id+'\',+this.value)"> min':a.familie==='technisch'?'<input type="number" value="'+(a.duurDeclarant||8)+'" style="width:38px" oninput="actDD(\''+a.id+'\',+this.value)"> min + <input type="number" value="'+(a.duurPersoneel||15)+'" style="width:38px" oninput="actDP(\''+a.id+'\',+this.value)"> VPK':'—';
-    return'<tr><td><input type="text" value="'+a.naam+'" oninput="actN(\''+a.id+'\',this.value)" style="min-width:140px"></td><td><input type="text" value="'+(a.nomencl||'').replace(/"/g,'&quot;')+'" placeholder="—" oninput="actNom(\''+a.id+'\',this.value)" style="width:105px;font-family:monospace;font-size:11px;color:#374151"></td><td><select onchange="actF(\''+a.id+'\',this.value)">'+FOPT.replace('value="'+a.familie+'"','value="'+a.familie+'" selected')+'</select></td><td><input type="number" value="'+a.tarief+'" style="width:60px" oninput="actT(\''+a.id+'\',+this.value)"></td><td style="font-size:11px">'+dur+'</td><td><select onchange="actR(\''+a.id+'\',this.value)">'+ROPT.replace('value="'+a.routing+'"','value="'+a.routing+'" selected')+'</select></td><td><button class="btn-del" onclick="delAct(\''+a.id+'\')">×</button></td></tr>';
+    return'<tr><td><input type="text" value="'+esc(a.naam)+'" oninput="actN(\''+a.id+'\',this.value)" style="min-width:140px"></td><td><input type="text" value="'+(a.nomencl||'').replace(/"/g,'&quot;')+'" placeholder="—" oninput="actNom(\''+a.id+'\',this.value)" style="width:105px;font-family:monospace;font-size:11px;color:#374151"></td><td><select onchange="actF(\''+a.id+'\',this.value)">'+FOPT.replace('value="'+a.familie+'"','value="'+a.familie+'" selected')+'</select></td><td><input type="number" value="'+a.tarief+'" style="width:60px" oninput="actT(\''+a.id+'\',+this.value)"></td><td style="font-size:11px">'+dur+'</td><td><select onchange="actR(\''+a.id+'\',this.value)">'+ROPT.replace('value="'+a.routing+'"','value="'+a.routing+'" selected')+'</select></td><td><button class="btn-del" onclick="delAct(\''+a.id+'\')">×</button></td></tr>';
   }).join('');
 
   const cActs=acts.filter(a=>a.familie==='consultatie'),tActs=acts.filter(a=>a.familie==='technisch'),mActs=acts.filter(a=>a.familie==='mdo'),adAct=acts.find(a=>a.familie==='admin'),avAct=acts.find(a=>a.familie==='toeslag');
-  const cOpts=cActs.map(a=>'<option value="'+a.id+'">'+a.naam+'</option>').join('');
+  const cOpts=cActs.map(a=>'<option value="'+a.id+'">'+esc(a.naam)+'</option>').join('');
 
   document.getElementById('mix-personen').innerHTML=team.map((p,pi)=>{
     const isBed=p.type==='bediende',dd=dagdelen(p),wk=wkPerMaand(p);
@@ -1662,7 +1673,7 @@ function renderMix(){
         if(avAct){const routing=avMap[avAct.id]||'afdracht',inc=avDD*wk*avAct.tarief;body+='<div class="avond-row" style="margin-top:5px">➕ <strong>Avondtoeslag</strong> €'+avAct.tarief+'/blok → '+fmt(inc)+'/mnd <select onchange="setAvond(\''+p.id+'\',\''+avAct.id+'\',this.value)" style="margin-left:auto;padding:2px 6px;border:1px solid #e5e7eb;border-radius:5px;font-size:11px"><option value="afdracht"'+(routing==='afdracht'?' selected':'')+'>→ persoonlijk</option><option value="cappuccino"'+(routing==='cappuccino'?' selected':'')+'>→ ☕ pool</option></select></div>';}
       }
     }else{body='<p class="note">Bediende — geen consultatiemix of cappuccinodeelname.</p>';}
-    return'<div class="mix-person" style="border-left:3px solid '+clr(pi)+'"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div class="color-dot" style="background:'+clr(pi)+';width:10px;height:10px"></div><strong style="font-size:13px">'+p.naam+'</strong><span class="type-badge '+(isBed?'type-b':'type-z')+'" style="cursor:default">'+(isBed?'B':'Z')+'</span>'+(dd?'<span style="font-size:11px;color:#6b7280;margin-left:auto">'+dd+' blokken/wk</span>':'<span style="font-size:11px;color:#dc2626;margin-left:auto">⚠️ geen roosterblokken</span>')+'</div>'+body+'</div>';
+    return'<div class="mix-person" style="border-left:3px solid '+clr(pi)+'"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div class="color-dot" style="background:'+clr(pi)+';width:10px;height:10px"></div><strong style="font-size:13px">'+esc(p.naam)+'</strong><span class="type-badge '+(isBed?'type-b':'type-z')+'" style="cursor:default">'+(isBed?'B':'Z')+'</span>'+(dd?'<span style="font-size:11px;color:#6b7280;margin-left:auto">'+dd+' blokken/wk</span>':'<span style="font-size:11px;color:#dc2626;margin-left:auto">⚠️ geen roosterblokken</span>')+'</div>'+body+'</div>';
   }).join('');
 }
 
@@ -1689,7 +1700,7 @@ function renderCap(){
   const trajLen=+(document.getElementById('p-trajlen')?.value)||20,newPat=trajLen>0?tC/trajLen:0;
   let h='<div class="cap-stat-grid"><div class="sum-card"><div class="sum-label">Consultaties/mnd</div><div class="sum-val neutral">'+Math.round(tC)+'</div></div><div class="sum-card"><div class="sum-label">Tech. prestaties/mnd</div><div class="sum-val neutral">'+Math.round(tT)+'</div></div><div class="sum-card"><div class="sum-label">MDOs/mnd</div><div class="sum-val neutral">'+Math.round(tM)+'</div></div><div class="sum-card"><div class="sum-label">Nieuwe patiënten/mnd</div><div class="sum-val green">'+Math.round(newPat)+'</div></div></div>';
   h+='<div class="card"><div class="card-title">Capaciteit per teamlid</div><table><thead><tr><th>Naam</th><th style="text-align:right">Blokken/wk</th><th style="text-align:right">Consult/mnd</th><th style="text-align:right">Tech/mnd</th><th style="text-align:right">MDO/mnd</th><th style="text-align:right">Bron</th></tr></thead><tbody>';
-  rows.forEach(({p,pi,dd,cMnd,tMnd,mMnd,hasMix})=>{h+='<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+clr(pi)+';margin-right:5px"></span>'+p.naam+'</td><td style="text-align:right">'+dd+'</td><td style="text-align:right;font-weight:600">'+(Math.round(cMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(tMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(mMnd)||'—')+'</td><td style="text-align:right"><span style="font-size:10px;padding:1px 5px;border-radius:3px;background:'+(hasMix?'#ede9fe':'#f3f4f6')+';color:'+(hasMix?'#6d28d9':'#9ca3af')+'">'+(hasMix?'mix':'standaard')+'</span></td></tr>';});
+  rows.forEach(({p,pi,dd,cMnd,tMnd,mMnd,hasMix})=>{h+='<tr><td><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+clr(pi)+';margin-right:5px"></span>'+esc(p.naam)+'</td><td style="text-align:right">'+dd+'</td><td style="text-align:right;font-weight:600">'+(Math.round(cMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(tMnd)||'—')+'</td><td style="text-align:right">'+(Math.round(mMnd)||'—')+'</td><td style="text-align:right"><span style="font-size:10px;padding:1px 5px;border-radius:3px;background:'+(hasMix?'#ede9fe':'#f3f4f6')+';color:'+(hasMix?'#6d28d9':'#9ca3af')+'">'+(hasMix?'mix':'standaard')+'</span></td></tr>';});
   h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td>Totaal</td><td style="text-align:right">'+rows.reduce((s,r)=>s+r.dd,0)+'</td><td style="text-align:right">'+Math.round(tC)+'</td><td style="text-align:right">'+Math.round(tT)+'</td><td style="text-align:right">'+Math.round(tM)+'</td><td></td></tr></tbody></table><p class="note" style="margin-top:7px">Trajectlengte: '+trajLen+' gesprekken (Overleg-tab). Nieuwe patiënten/mnd = consultaties ÷ trajectlengte.</p></div>';
   document.getElementById('cap-content').innerHTML=h;
 }
@@ -1922,6 +1933,8 @@ async function doSignup(){
 }
 async function doLogout(){
   if(!confirm('Uitloggen?'))return;
+  // Voorkom dat een gedebouncde cloudSave nog na signOut afvuurt
+  if(saveDebounceTimer){clearTimeout(saveDebounceTimer);saveDebounceTimer=null;}
   await sb.auth.signOut();
   currentUser=null;currentProfile=null;
   document.getElementById('user-pill').style.display='none';
