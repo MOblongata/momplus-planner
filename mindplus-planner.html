@@ -778,6 +778,132 @@ function calcNettoBE(brutoMnd, inp){
   return {rszWn, werkbonus, belastbaar, forfait:forfaitMnd, belastingbasis, pbBruto, credit, pbFederaal, pbGemeente, bedrijfsvh, netto};
 }
 
+// ====== Break-even simulator state + helpers ======
+let breakEvenInputs={
+  contractUrenWk:38,           // contracturen per week (PC 330 default)
+  tarief:89.59,                // €/consult (default: RIZIV-conventie 2025)
+  duurDirect:60,               // min directe sessie
+  duurIndirect:15,             // min administratie/verslag/voorbereiding per consult
+  mdoUrenWk:2,                 // teamoverleg per week
+  supervisieUrenWk:1,          // supervisie/opleiding per week
+  adminUrenWk:3,               // administratie/intake-coördinatie per week
+  verlofDg:20,                 // wettelijk verlof (dagen)
+  extraVerlofDg:0,             // bijkomend verlof
+  feestdagenDg:10,             // betaalde feestdagen
+  ziekteverzuimPct:5,          // verwacht ziekteverzuim (%)
+  werkdagenWk:5,               // werkdagen per week
+  noShowPct:8,                 // verwachte no-show %
+  cancelPct:5,                 // last-minute cancellations %
+  bufferPct:5                  // niet-billable contacten (telefoons, mails)
+};
+
+function setBreakEvenInput(key,v){
+  const numKeys=['contractUrenWk','tarief','duurDirect','duurIndirect','mdoUrenWk','supervisieUrenWk','adminUrenWk','verlofDg','extraVerlofDg','feestdagenDg','ziekteverzuimPct','werkdagenWk','noShowPct','cancelPct','bufferPct'];
+  if(numKeys.includes(key)){
+    const n=+v;
+    breakEvenInputs[key]=Math.max(0, isFinite(n)?n:0);
+  }
+  renderIfic();onAnyChange();
+}
+
+function calcBreakEven(ificOut, inp){
+  if(!ificOut)return null;
+  const fte=Math.max(0,Math.min(1,((+ificInputs.ftePct||0)/100)));
+  const loonkostJr=+ificOut.totJr||0;
+  const tarief=Math.max(0,+inp.tarief||0);
+  const werkdagenWk=Math.max(1,Math.min(7,+inp.werkdagenWk||5));
+  const verlofDgTot=(+inp.verlofDg||0)+(+inp.extraVerlofDg||0)+(+inp.feestdagenDg||0);
+  const verlofWk=verlofDgTot/werkdagenWk;
+  const ziekteWk=52*((+inp.ziekteverzuimPct||0)/100);
+  const productieveWk=Math.max(0, 52 - verlofWk - ziekteWk);
+  const brutoUren=productieveWk*(+inp.contractUrenWk||0)*fte;
+  // Overhead-uren NIET gescaled met FTE: een 40%-er attendeert meestal evenveel MDO/supervisie als voltijds
+  // (insight engine flagt als overhead > realistisch deel van werkweek)
+  const overheadUrenPerWk=(+inp.mdoUrenWk||0)+(+inp.supervisieUrenWk||0)+(+inp.adminUrenWk||0);
+  const overheadUren=overheadUrenPerWk*productieveWk;
+  const buffer=brutoUren*((+inp.bufferPct||0)/100);
+  const patientUren=Math.max(0, brutoUren - overheadUren - buffer);
+  const tijdPerConsultMin=(+inp.duurDirect||60)+(+inp.duurIndirect||0);
+  const maxConsultenJr=tijdPerConsultMin>0 ? patientUren*60/tijdPerConsultMin : 0;
+  const effFactor=Math.max(0, 1 - (+inp.noShowPct||0)/100 - (+inp.cancelPct||0)/100);
+  const effConsultenJr=maxConsultenJr*effFactor;
+  const omzetJr=effConsultenJr*tarief;
+  const margeJr=omzetJr-loonkostJr;
+  const breakEvenConsultenJr=(tarief>0 && effFactor>0)? loonkostJr/(tarief*effFactor) : 0;
+  const breakEvenBrutoConsultenJr=tarief>0 ? loonkostJr/tarief : 0; // zonder no-show correctie
+  const breakEvenConsultenWk=productieveWk>0 ? breakEvenConsultenJr/productieveWk : 0;
+  const breakEvenConsultenDag=werkdagenWk>0 ? breakEvenConsultenWk/werkdagenWk : 0;
+  const bezetting=maxConsultenJr>0 ? breakEvenConsultenJr/maxConsultenJr : 0;
+  const consDagMax=(productieveWk*werkdagenWk)>0 ? maxConsultenJr/(productieveWk*werkdagenWk) : 0;
+  const overheadAandeel=brutoUren>0 ? overheadUren/brutoUren : 0;
+  return {
+    fte, loonkostJr, tarief,
+    productieveWk, brutoUren, overheadUren, overheadAandeel, buffer, patientUren,
+    tijdPerConsultMin, maxConsultenJr, effConsultenJr, effFactor,
+    omzetJr, margeJr,
+    breakEvenConsultenJr, breakEvenBrutoConsultenJr, breakEvenConsultenWk, breakEvenConsultenDag,
+    bezetting, consDagMax, werkdagenWk
+  };
+}
+
+function breakEvenInsights(r, inp, ificOut){
+  if(!r)return [];
+  const out=[];
+  // Bezetting-zone
+  if(r.tarief<=0){
+    out.push({n:'rood',t:'Geen tarief ingegeven',u:'Vul tarief in om break-even te berekenen.'});
+  } else if(r.bezetting>1.0){
+    out.push({n:'rood',t:'Onhaalbaar — bezetting > 100%',u:'Bij dit tarief en deze uren-mix is de loonkost niet terug te verdienen. Opties: tarief omhoog, FTE verlagen, indirecte tijd/MDO/admin herzien, of pool-overhead activeren in praktijk.'});
+  } else if(r.bezetting>0.92){
+    out.push({n:'rood',t:'Bezetting > 92% — burn-out-risico',u:'Geen buffer voor ziekte, uitloop of zwaardere cases. Marge is fragiel — één lange ziekteperiode wist het overschot uit.'});
+  } else if(r.bezetting>0.8){
+    out.push({n:'oranje',t:'Bezetting 80–92% — krap',u:'Werkbaar maar weinig buffer. Eén onverwachte langdurige afwezigheid kan de marge wegvegen.'});
+  } else if(r.bezetting>=0.6){
+    out.push({n:'groen',t:'Bezetting 60–80% — sweet spot',u:'Realistische werkbelasting met buffer voor schommelingen en niet-direct werk.'});
+  } else if(r.bezetting>0){
+    out.push({n:'blauw',t:'Bezetting < 60% — veel marge',u:'Ruimte voor opleiding, onderzoek, intake-vrije momenten of overweeg hogere FTE.'});
+  }
+  // Werkbelasting
+  if(r.consDagMax>6 && (+inp.duurDirect||60)>=45){
+    out.push({n:'oranje',t:'> 6 lange sessies/dag = emotioneel zwaar',u:'Internationale klinische richtlijnen suggereren max 5–6 directe sessies van ≥45 min/dag voor duurzame inzetbaarheid.'});
+  }
+  // Overhead-aandeel onrealistisch laag/hoog
+  if(r.fte>0 && r.fte<1 && r.overheadAandeel>0.35){
+    out.push({n:'oranje',t:'Overhead > 35% van werkweek bij deze FTE',u:'Een part-timer met dezelfde MDO/admin als voltijds verliest disproportioneel veel patiënturen. Verlaag MDO/admin pro rata, of erken dit als kost van part-time werk.'});
+  }
+  const indPct=(+inp.duurDirect||60)>0 ? (+inp.duurIndirect||0)/(+inp.duurDirect||60) : 0;
+  if(indPct<0.20){
+    out.push({n:'oranje',t:'Indirecte tijd lijkt onderschat',u:'Psychologen rapporteren typisch 25–35% indirecte tijd per consult (verslag, brief, overleg). Test met de slider hieronder.'});
+  }
+  if((+inp.mdoUrenWk||0)===0){
+    out.push({n:'oranje',t:'Geen MDO/teamoverleg ingerekend',u:'In zorgteams typisch 1,5–3u/wk overleg. Voeg toe of bevestig dat dit klopt voor deze positie.'});
+  }
+  // Tarief-context
+  if(r.tarief>0 && r.tarief<89.59){
+    out.push({n:'blauw',t:'Tarief < RIZIV-conventie 2025 (€89,59)',u:'Geconventioneerde klinisch psychologen krijgen €89,59/sessie. Conventie = socialere doelgroep + minder prijszetting; vrije markt = autonomie + concurrentie.'});
+  }
+  if(r.tarief>0 && r.tarief>=89.59 && r.tarief<96){
+    out.push({n:'blauw',t:'Tarief in onderkant vrije markt',u:'Theoretische "koopkracht-tarief" 2025 ≈ €96/sessie voor basis-praktijk; €121 voor specialistische therapie. Veel BE-praktijken kiezen bewust voor toegankelijkheid.'});
+  }
+  // Verdunning
+  if((+inp.noShowPct||0)<5){
+    out.push({n:'oranje',t:'No-show < 5% — realistisch?',u:'Europese eerstelijnszorg ligt rond 15–20%. Onderschatten kost je snel 5–10% omzet. Bevestigingsmails of deposit verkleinen dit fors.'});
+  }
+  // Ziekte
+  if((+inp.ziekteverzuimPct||0)>4){
+    out.push({n:'blauw',t:'Eerste 30 dagen ziekte = werkgever betaalt 100%',u:'Gewaarborgd loon — komt bovenop verwachte loonkost. Bij langdurig verzuim verschuift de marge fors.'});
+  }
+  // Cashflow-piek
+  if(ificOut && ificOut.totMnd>0){
+    const piek=(ificOut.C_eindejaarsJr+ificOut.D_dubbelVakJr)/2;
+    const piekRatio=(ificOut.totMnd+piek)/ificOut.totMnd;
+    if(piekRatio>1.30){
+      out.push({n:'blauw',t:'Cashflow-piek mei/juni + december',u:'Eindejaarspremie + dubbel vakantiegeld = piek van ~'+Math.round(piekRatio*100)+'% van een gemiddelde maand. Houd kasreserve aan voor deze momenten.'});
+    }
+  }
+  return out;
+}
+
 function calcIfic(inp){
   const cat=+inp.categorie||16, ancien=+inp.ancien||0;
   const fte=Math.max(0,Math.min(1,(+inp.ftePct||0)/100));
@@ -973,7 +1099,7 @@ function renderScenariosList(){
 
 function getOverlegFromDOM(){const g=id=>+(document.getElementById(id)?.value)||0;return{opstart:g('p-opstart')||15,ntraject:g('p-ntraject')||2,mintraject:g('p-mintraject')||15,mdofreq:g('p-mdofreq')||5,mdomin:g('p-mdomin')||15,trajlen:g('p-trajlen')||20,consdur:g('p-consdur')||60};}
 function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
-function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok)),ificParams:JSON.parse(JSON.stringify(ificParams)),ificInputs:JSON.parse(JSON.stringify(ificInputs)),ificScenarios:JSON.parse(JSON.stringify(ificScenarios)),ificBaremaOverride:ificBaremaOverride?JSON.parse(JSON.stringify(ificBaremaOverride)):null,nettoParams:JSON.parse(JSON.stringify(nettoParams))};}
+function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok)),ificParams:JSON.parse(JSON.stringify(ificParams)),ificInputs:JSON.parse(JSON.stringify(ificInputs)),ificScenarios:JSON.parse(JSON.stringify(ificScenarios)),ificBaremaOverride:ificBaremaOverride?JSON.parse(JSON.stringify(ificBaremaOverride)):null,nettoParams:JSON.parse(JSON.stringify(nettoParams)),breakEvenInputs:JSON.parse(JSON.stringify(breakEvenInputs))};}
 function applyState(st){
   team=(st.team||DEFAULT_TEAM.map(p=>({...p}))).map(p=>({type:'zelfstandige',brutoJaar:0,ific:'',modus:'afdracht',tier:'basis',...p}));
   slots=st.slots||{};team.forEach(p=>{if(!slots[p.id])slots[p.id]=mkDef();});
@@ -1035,6 +1161,7 @@ function applyState(st){
   ificScenarios=Array.isArray(st.ificScenarios)?JSON.parse(JSON.stringify(st.ificScenarios)):[];
   ificBaremaOverride=(st.ificBaremaOverride&&typeof st.ificBaremaOverride==='object')?JSON.parse(JSON.stringify(st.ificBaremaOverride)):null;
   if(st.nettoParams&&typeof st.nettoParams==='object')nettoParams={...nettoParams,...st.nettoParams};
+  if(st.breakEvenInputs&&typeof st.breakEvenInputs==='object')breakEvenInputs={...breakEvenInputs,...st.breakEvenInputs};
   // Migratie: oude slots[pid][di][bi] kon true/false zijn. Nu mag het null / 'X' (aanwezig zonder ruimte) / ruimteId (string). Truthy = aanwezig, dus oude data blijft werken.
   const ov={...DEFAULT_OVERLEG,...(st.overleg||{})};
   Object.entries(ov).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});
@@ -2442,6 +2569,139 @@ function renderIfic(){
   h+='<div style="margin-top:10px;font-size:11.5px;color:#374151"><b>Indicatief extra netto/jaar:</b> Eindejaarspremie ≈ €'+eur(eindejaarsNetto)+' (na bijz. voorheffing ~50%) • Dubbel vakantiegeld ≈ €'+eur(dubbelVakNetto)+' (na bijz. voorheffing ~30%) • Extralegale voordelen €'+eur(out.G_extralegaalJr)+' (fiscaal afhankelijk)</div>';
   h+='<div style="margin-top:10px;padding:8px 10px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:11px;color:#92400e">⚠️ <b>Schatting</b>. Werkelijk netto hangt af van bedrijfsvoorheffing-schaal (I/II/III), maaltijdcheques, fietsvergoeding, groepsverzekering en exacte gezinssituatie. Vraag het sociaal secretariaat voor een sluitende loonfiche.</div>';
   h+='</div>';
+
+  // ====== BREAK-EVEN SIMULATOR ======
+  const be=calcBreakEven(out, breakEvenInputs);
+  h+='<div class="card" style="background:#fffbeb;border-left:4px solid #f59e0b">';
+  h+='<div class="card-title" style="color:#92400e">🎯 Break-even simulator</div>';
+  h+='<p style="font-size:11.5px;color:#92400e;margin:-2px 0 12px 0">Hoeveel consulten moet deze persoon doen om de eigen loonkost terug te verdienen? En past dat in de beschikbare uren?</p>';
+
+  // === INPUT-BLOKKEN (4 groepen) ===
+  h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px">';
+
+  // Activiteit
+  h+='<div style="background:#fff;padding:10px 12px;border-radius:8px;border:1px solid #fde68a">';
+  h+='<div style="font-size:11.5px;font-weight:600;color:#92400e;margin-bottom:8px">📋 Activiteit</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Tarief €/consult</label><input type="number" min="0" step="0.5" value="'+breakEvenInputs.tarief+'" onchange="setBreakEvenInput(\'tarief\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Contracturen/wk</label><input type="number" min="1" max="50" step="1" value="'+breakEvenInputs.contractUrenWk+'" onchange="setBreakEvenInput(\'contractUrenWk\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Direct min/consult</label><input type="number" min="15" max="120" step="5" value="'+breakEvenInputs.duurDirect+'" onchange="setBreakEvenInput(\'duurDirect\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Indirect min/consult</label><input type="number" min="0" max="60" step="5" value="'+breakEvenInputs.duurIndirect+'" onchange="setBreakEvenInput(\'duurIndirect\',this.value)" style="width:100%"></div>';
+  h+='</div></div>';
+
+  // Niet-patiënt werk
+  h+='<div style="background:#fff;padding:10px 12px;border-radius:8px;border:1px solid #fde68a">';
+  h+='<div style="font-size:11.5px;font-weight:600;color:#92400e;margin-bottom:8px">📚 Niet-patiënt werk (u/wk)</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">MDO/team</label><input type="number" min="0" max="20" step="0.5" value="'+breakEvenInputs.mdoUrenWk+'" onchange="setBreakEvenInput(\'mdoUrenWk\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Supervisie/opl.</label><input type="number" min="0" max="10" step="0.5" value="'+breakEvenInputs.supervisieUrenWk+'" onchange="setBreakEvenInput(\'supervisieUrenWk\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Administratie</label><input type="number" min="0" max="20" step="0.5" value="'+breakEvenInputs.adminUrenWk+'" onchange="setBreakEvenInput(\'adminUrenWk\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Werkdagen/wk</label><input type="number" min="1" max="7" step="0.5" value="'+breakEvenInputs.werkdagenWk+'" onchange="setBreakEvenInput(\'werkdagenWk\',this.value)" style="width:100%"></div>';
+  h+='</div></div>';
+
+  // Beschikbaarheid
+  h+='<div style="background:#fff;padding:10px 12px;border-radius:8px;border:1px solid #fde68a">';
+  h+='<div style="font-size:11.5px;font-weight:600;color:#92400e;margin-bottom:8px">📅 Beschikbaarheid</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Wettelijk verlof (dg)</label><input type="number" min="0" max="40" step="1" value="'+breakEvenInputs.verlofDg+'" onchange="setBreakEvenInput(\'verlofDg\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Extra verlof (dg)</label><input type="number" min="0" max="40" step="1" value="'+breakEvenInputs.extraVerlofDg+'" onchange="setBreakEvenInput(\'extraVerlofDg\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Feestdagen (dg)</label><input type="number" min="0" max="15" step="1" value="'+breakEvenInputs.feestdagenDg+'" onchange="setBreakEvenInput(\'feestdagenDg\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Ziekte %</label><input type="number" min="0" max="30" step="0.5" value="'+breakEvenInputs.ziekteverzuimPct+'" onchange="setBreakEvenInput(\'ziekteverzuimPct\',this.value)" style="width:100%"></div>';
+  h+='</div></div>';
+
+  // Verdunning
+  h+='<div style="background:#fff;padding:10px 12px;border-radius:8px;border:1px solid #fde68a">';
+  h+='<div style="font-size:11.5px;font-weight:600;color:#92400e;margin-bottom:8px">🌧 Verdunning (%)</div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">No-show</label><input type="number" min="0" max="50" step="0.5" value="'+breakEvenInputs.noShowPct+'" onchange="setBreakEvenInput(\'noShowPct\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:10.5px;color:#6b7280">Last-min cancel</label><input type="number" min="0" max="30" step="0.5" value="'+breakEvenInputs.cancelPct+'" onchange="setBreakEvenInput(\'cancelPct\',this.value)" style="width:100%"></div>';
+  h+='<div style="grid-column:span 2"><label style="font-size:10.5px;color:#6b7280">Buffer (niet-billable contacten)</label><input type="number" min="0" max="30" step="0.5" value="'+breakEvenInputs.bufferPct+'" onchange="setBreakEvenInput(\'bufferPct\',this.value)" style="width:100%"></div>';
+  h+='</div></div>';
+
+  h+='</div>'; // end inputs grid
+
+  // === DASHBOARD ===
+  if(be && be.tarief>0 && be.fte>0){
+    // Drie kerngetallen
+    const margeKleur=be.margeJr>=0?'#15803d':'#dc2626';
+    const margeLabel=be.margeJr>=0?'Marge bij vol jaar':'Tekort bij vol jaar';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:14px">';
+    h+='<div style="background:#fff;border:1px solid #fde68a;padding:12px;border-radius:8px;text-align:center"><div style="font-size:10.5px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px">Break-even</div><div style="font-size:26px;font-weight:700;color:#92400e;line-height:1.1">'+Math.round(be.breakEvenConsultenJr)+'</div><div style="font-size:10.5px;color:#6b7280">consulten/jr nodig<br>(incl. no-show/cancel)</div></div>';
+    h+='<div style="background:#fff;border:1px solid #fde68a;padding:12px;border-radius:8px;text-align:center"><div style="font-size:10.5px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px">Max haalbaar</div><div style="font-size:26px;font-weight:700;color:#374151;line-height:1.1">'+Math.round(be.maxConsultenJr)+'</div><div style="font-size:10.5px;color:#6b7280">consulten/jr<br>bij volle agenda</div></div>';
+    h+='<div style="background:#fff;border:1px solid #fde68a;padding:12px;border-radius:8px;text-align:center"><div style="font-size:10.5px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px">'+margeLabel+'</div><div style="font-size:26px;font-weight:700;color:'+margeKleur+';line-height:1.1">€'+eur(Math.abs(be.margeJr))+'</div><div style="font-size:10.5px;color:#6b7280">'+(be.margeJr>=0?'overschot':'tekort')+'/jaar</div></div>';
+    h+='</div>';
+
+    // Bezettings-meter
+    const pct=Math.min(100, be.bezetting*100);
+    let zoneKleur, zoneLabel;
+    if(be.bezetting>1.0){zoneKleur='#dc2626';zoneLabel='Onhaalbaar';}
+    else if(be.bezetting>0.92){zoneKleur='#dc2626';zoneLabel='Burn-out-risico';}
+    else if(be.bezetting>0.8){zoneKleur='#ea580c';zoneLabel='Krap';}
+    else if(be.bezetting>=0.6){zoneKleur='#16a34a';zoneLabel='Sweet spot';}
+    else {zoneKleur='#0284c7';zoneLabel='Veel marge';}
+    h+='<div style="margin-top:14px;background:#fff;border:1px solid #fde68a;padding:12px;border-radius:8px">';
+    h+='<div style="display:flex;justify-content:space-between;font-size:12px;color:#92400e;margin-bottom:6px"><span><b>Bezettingsgraad voor break-even:</b> '+(be.bezetting*100).toFixed(1)+'%</span><span style="color:'+zoneKleur+';font-weight:700">'+zoneLabel+'</span></div>';
+    h+='<div style="background:#f3f4f6;height:16px;border-radius:8px;overflow:hidden;position:relative">';
+    h+='<div style="position:absolute;left:60%;top:0;bottom:0;width:1px;background:#9ca3af;z-index:2"></div>';
+    h+='<div style="position:absolute;left:80%;top:0;bottom:0;width:1px;background:#9ca3af;z-index:2"></div>';
+    h+='<div style="position:absolute;left:92%;top:0;bottom:0;width:1px;background:#9ca3af;z-index:2"></div>';
+    h+='<div style="height:100%;width:'+pct+'%;background:'+zoneKleur+';transition:width .3s"></div>';
+    h+='</div>';
+    h+='<div style="display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;margin-top:4px"><span>0%</span><span>60% groen</span><span>80% krap</span><span>92% risico</span><span>100%</span></div>';
+    h+='</div>';
+
+    // Doorrekening
+    h+='<div style="margin-top:12px;background:#fff;border:1px solid #fde68a;padding:12px;border-radius:8px;font-size:12px">';
+    h+='<div style="font-weight:600;color:#92400e;margin-bottom:8px">Doorrekening</div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 14px;color:#374151">';
+    h+='<div>Productieve weken/jaar: <b>'+be.productieveWk.toFixed(1)+'</b></div>';
+    h+='<div>Patiënt-uren beschikbaar/jr: <b>'+Math.round(be.patientUren)+'</b></div>';
+    h+='<div>Tijd/consult (direct+indirect): <b>'+be.tijdPerConsultMin+' min</b></div>';
+    h+='<div>Effectieve consulten/jr: <b>'+Math.round(be.effConsultenJr)+'</b> <span style="color:#9ca3af">(na '+(((+breakEvenInputs.noShowPct)+(+breakEvenInputs.cancelPct))||0)+'% verdunning)</span></div>';
+    h+='<div>Bruto omzet/jr: <b>€'+eur(be.omzetJr)+'</b></div>';
+    h+='<div>Loonkost werkgever/jr: <b>€'+eur(be.loonkostJr)+'</b></div>';
+    h+='<div style="grid-column:1 / -1;padding-top:6px;border-top:1px dashed #fde68a"><b>Break-even ritme:</b> '+be.breakEvenConsultenWk.toFixed(1)+' consulten/week → <b>'+be.breakEvenConsultenDag.toFixed(1)+' consulten/werkdag</b> (over '+be.werkdagenWk+' dagen) • Max dichte agenda: '+be.consDagMax.toFixed(1)+'/dag</div>';
+    h+='</div></div>';
+
+    // Insights
+    const insights=breakEvenInsights(be, breakEvenInputs, out);
+    if(insights.length>0){
+      h+='<div style="margin-top:12px">';
+      h+='<div style="font-size:12px;font-weight:600;color:#92400e;margin-bottom:8px">💡 Inzichten & alarmen</div>';
+      insights.forEach(ins=>{
+        const colMap={rood:{bg:'#fee2e2',border:'#dc2626',tx:'#991b1b'},oranje:{bg:'#ffedd5',border:'#ea580c',tx:'#9a3412'},groen:{bg:'#dcfce7',border:'#16a34a',tx:'#166534'},blauw:{bg:'#e0f2fe',border:'#0284c7',tx:'#075985'}};
+        const c=colMap[ins.n]||colMap.blauw;
+        h+='<div style="background:'+c.bg+';border-left:3px solid '+c.border+';padding:8px 12px;border-radius:6px;font-size:11.5px;color:'+c.tx+';margin-bottom:6px;line-height:1.4"><b>'+esc(ins.t)+'</b> — '+esc(ins.u)+'</div>';
+      });
+      h+='</div>';
+    }
+
+    // Wat-als sliders
+    h+='<div style="margin-top:14px;background:#fff;border:1px solid #fde68a;padding:12px;border-radius:8px">';
+    h+='<div style="font-size:12px;font-weight:600;color:#92400e;margin-bottom:10px">🎚 Wat-als — sleep en zie de impact</div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:11.5px">';
+    h+='<span style="min-width:100px;color:#6b7280">Tarief €/consult</span>';
+    h+='<input type="range" min="40" max="150" step="1" value="'+breakEvenInputs.tarief+'" oninput="setBreakEvenInput(\'tarief\',this.value)" style="flex:1;accent-color:#f59e0b">';
+    h+='<span style="min-width:70px;text-align:right;font-weight:600;color:#92400e">€'+(+breakEvenInputs.tarief).toFixed(0)+'</span>';
+    h+='</div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:11.5px">';
+    h+='<span style="min-width:100px;color:#6b7280">No-show %</span>';
+    h+='<input type="range" min="0" max="25" step="0.5" value="'+breakEvenInputs.noShowPct+'" oninput="setBreakEvenInput(\'noShowPct\',this.value)" style="flex:1;accent-color:#f59e0b">';
+    h+='<span style="min-width:70px;text-align:right;font-weight:600;color:#92400e">'+(+breakEvenInputs.noShowPct).toFixed(1)+'%</span>';
+    h+='</div>';
+    h+='<div style="display:flex;align-items:center;gap:10px;font-size:11.5px">';
+    h+='<span style="min-width:100px;color:#6b7280">Verlof dgn/jr</span>';
+    h+='<input type="range" min="20" max="40" step="1" value="'+breakEvenInputs.verlofDg+'" oninput="setBreakEvenInput(\'verlofDg\',this.value)" style="flex:1;accent-color:#f59e0b">';
+    h+='<span style="min-width:70px;text-align:right;font-weight:600;color:#92400e">'+breakEvenInputs.verlofDg+' dg</span>';
+    h+='</div></div>';
+
+    // Disclaimer
+    h+='<div style="margin-top:10px;padding:8px 10px;background:#fef3c7;border-left:3px solid #f59e0b;border-radius:6px;font-size:11px;color:#92400e">⚠️ <b>Indicatieve simulatie</b>. Niet alle praktijken hebben dezelfde overhead-mix. Pas inputs aan voor de werkelijke positie. Tarieven en RIZIV-cijfers gelden voor 2025.</div>';
+  } else {
+    h+='<div style="margin-top:14px;padding:10px 14px;background:#fef9c3;border-left:3px solid #ca8a04;border-radius:6px;font-size:12px;color:#854d0e">Vul een geldig tarief en FTE in om de break-even uit te voeren.</div>';
+  }
+
+  h+='</div>'; // end break-even card
 
   h+='<div class="card"><div class="card-title">⚙ Parameters (audit-transparant)</div>';
   h+='<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;font-size:12px">';
