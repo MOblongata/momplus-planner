@@ -66,6 +66,19 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 .param-label{flex:1;font-size:12px;}.param-label small{color:#9ca3af;display:block;font-size:10px;}
 .leg-item{padding:8px 10px;margin-bottom:7px;background:#f9fafb;border-left:3px solid #4f46e5;border-radius:5px;font-size:12.5px;color:#374151;line-height:1.55;}
 .leg-item strong{color:#1f2937;}
+.tab-toggle-banner{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:10px;margin-bottom:14px;font-size:13px;border:1px solid;}
+.tab-toggle-banner.off{background:#f9fafb;border-color:#e5e7eb;color:#6b7280;}
+.tab-toggle-banner.on{background:#dcfce7;border-color:#86efac;color:#166534;}
+.tab-toggle-banner .label{flex:1;}
+.tab-toggle-banner .label strong{font-size:14px;}
+.tab-toggle-banner .toggle-btn{padding:6px 13px;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;}
+.tab-toggle-banner.off .toggle-btn{background:#4f46e5;color:#fff;}
+.tab-toggle-banner.off .toggle-btn:hover{background:#4338ca;}
+.tab-toggle-banner.on .toggle-btn{background:#fff;color:#dc2626;border:1px solid #fca5a5;}
+.tab-toggle-banner.on .toggle-btn:hover{background:#fee2e2;}
+.tab-disabled-overlay{position:relative;}
+.tab-disabled-overlay::before{content:'';position:absolute;inset:0;background:rgba(255,255,255,.55);z-index:1;pointer-events:none;border-radius:8px;}
+.tab-disabled-overlay > .card{opacity:.65;}
 .auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
 .auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
 .auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
@@ -312,6 +325,7 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 </div>
 
 <div id="tab-mdo" class="tab-pane">
+  <div id="tab-mdo-toggle"></div>
   <div class="card">
     <div class="card-title">🗣 MDO — optioneel</div>
     <p class="note" style="margin-bottom:8px">MDO = multidisciplinair overleg (cliëntbespreking met meerdere zorgverleners). Deze tab is <strong>optioneel</strong>. Vul niets in als je geen MDO-werking hebt — dan blijft de planner gewoon werken zonder MDO-inkomsten of agenda-blokken.</p>
@@ -408,6 +422,7 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 </div>
 
 <div id="tab-verdoken" class="tab-pane">
+  <div id="tab-verdoken-toggle"></div>
   <div class="card">
     <div class="card-title">🫥 Verdoken kosten</div>
     <p class="note" style="margin-bottom:10px">Niet alles wat je inplant levert ook écht geld op. Vul hier in welk percentage van de geplande consultaties verloren gaat. <strong>Standaard staat alles op 0%</strong> — dan rekent de planner met een ideale situatie. Verhoog de cijfers om realistischer in te schatten.</p>
@@ -484,6 +499,7 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 </div>
 
 <div id="tab-capp" class="tab-pane">
+  <div id="tab-capp-toggle"></div>
   <div class="card">
     <div class="card-title">☕ Pool-instellingen</div>
     <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12.5px">
@@ -515,6 +531,7 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 </div>
 
 <div id="tab-mix" class="tab-pane">
+  <div id="tab-mix-toggle"></div>
   <div class="card">
     <div class="card-title">📋 Actencatalogus — billable acts</div>
     <table><thead><tr><th>Naam</th><th style="width:115px">Nomenclatuur<br><span style="font-weight:400;color:#9ca3af;font-size:9px">RIZIV-code</span></th><th style="width:100px">Familie</th><th style="width:70px">Tarief €</th><th style="width:145px">Duur (min)</th><th style="width:110px">Routing</th><th style="width:28px"></th></tr></thead><tbody id="acts-tbody"></tbody></table>
@@ -602,6 +619,8 @@ let huurComponenten=[
   {id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}
 ]; // [{id, naam, bedragPerDagdeel}]
 let personHuur={}; // {pid:[componentId, ...]} welke componenten deze persoon betaalt
+// Tab-toggles: standaard alles UIT voor het basis MOM+ huur-model. Later kan elke tab apart geactiveerd worden.
+let tabsEnabled={mdo:false,mix:false,verdoken:false,capp:false};
 let mdoBlokken={}; // {pid: aantalMDOsPerWeek} — aantal MDO-sessies/cliëntbesprekingen per week per teamlid
 let cappOptIn={}; // {pid: true/false} — deelname aan cappuccinopool. Default true voor zelfstandigen.
 let personMinAfdrachtPct={}; // {pid: pct|''} — minimum effectieve afdracht% (cap op pool-payout). Leeg = geen limit.
@@ -716,7 +735,7 @@ function renderScenariosList(){
 
 function getVerdokenFromDOM(){const ns=+(document.getElementById('p-noshow')?.value)||0,ie=+(document.getElementById('p-ineff')?.value)||0;return{noShow:Math.max(0,Math.min(100,ns)),inefficientie:Math.max(0,Math.min(100,ie))};}
 function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
-function buildState(){return{version:8,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),verdokenKosten:getVerdokenFromDOM(),trajLen:+trajLen||DEFAULT_TRAJLEN,bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur))};}
+function buildState(){return{version:8,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),verdokenKosten:getVerdokenFromDOM(),trajLen:+trajLen||DEFAULT_TRAJLEN,bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled))};}
 function applyState(st){
   team=(st.team||DEFAULT_TEAM.map(p=>({...p}))).map(p=>({type:'zelfstandige',brutoJaar:0,ific:'',...p}));
   slots=st.slots||{};team.forEach(p=>{if(!slots[p.id])slots[p.id]=mkDef();});
@@ -767,6 +786,7 @@ function applyState(st){
   ruimtes=Array.isArray(st.ruimtes)?JSON.parse(JSON.stringify(st.ruimtes)):[];
   huurComponenten=Array.isArray(st.huurComponenten)?JSON.parse(JSON.stringify(st.huurComponenten)):[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}];
   personHuur=_clone(st.personHuur);
+  tabsEnabled={mdo:false,mix:false,verdoken:false,capp:false,...(st.tabsEnabled||{})};
   // Migratie: oude slots[pid][di][bi] kon true/false zijn. Nu mag het null / 'X' (aanwezig zonder ruimte) / ruimteId (string).
   // De render-code interpreteert truthy als aanwezig, dus oude true blijft werken. We laten conversie achterwege om back-compat te bewaren.
   // Verdoken kosten (no-show + inefficiëntie). Migratie: oude state had 'overleg' + 'overlegOhActief' — die gooien we weg, beginnen op 0%.
@@ -819,6 +839,7 @@ function resetConfirm(){
   personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};ruimtes=[];
   huurComponenten=[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}];
   personHuur={};
+  tabsEnabled={mdo:false,mix:false,verdoken:false,capp:false};
   acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};
   verdokenKosten={...DEFAULT_VERDOKEN};trajLen=DEFAULT_TRAJLEN;
   const elNs=document.getElementById('p-noshow');if(elNs)elNs.value=verdokenKosten.noShow;
@@ -833,10 +854,13 @@ function clr(i){return COLORS[i%COLORS.length];}
 // XSS-bescherming: escape user-input vóór invoegen in innerHTML
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmt(n){return'€\u202F'+Math.round(n).toLocaleString('nl-BE');}
-// ohPct() = totale verlies-fractie op bruto-inkomsten (0..1). Multiplicatief gecombineerd: (1-ohPct) = (1-noShow/100)*(1-inefficientie/100)
+// ohPct() = totale verlies-fractie op bruto-inkomsten (0..1). Multiplicatief: (1-ohPct) = (1-noShow/100)*(1-inefficientie/100)
+// Respect: als verdoken-kosten tab uit staat, retourneer altijd 0 (geen aftrek).
 function ohPct(){
-  const ns=document.getElementById('p-noshow')?+(document.getElementById('p-noshow').value)||0:(+verdokenKosten.noShow||0);
-  const ie=document.getElementById('p-ineff')?+(document.getElementById('p-ineff').value)||0:(+verdokenKosten.inefficientie||0);
+  if(!tabsEnabled.verdoken)return 0;
+  // Lees uit state (de DOM-inputs syncen naar state via onVerdoken)
+  const ns=+verdokenKosten.noShow||0;
+  const ie=+verdokenKosten.inefficientie||0;
   const keep=(1-Math.min(100,Math.max(0,ns))/100)*(1-Math.min(100,Math.max(0,ie))/100);
   return 1-keep;
 }
@@ -885,6 +909,23 @@ function huurPerPersoonMnd(p){
   return huurPerDagdeelPersoon(p)*dagdelen(p)*wkPerMaand(p);
 }
 function totalHuurMnd(){return team.reduce((s,p)=>s+huurPerPersoonMnd(p),0);}
+
+// Tab-enable toggle
+function setTabEnabled(name,on){
+  if(!(name in tabsEnabled))return;
+  tabsEnabled[name]=!!on;
+  refreshAll();onAnyChange();
+}
+function renderTabToggleBanner(name,uitleg){
+  const on=!!tabsEnabled[name];
+  return '<div class="tab-toggle-banner '+(on?'on':'off')+'">'
+    +'<div class="label">'
+      +'<strong>'+(on?'✓ Deze tab is ACTIEF':'⊘ Deze tab staat UIT')+'</strong>'
+      +'<div style="font-size:12px;margin-top:3px">'+(on?'Inhoud en berekeningen worden meegerekend.':esc(uitleg||'Berekeningen tellen deze tab niet mee.'))+'</div>'
+    +'</div>'
+    +'<button class="toggle-btn" onclick="setTabEnabled(\''+name+'\','+(on?'false':'true')+')">'+(on?'Uitschakelen':'Activeren')+'</button>'
+  +'</div>';
+}
 function slotCount(di,bi){return team.filter(p=>slots[p.id]?.[di]?.[bi]).length;}
 function bureauLim(){return+(document.getElementById('bureau-limit')?.value)||8;}
 function badgeCls(n){if(!n)return'bempty';const l=bureauLim();if(n>l)return'bover';if(n>=l*.75)return'bwarn';return'bok';}
@@ -972,6 +1013,7 @@ function persNettoMixed(p){
   return tot;
 }
 function mixCappIncome(){
+  if(!tabsEnabled.mix)return 0;
   // Bijdrage aan ☕ pool vanuit consultatie/technische acts met routing='cappuccino'
   let tot=0;
   const oh=1-ohPct();
@@ -988,11 +1030,17 @@ function mixCappIncome(){
 // NIEUW HUUR-MODEL: vzwActual = wat MOM+ binnenkrijgt = huur betaald door deze persoon
 function vzwActual(p){return huurPerPersoonMnd(p);}
 // Bruto consultaties = wat de persoon zelf verdient via consultaties (zonder afdracht — die bestaat niet meer)
+// Respecteert tabsEnabled.mix: als uit, gebruik simpele tarief × cons; als aan, gebruik personMix mix-logica
 function brutoConsultatiesMnd(p){
   if(p.type==='bediende')return 0;
   const dB=dagBlokken(p),avB=avondDelen(p),wk=wkPerMaand(p);
   // brutoEurPerBlok bevat al de (1-ohPct) aftrek voor verdoken kosten
-  return brutoEurPerBlok(p,0)*dB*wk + brutoEurPerBlok(p,2)*avB*wk;
+  if(tabsEnabled.mix){
+    return brutoEurPerBlok(p,0)*dB*wk + brutoEurPerBlok(p,2)*avB*wk;
+  }
+  // Simpele flow: tarief × cons (zonder mix). avondblok korter via avondShare()
+  const tar=+p.tarief||0,cons=+p.cons||0,oh=1-ohPct();
+  return tar*cons*oh*dB*wk + tar*cons*avondShare()*oh*avB*wk;
 }
 // Netto persoonlijk = bruto consultaties − huur betaald aan MOM+
 function nettoActual(p){return brutoConsultatiesMnd(p)-huurPerPersoonMnd(p);}
@@ -1054,10 +1102,11 @@ function actueelGewogenPct(){
   return totBruto>0?(totAfd/totBruto)*100:0;
 }
 function totalVzw(){return team.reduce((s,p)=>s+vzwActual(p),0);}
-function mdoCappIncome(){let t=0;for(const[pid,m]of Object.entries(personMDO)){const p=team.find(x=>x.id===pid);if(!p)continue;for(const[aId,pw]of Object.entries(m)){const act=acts.find(a=>a.id===aId);if(act&&pw)t+=pw*act.tarief*wkPerMaand(p);}}return t;}
+function mdoCappIncome(){if(!tabsEnabled.mdo)return 0;let t=0;for(const[pid,m]of Object.entries(personMDO)){const p=team.find(x=>x.id===pid);if(!p)continue;for(const[aId,pw]of Object.entries(m)){const act=acts.find(a=>a.id===aId);if(act&&pw)t+=pw*act.tarief*wkPerMaand(p);}}return t;}
 function mdoSessiesPerBlok(){return(+mdoConfig.blokUren||0)*(+mdoConfig.mdoPerUur||0);}
 function mdoTariefAct(){const a=acts.find(x=>x.familie==='mdo');return a?+a.tarief||0:75;}
 function mdoBlokIncome(){
+  if(!tabsEnabled.mdo)return 0;
   // Inkomsten = som per teamlid van (MDO's per week × tarief × wk/maand). Eén MDO = 1 cliëntbespreking.
   const tarief=mdoTariefAct();
   if(tarief<=0)return 0;
@@ -1100,6 +1149,7 @@ function mdoSlotInBooking(day,h){return mdoBookings.find(b=>b.day===day&&h>=b.st
 function adminCappIncome(){let t=0;for(const[,am]of Object.entries(personAdmin)){for(const[aId,pm]of Object.entries(am)){const act=acts.find(a=>a.id===aId);if(act&&pm)t+=act.tarief*pm;}}return t;}
 function avondCappIncome(){let t=0;for(const p of team){const av=personAvond[p.id]||{};for(const[aId,r]of Object.entries(av)){if(r!=='cappuccino')continue;const act=acts.find(a=>a.id===aId);if(act)t+=avondDelen(p)*wkPerMaand(p)*act.tarief;}}return t;}
 function cappPool(){
+  if(!tabsEnabled.capp)return 0; // Cappuccino-tab uit = geen pool
   const om=document.getElementById('capp-overschot-manual')?.value;
   if(om&&om!=='')return Math.max(0,+om||0);
   const vzwOverschot=totalVzw()-totalKosten();
@@ -1337,7 +1387,11 @@ function renderRooster(){
   if(rChart)rChart.destroy();rChart=new Chart(document.getElementById('rooster-chart').getContext('2d'),{type:'bar',data:{labels:lbs,datasets:[{label:'Aanwezig',data:counts,backgroundColor:bgs,borderColor:brd,borderWidth:1.5,borderRadius:4},{type:'line',label:'Limiet ('+lim+')',data:Array(15).fill(lim),borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,2],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:7}}},scales:{y:{min:0,max:Math.max(lim+2,peak+1),ticks:{stepSize:1,font:{size:10}},grid:{color:'#f3f4f6'}},x:{ticks:{font:{size:9.5}},grid:{display:false}}}}});
 }
 
-function renderMdoTab(){renderMdoConfig();renderMdoAgenda();}
+function renderMdoTab(){
+  const tg=document.getElementById('tab-mdo-toggle');
+  if(tg)tg.innerHTML=renderTabToggleBanner('mdo','Geen MDO-inkomsten of -blokken worden meegerekend. Activeer als jullie MDO-werking hebt en die financieel wil modelleren.');
+  renderMdoConfig();renderMdoAgenda();
+}
 function renderMdoConfig(){
   const ses=mdoSessiesPerBlok(),tar=mdoTariefAct(),gewenst=mdoTotaalGewenst(),mogelijk=mdoSessiesIngepland(),inkomst=mdoBlokIncome();
   const si=document.getElementById('mdo-sessies-info');if(si)si.textContent=ses+' MDO\'s/blok';
@@ -1522,6 +1576,8 @@ function addInvestering(){
 }
 
 function renderVerdoken(){
+  const tg=document.getElementById('tab-verdoken-toggle');
+  if(tg)tg.innerHTML=renderTabToggleBanner('verdoken','No-show en inefficiëntie tellen niet als kost — bruto consultatie-inkomsten worden niet verlaagd. Activeer om realistischer te rekenen.');
   // Sync state met DOM
   verdokenKosten=getVerdokenFromDOM();
   const ns=verdokenKosten.noShow,ie=verdokenKosten.inefficientie;
@@ -1548,6 +1604,9 @@ function renderVerdoken(){
 }
 
 function renderCapp(){
+  const tg=document.getElementById('tab-capp-toggle');
+  if(tg)tg.innerHTML=renderTabToggleBanner('capp','Geen pool-verdeling. Het MOM+-overschot blijft volledig bij MOM+ (cappuccino-payouts zijn 0). Activeer als je een poolverdeling tussen teamleden wil.');
+  if(!tabsEnabled.capp){const r=document.getElementById('capp-content');if(r){r.style.opacity=.55;r.style.pointerEvents='none';}else{document.querySelectorAll('#tab-capp .card:not(:has(#tab-capp-toggle))').forEach(c=>{c.style.opacity=.55;c.style.pointerEvents='none';});}}else{document.querySelectorAll('#tab-capp .card').forEach(c=>{c.style.opacity='';c.style.pointerEvents='';});}
   const vzwInk=totalVzw(),kost=totalKosten(),overschot=vzwInk-kost,mdo=mdoCappIncome(),mdoBlk=mdoBlokIncome(),adm=adminCappIncome(),av=avondCappIncome(),mixCp=mixCappIncome(),pool=cappPool();
   const bronnen=mdo+mdoBlk+adm+av+mixCp;
   // Sync kostendekking checkbox & status
@@ -1706,6 +1765,8 @@ function renderCapp(){
 }
 
 function renderMix(){
+  const tg=document.getElementById('tab-mix-toggle');
+  if(tg)tg.innerHTML=renderTabToggleBanner('mix','De Mix-instellingen tellen niet — bruto consultatie-inkomst wordt simpel berekend als tarief × cons/blok uit de Team-tab. Activeer voor fijnere consultatiemix per persoon.');
   const ROPT='<option value="afdracht">→ afdracht</option><option value="cappuccino">→ ☕ pool</option><option value="instelbaar">⚙ p.p.</option>';
   const FOPT='<option value="consultatie">💬 Consult</option><option value="technisch">🔬 Technisch</option><option value="mdo">👥 MDO</option><option value="groep">🫂 Groep</option><option value="toeslag">🌙 Toeslag</option><option value="admin">📝 Admin</option>';
   document.getElementById('acts-tbody').innerHTML=acts.map(a=>{
