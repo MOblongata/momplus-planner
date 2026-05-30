@@ -1295,18 +1295,19 @@ function huurPerDagdeelPersoon(p){
 }
 function huurPerPersoonMnd(p){
   if(p.type==='bediende')return 0;
-  return huurPerDagdeelPersoon(p)*dagdelen(p)*wkPerMaand(p);
+  // Avondblok is pro rata korter (270/330 ≈ 82%); huur volgt dezelfde pro rata zodat huur- en afdracht-modus mathematisch gelijk uitkomen.
+  const huur=huurPerDagdeelPersoon(p),wk=wkPerMaand(p);
+  return huur*(dagBlokken(p)+avondDelen(p)*avondShare())*wk;
 }
 function totalHuurMnd(){return team.reduce((s,p)=>s+huurPerPersoonMnd(p),0);}
-// Bruto consultaties (zonder afdracht/huur-aftrek) — gebruikt mix-flow als Mix-tab actief, anders tarief×cons
+// Bruto van afdracht-routing acts (consult + technisch) = wat er tussen persoon en VZW verdeeld wordt.
+// Gegarandeerd consistent: bruto = vzw-deel + netto-deel in afdracht-modus. Bij gelijke huur = gelijke netto in huur-modus.
 function brutoConsultatiesMnd(p){
   if(p.type==='bediende')return 0;
-  const dB=dagBlokken(p),avB=avondDelen(p),wk=wkPerMaand(p);
-  if(tabsEnabled.mix){
-    return brutoEurPerBlok(p,0)*dB*wk + brutoEurPerBlok(p,2)*avB*wk;
+  if(tabsEnabled.mix&&(personMix[p.id]||[]).length>0){
+    return vzwPerMaandMixed(p)+persNettoMixed(p);
   }
-  const tar=+p.tarief||0,cons=+p.cons||0,oh=1-ohPct();
-  return tar*cons*oh*dB*wk + tar*cons*avondShare()*oh*avB*wk;
+  return vzwPerMaand(p)+persNettoPerMaand(p);
 }
 // Tab-toggle helpers
 function setTabEnabled(name,on){
