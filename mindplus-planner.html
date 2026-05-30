@@ -252,6 +252,7 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
   <button class="tab-btn active" onclick="showTab('fin',this)">📊 Financieel</button>
   <button class="tab-btn" onclick="showTab('rooster',this)">📅 Rooster</button>
   <button class="tab-btn" onclick="showTab('team',this)">👥 Team</button>
+  <button class="tab-btn" onclick="showTab('ific',this)">💰 IFIC</button>
   <button class="tab-btn" onclick="showTab('kosten',this)">💶 Kosten</button>
   <button class="tab-btn" onclick="showTab('overleg',this)">🗣 Overleg</button>
   <button class="tab-btn" onclick="showTab('capp',this)">☕ Cappuccino</button>
@@ -483,12 +484,6 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
       <div class="card-title">📊 Verdeling Pot 2 — payout per persoon</div>
       <div id="capp-v5-verdeling"></div>
     </div>
-
-    <div class="card">
-      <div class="card-title">🔮 Wat-als simulator</div>
-      <p class="note" style="margin-bottom:10px">Speel met de slider en tier-overrides zonder de echte instellingen te wijzigen. Zie meteen het effect op alle teamleden.</p>
-      <div id="capp-wati-sim"></div>
-    </div>
   </div>
 
   <!-- ===== KLASSIEK V4 MODEL (fallback) ===== -->
@@ -544,6 +539,10 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 
 <div id="tab-cap" class="tab-pane">
   <div id="cap-content"></div>
+</div>
+
+<div id="tab-ific" class="tab-pane">
+  <div id="ific-content"></div>
 </div>
 
 <script>
@@ -670,6 +669,119 @@ function setPersonCappVastPerBlok(pid,v){personCappVastPerBlok[pid]=Math.max(0,+
 function tierGewicht(t){return t==='senior'?2:(t==='ervaren'?1.5:1);}
 function getPersonTier(p){return p&&(p.tier==='ervaren'||p.tier==='senior')?p.tier:'basis';}
 function setPersonTier(pid,t){const p=team.find(x=>x.id===pid);if(!p)return;p.tier=(t==='senior'||t==='ervaren')?t:'basis';renderFin();renderCapp();onAnyChange();}
+
+// ===== IFIC Loonkost-calculator =====
+// Disclaimer: indicatieve berekening. Geen vervanging voor sociaal secretariaat.
+// Standaard barema is een benadering verankerd op PC 330 / IFIC mei 2024: Cat. 16 ancien 0 = €3.948,02.
+// Frank kan een eigen barema-JSON laden via de UI.
+let ificParams={
+  rszPatPct:25.0,           // Patronale RSZ % (PC 330 basis ~24,92 + minimale sectorale aanvulling)
+  eindejaarspremiePct:5.46, // % van bruto jaarloon (PC 330 indicatief)
+  dubbelVakantiePct:92,     // % van één bruto maand (wettelijk: 92%)
+  arbeidsongevallenPct:1.0, // % van bruto jaar (risicoklasse-afhankelijk)
+  externePreventiePerJr:80, // € forfait per werknemer per jaar
+  sociaalMaribelPerKw:625,  // € vermindering per kwartaal per voltijds equivalent
+  datumBarema:'mei 2024',
+  sectorPc:'PC 330'
+};
+let ificInputs={categorie:16, ancien:0, ftePct:40, sociaalMaribel:false, extralegaalMnd:0};
+let ificScenarios=[]; // [{id, naam, input}]
+let ificBaremaOverride=null; // optioneel: {meta:{...}, data:{cat:{ancien:bedrag}}}
+
+// Standaard barema-berekening: voltijds bruto maandloon per categorie + ancienniteit.
+// Anchor: Cat. 16, ancien 0 = €3.948,02 (PC 330, IFIC, mei 2024-indexering).
+// Categoriespreiding: ~5,6% per categorie. Anciënniteit-uplift: tot +18% bij 35 jaar (quadratische ease-in).
+function ificBrutoVoltijds(cat, ancien){
+  cat=Math.max(14,Math.min(20,+cat||16));
+  ancien=Math.max(0,Math.min(35,+ancien||0));
+  // Override (custom barema upload)
+  if(ificBaremaOverride && ificBaremaOverride.data && ificBaremaOverride.data[cat]){
+    const row=ificBaremaOverride.data[cat];
+    if(row[ancien]!=null) return +row[ancien];
+    // Zoek dichtstbijzijnde lagere trap
+    const keys=Object.keys(row).map(k=>+k).sort((a,b)=>a-b);
+    let prev=keys[0], next=keys[keys.length-1];
+    for(const k of keys){ if(k<=ancien)prev=k; if(k>=ancien){next=k;break;} }
+    if(prev===next) return +row[prev];
+    const t=(ancien-prev)/(next-prev);
+    return +row[prev] + t*(+row[next]-+row[prev]);
+  }
+  // Default formule
+  const base=3948.02*Math.pow(1.0560, cat-16);
+  const maxUplift=base*0.18;
+  const a=ancien/35;
+  const uplift=maxUplift*(1-Math.pow(1-a,2));
+  return base+uplift;
+}
+
+function calcIfic(inp){
+  const cat=+inp.categorie||16, ancien=+inp.ancien||0;
+  const fte=Math.max(0,Math.min(1,(+inp.ftePct||0)/100));
+  const brutoVoltijds=ificBrutoVoltijds(cat,ancien);
+  const A_brutoMnd=brutoVoltijds*fte;
+  const B_brutoJr=A_brutoMnd*12;
+  const C_eindejaarsJr=B_brutoJr*((+ificParams.eindejaarspremiePct||0)/100);
+  const D_dubbelVakJr=A_brutoMnd*((+ificParams.dubbelVakantiePct||0)/100);
+  const rszBasisJr=B_brutoJr+C_eindejaarsJr+D_dubbelVakJr;
+  let E_rszJr=rszBasisJr*((+ificParams.rszPatPct||0)/100);
+  if(inp.sociaalMaribel){
+    E_rszJr=Math.max(0, E_rszJr - 4*(+ificParams.sociaalMaribelPerKw||0)*fte);
+  }
+  const F_arbeidsJr=B_brutoJr*((+ificParams.arbeidsongevallenPct||0)/100) + (+ificParams.externePreventiePerJr||0)*fte;
+  const G_extralegaalJr=(+inp.extralegaalMnd||0)*12;
+  const totJr=B_brutoJr+C_eindejaarsJr+D_dubbelVakJr+E_rszJr+F_arbeidsJr+G_extralegaalJr;
+  const totMnd=totJr/12;
+  return {brutoVoltijds, A_brutoMnd, B_brutoJr, C_eindejaarsJr, D_dubbelVakJr, E_rszJr, F_arbeidsJr, G_extralegaalJr, totJr, totMnd};
+}
+
+function setIficInput(key,v){
+  if(key==='categorie')ificInputs.categorie=Math.max(14,Math.min(20,+v||16));
+  else if(key==='ancien')ificInputs.ancien=Math.max(0,Math.min(35,+v||0));
+  else if(key==='ftePct')ificInputs.ftePct=Math.max(0.1,Math.min(100,+v||0));
+  else if(key==='sociaalMaribel')ificInputs.sociaalMaribel=!!v;
+  else if(key==='extralegaalMnd')ificInputs.extralegaalMnd=Math.max(0,+v||0);
+  renderIfic();onAnyChange();
+}
+function setIficParam(key,v){
+  if(typeof ificParams[key]==='number')ificParams[key]=+v||0;
+  else ificParams[key]=String(v||'');
+  renderIfic();onAnyChange();
+}
+function ificAddScenario(){
+  const def='Cat '+ificInputs.categorie+' / '+ificInputs.ancien+'j / '+ificInputs.ftePct+'%';
+  const naam=prompt('Naam voor dit scenario:',def);
+  if(!naam)return;
+  ificScenarios.push({id:'ifs'+Date.now(),naam,input:JSON.parse(JSON.stringify(ificInputs))});
+  renderIfic();onAnyChange();
+}
+function ificRemoveScenario(id){
+  ificScenarios=ificScenarios.filter(s=>s.id!==id);
+  renderIfic();onAnyChange();
+}
+function ificLoadScenario(id){
+  const s=ificScenarios.find(x=>x.id===id);
+  if(!s)return;
+  ificInputs=JSON.parse(JSON.stringify(s.input));
+  renderIfic();onAnyChange();
+}
+function ificResetBarema(){
+  ificBaremaOverride=null;
+  renderIfic();onAnyChange();
+}
+function ificUploadBarema(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const j=JSON.parse(r.result);
+      if(!j.data)throw new Error('JSON moet veld "data" hebben met {cat:{ancien:bedrag}}');
+      ificBaremaOverride=j;
+      renderIfic();onAnyChange();
+      alert('Barema geladen: '+(j.meta&&j.meta.naam||'(geen naam)'));
+    }catch(e){alert('Fout bij laden barema: '+e.message);}
+  };
+  r.readAsText(file);
+}
 function setCappV5SliderWerk(v){cappV5SliderWerk=Math.max(0,Math.min(1,+v||0));renderCapp();renderFin();onAnyChange();}
 function toggleCappV5Active(){cappV5Active=!cappV5Active;renderCapp();renderFin();onAnyChange();}
 // Helper: haal modus van persoon (p.modus override, anders globaal default)
@@ -788,7 +900,7 @@ function renderScenariosList(){
 
 function getOverlegFromDOM(){const g=id=>+(document.getElementById(id)?.value)||0;return{opstart:g('p-opstart')||15,ntraject:g('p-ntraject')||2,mintraject:g('p-mintraject')||15,mdofreq:g('p-mdofreq')||5,mdomin:g('p-mdomin')||15,trajlen:g('p-trajlen')||20,consdur:g('p-consdur')||60};}
 function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
-function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok))};}
+function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok)),ificParams:JSON.parse(JSON.stringify(ificParams)),ificInputs:JSON.parse(JSON.stringify(ificInputs)),ificScenarios:JSON.parse(JSON.stringify(ificScenarios)),ificBaremaOverride:ificBaremaOverride?JSON.parse(JSON.stringify(ificBaremaOverride)):null};}
 function applyState(st){
   team=(st.team||DEFAULT_TEAM.map(p=>({...p}))).map(p=>({type:'zelfstandige',brutoJaar:0,ific:'',modus:'afdracht',tier:'basis',...p}));
   slots=st.slots||{};team.forEach(p=>{if(!slots[p.id])slots[p.id]=mkDef();});
@@ -845,6 +957,10 @@ function applyState(st){
   cappV5Active=st.cappV5Active!==undefined?!!st.cappV5Active:true;
   cappV5SliderWerk=(typeof st.cappV5SliderWerk==='number'&&isFinite(st.cappV5SliderWerk))?Math.max(0,Math.min(1,st.cappV5SliderWerk)):0.7;
   personCappVastPerBlok=_clone(st.personCappVastPerBlok);
+  if(st.ificParams&&typeof st.ificParams==='object')ificParams={...ificParams,...st.ificParams};
+  if(st.ificInputs&&typeof st.ificInputs==='object')ificInputs={...ificInputs,...st.ificInputs};
+  ificScenarios=Array.isArray(st.ificScenarios)?JSON.parse(JSON.stringify(st.ificScenarios)):[];
+  ificBaremaOverride=(st.ificBaremaOverride&&typeof st.ificBaremaOverride==='object')?JSON.parse(JSON.stringify(st.ificBaremaOverride)):null;
   // Migratie: oude slots[pid][di][bi] kon true/false zijn. Nu mag het null / 'X' (aanwezig zonder ruimte) / ruimteId (string). Truthy = aanwezig, dus oude data blijft werken.
   const ov={...DEFAULT_OVERLEG,...(st.overleg||{})};
   Object.entries(ov).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});
@@ -1164,8 +1280,6 @@ function calcCappV5(sliderOverride,tierOverrides){
   const warnings=dln.map((p,i)=>{const br=vzwActual(p);return br>0&&payouts[i]>0.5*br;});
   return{dln,pool,payouts,sliderWerk:sw,tiers,aandelenWerk:aWerk,aandelenRol:aRol,warnings,vasteUit,variabeleUit,totaalVast,restPool,vasteRatio,tekort};
 }
-// Rechtvaardigheidsscore: min/max ratio (1=perfect gelijk, 0=ongelijk)
-function rechtvaardigheidScore(payouts){if(!payouts||!payouts.length)return null;const mx=Math.max(...payouts),mn=Math.min(...payouts);if(mx<=0)return null;return mn/mx;}
 function brutoVzwPotentieelMnd(){
   // Som over zelfstandigen: dag-blokken + avond-blokken (laatste op kortere duur)
   let tot=0;
@@ -1800,62 +1914,6 @@ function renderOverleg(){
   document.getElementById('impact-tbody').innerHTML=team.map(p=>{const z=p.tarief*p.cons*(p.pct/100),m=z*bill,d=m-z;return'<tr><td>'+esc(p.naam)+'</td><td style="text-align:right">'+fmt(z)+'/blok</td><td style="text-align:right">'+fmt(m)+'/blok</td><td style="text-align:right;color:'+(d<-.01?'#dc2626':'#6b7280')+'">'+(d<-.01?'':'+')+fmt(d)+'/blok</td></tr>';}).join('');
 }
 
-// Wat-als simulator state
-let watiSlider=0.7,watiTiers={},watiChart=null;
-function setWatiSlider(v){watiSlider=Math.max(0,Math.min(1,(+v||0)/100));renderCappWatiSimulator();}
-function setWatiTier(pid,t){watiTiers[pid]=(t==='senior'||t==='ervaren'||t==='basis')?t:'basis';renderCappWatiSimulator();}
-function resetWati(){watiSlider=cappV5SliderWerk;watiTiers={};renderCappWatiSimulator();}
-function renderCappWatiSimulator(){
-  const wrap=document.getElementById('capp-wati-sim');
-  if(!wrap)return;
-  const huidigR=calcCappV5(),altR=calcCappV5(watiSlider,watiTiers);
-  if(!huidigR.dln.length){wrap.innerHTML='<p class="note" style="padding:8px;text-align:center;color:#9ca3af">Geen deelnemers — simulator inactief.</p>';return;}
-  // Tabel: huidige vs alternatief
-  let h='<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">'
-    +'<div style="display:flex;align-items:center;gap:10px;font-size:12.5px">'
-      +'<span style="min-width:90px;font-weight:600;color:#9ca3af">Alternatief</span>'
-      +'<input type="range" id="wati-slider" min="0" max="100" step="1" value="'+Math.round(watiSlider*100)+'" oninput="setWatiSlider(this.value)" style="flex:1;accent-color:#7c3aed">'
-      +'<span style="font-size:11.5px;color:#6b7280">'+Math.round(watiSlider*100)+'% werk / '+Math.round((1-watiSlider)*100)+'% rol</span>'
-      +'<button class="btn-sv" onclick="resetWati()" style="font-size:10.5px">↺ Reset</button>'
-    +'</div>'
-  +'</div>';
-  h+='<table style="font-size:12.5px;width:100%"><thead><tr><th>Naam</th><th style="width:130px">Alt. tier</th><th style="width:80px;text-align:right">Huidige</th><th style="width:80px;text-align:right">Alternatief</th><th style="width:80px;text-align:right">Δ</th></tr></thead><tbody>';
-  huidigR.dln.forEach((p,i)=>{
-    const altT=watiTiers[p.id]||getPersonTier(p);
-    const sel='<select onchange="setWatiTier(\''+p.id+'\',this.value)" style="width:110px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:5px;font-size:11.5px">'
-      +'<option value="basis"'+(altT==='basis'?' selected':'')+'>Basis (1×)</option>'
-      +'<option value="ervaren"'+(altT==='ervaren'?' selected':'')+'>Ervaren (1,5×)</option>'
-      +'<option value="senior"'+(altT==='senior'?' selected':'')+'>Senior (2×)</option>'
-    +'</select>';
-    const altIdx=altR.dln.findIndex(x=>x.id===p.id);
-    const huidPay=huidigR.payouts[i],altPay=altIdx>=0?altR.payouts[altIdx]:0;
-    const delta=altPay-huidPay;
-    h+='<tr><td>'+esc(p.naam)+'</td><td>'+sel+'</td><td style="text-align:right;color:#6b7280">'+fmt(huidPay)+'</td><td style="text-align:right;font-weight:700;color:#7c3aed">'+fmt(altPay)+'</td><td style="text-align:right;color:'+(delta>0?'#059669':(delta<0?'#dc2626':'#9ca3af'))+';font-weight:600">'+(delta>0?'+':'')+fmt(delta)+'</td></tr>';
-  });
-  const huidScore=rechtvaardigheidScore(huidigR.payouts),altScore=rechtvaardigheidScore(altR.payouts);
-  h+='</tbody></table>';
-  h+='<div style="margin-top:12px;padding:9px 12px;background:#f9fafb;border-radius:7px;font-size:11.5px;display:flex;gap:18px;flex-wrap:wrap">'
-    +'<span>Huidige rechtvaardigheid: <strong style="color:'+(huidScore>=0.7?'#059669':(huidScore>=0.5?'#d97706':'#dc2626'))+'">'+(huidScore!==null?(huidScore*100).toFixed(0)+'/100':'—')+'</strong></span>'
-    +'<span>Alternatief: <strong style="color:'+(altScore>=0.7?'#059669':(altScore>=0.5?'#d97706':'#dc2626'))+'">'+(altScore!==null?(altScore*100).toFixed(0)+'/100':'—')+'</strong></span>'
-  +'</div>';
-  // Gevoeligheidsgrafiek: x=slider 0-100, y=payout per persoon
-  h+='<div style="margin-top:18px"><div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">📈 Gevoeligheidsgrafiek — payout per persoon bij verschillende slider-waarden</div><div class="chart-wrap" style="height:240px"><canvas id="wati-chart"></canvas></div></div>';
-  wrap.innerHTML=h;
-  // Bouw grafiek-data
-  const steps=21; // 0%, 5%, ..., 100%
-  const xs=[],datasets=[];
-  for(let s=0;s<=steps-1;s++)xs.push(Math.round(s*100/(steps-1)));
-  huidigR.dln.forEach((p,i)=>{
-    const data=xs.map(v=>{const r2=calcCappV5(v/100,watiTiers);const idx=r2.dln.findIndex(x=>x.id===p.id);return idx>=0?Math.round(r2.payouts[idx]):0;});
-    datasets.push({label:p.naam,data,borderColor:clr(i),backgroundColor:'transparent',borderWidth:2,pointRadius:2,tension:.2});
-  });
-  if(watiChart){watiChart.destroy();}
-  const cnv=document.getElementById('wati-chart');
-  if(cnv){
-    watiChart=new Chart(cnv.getContext('2d'),{type:'line',data:{labels:xs.map(v=>v+'%'),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:6}}},scales:{x:{title:{display:true,text:'Slider werkomvang',font:{size:10}},ticks:{font:{size:9}}},y:{title:{display:true,text:'€ payout',font:{size:10}},ticks:{callback:v=>'€'+Math.round(v),font:{size:9}}}}}});
-  }
-}
-
 // ====== Cappuccino V5 (nieuw twee-pots-model) ======
 function renderCappV5(){
   // Pot 1 — directe uitkeringen per persoon
@@ -1924,13 +1982,11 @@ function renderCappV5(){
     const r=calcCappV5();
     if(!r.dln.length){verdEl.innerHTML='<p class="note" style="padding:8px;text-align:center;color:#9ca3af">Geen deelnemers — zorg dat zelfstandigen ☕ in staan en dagdelen hebben. Huur-leden zijn standaard uit (opt-in via knop hierboven).</p>';}
     else{
-      const score=rechtvaardigheidScore(r.payouts);
       let h='<div style="font-size:11.5px;color:#6b7280;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
         +'<span>Pool: <strong style="color:#7c3aed">'+fmt(r.pool)+'</strong></span>'
         +'<span>Vaste sokkel: <strong style="color:#059669">'+fmt(r.vasteUit.reduce((s,x)=>s+x,0))+'</strong></span>'
         +'<span>Variabele rest: <strong style="color:#7c3aed">'+fmt(r.restPool)+'</strong></span>'
         +'<span>Slider: <strong style="color:#4f46e5">'+Math.round(r.sliderWerk*100)+'%</strong> werk / <strong>'+Math.round((1-r.sliderWerk)*100)+'%</strong> rol</span>'
-        +(score!==null?'<span>Rechtvaardigheid: <strong style="color:'+(score>=0.7?'#059669':(score>=0.5?'#d97706':'#dc2626'))+'">'+(score*100).toFixed(0)+'/100</strong></span>':'')
       +'</div>';
       if(r.tekort){h+='<div class="alert alert-warn" style="margin:6px 0;font-size:11.5px">⚠️ <strong>Pool ontoereikend voor de vaste sokkel</strong> — vaste bedragen worden pro rata afgekapt op '+(r.vasteRatio*100).toFixed(1)+'% van het ingestelde bedrag. Variabele verdeling is dan €0.</div>';}
       h+='<table style="font-size:12.5px;width:100%"><thead><tr><th>Naam</th><th style="width:55px">Tier</th><th style="width:45px;text-align:right">dd</th><th style="width:75px;text-align:right">aand. werk</th><th style="width:75px;text-align:right">aand. rol</th><th style="width:80px;text-align:right">Vast</th><th style="width:80px;text-align:right">Variabel</th><th style="width:95px;text-align:right">Totaal</th></tr></thead><tbody>';
@@ -1955,8 +2011,6 @@ function renderCappV5(){
       verdEl.innerHTML=h;
     }
   }
-  // Wat-als simulator
-  renderCappWatiSimulator();
 }
 
 function renderCapp(){
@@ -2242,6 +2296,109 @@ function renderCap(){
   document.getElementById('cap-content').innerHTML=h;
 }
 
+function renderIfic(){
+  const c=document.getElementById('ific-content');
+  if(!c)return;
+  const out=calcIfic(ificInputs);
+  const baremaNaam=ificBaremaOverride&&ificBaremaOverride.meta&&ificBaremaOverride.meta.naam
+    ? ('aangepast: '+esc(ificBaremaOverride.meta.naam))
+    : ('standaard '+esc(ificParams.sectorPc)+' — '+esc(ificParams.datumBarema));
+  let h='';
+  h+='<div class="card" style="background:#fff7ed;border-left:4px solid #fb923c"><div style="font-size:12px;color:#9a3412"><b>⚠️ Indicatieve berekening</b> — geen vervanging voor sociaal secretariaat. Parameters en barema\'s zijn benaderingen voor '+esc(ificParams.sectorPc)+' op basis van publieke IFIC-data. Validatie via je sociaal secretariaat blijft noodzakelijk vóór een loonafspraak.</div></div>';
+
+  h+='<div class="card"><div class="card-title">💰 IFIC Loonkost-calculator</div>';
+  h+='<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">';
+  h+='<div><label style="font-size:11px;color:#6b7280">Categorie</label><select onchange="setIficInput(\'categorie\',this.value)" style="width:100%">';
+  for(let n=14;n<=20;n++){h+='<option value="'+n+'" '+(n===+ificInputs.categorie?'selected':'')+'>Cat. '+n+'</option>';}
+  h+='</select></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Anciënniteit (jaren, 0–35)</label><input type="number" min="0" max="35" step="1" value="'+ificInputs.ancien+'" onchange="setIficInput(\'ancien\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Tewerkstelling % (FTE)</label><input type="number" min="0.1" max="100" step="0.1" value="'+ificInputs.ftePct+'" onchange="setIficInput(\'ftePct\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Sector</label><input type="text" value="'+esc(ificParams.sectorPc)+'" readonly style="width:100%;background:#f3f4f6"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Sociale Maribel</label><select onchange="setIficInput(\'sociaalMaribel\',this.value===\'1\')" style="width:100%"><option value="0" '+(ificInputs.sociaalMaribel?'':'selected')+'>Nee</option><option value="1" '+(ificInputs.sociaalMaribel?'selected':'')+'>Ja</option></select></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Extralegale voordelen (€/mnd)</label><input type="number" min="0" step="1" value="'+ificInputs.extralegaalMnd+'" onchange="setIficInput(\'extralegaalMnd\',this.value)" style="width:100%"></div>';
+  h+='</div>';
+  h+='<div style="font-size:11px;color:#6b7280;margin-top:8px">Barema: '+baremaNaam+' • Voltijds bruto Cat '+ificInputs.categorie+' ancien '+ificInputs.ancien+' = €'+eur(out.brutoVoltijds)+'</div>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="card-title">Resultaat</div>';
+  h+='<table style="width:100%;font-size:13px"><thead><tr><th style="text-align:left">Component</th><th style="text-align:right">Per maand</th><th style="text-align:right">Per jaar</th></tr></thead><tbody>';
+  h+='<tr><td>A. Bruto IFIC @ '+ificInputs.ftePct+'%</td><td style="text-align:right;font-weight:600">€'+eur(out.A_brutoMnd)+'</td><td style="text-align:right">€'+eur(out.B_brutoJr)+'</td></tr>';
+  h+='<tr><td>C. Eindejaarspremie ('+ificParams.eindejaarspremiePct+'%)</td><td style="text-align:right">€'+eur(out.C_eindejaarsJr/12)+'</td><td style="text-align:right">€'+eur(out.C_eindejaarsJr)+'</td></tr>';
+  h+='<tr><td>D. Dubbel vakantiegeld ('+ificParams.dubbelVakantiePct+'% van mnd)</td><td style="text-align:right">€'+eur(out.D_dubbelVakJr/12)+'</td><td style="text-align:right">€'+eur(out.D_dubbelVakJr)+'</td></tr>';
+  h+='<tr><td>E. Patronale RSZ ('+ificParams.rszPatPct+'%)'+(ificInputs.sociaalMaribel?' − Maribel':'')+'</td><td style="text-align:right">€'+eur(out.E_rszJr/12)+'</td><td style="text-align:right">€'+eur(out.E_rszJr)+'</td></tr>';
+  h+='<tr><td>F. Arbeidsongevallen + externe preventie</td><td style="text-align:right">€'+eur(out.F_arbeidsJr/12)+'</td><td style="text-align:right">€'+eur(out.F_arbeidsJr)+'</td></tr>';
+  h+='<tr><td>G. Extralegale voordelen</td><td style="text-align:right">€'+eur(out.G_extralegaalJr/12)+'</td><td style="text-align:right">€'+eur(out.G_extralegaalJr)+'</td></tr>';
+  h+='<tr style="background:#eef2ff;font-weight:700;border-top:2px solid #c7d2fe"><td>TOTAAL loonkost werkgever</td><td style="text-align:right">€'+eur(out.totMnd)+'</td><td style="text-align:right">€'+eur(out.totJr)+'</td></tr>';
+  h+='</tbody></table>';
+  h+='<div style="font-size:11px;color:#6b7280;margin-top:8px">Maandkolom = jaarbedrag ÷ 12 (uitgemiddeld; eindejaarspremie + dubbel vakantiegeld worden in realiteit op vaste momenten uitbetaald).</div>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="card-title">⚙ Parameters (audit-transparant)</div>';
+  h+='<div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;font-size:12px">';
+  h+='<div><label style="font-size:11px;color:#6b7280">Patronale RSZ %</label><input type="number" step="0.01" value="'+ificParams.rszPatPct+'" onchange="setIficParam(\'rszPatPct\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Eindejaarspremie %</label><input type="number" step="0.01" value="'+ificParams.eindejaarspremiePct+'" onchange="setIficParam(\'eindejaarspremiePct\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Dubbel vakantiegeld %</label><input type="number" step="0.1" value="'+ificParams.dubbelVakantiePct+'" onchange="setIficParam(\'dubbelVakantiePct\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Arbeidsongevallen %</label><input type="number" step="0.05" value="'+ificParams.arbeidsongevallenPct+'" onchange="setIficParam(\'arbeidsongevallenPct\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Externe preventie €/jr (per FTE)</label><input type="number" step="1" value="'+ificParams.externePreventiePerJr+'" onchange="setIficParam(\'externePreventiePerJr\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Sociale Maribel €/kw (per FTE)</label><input type="number" step="1" value="'+ificParams.sociaalMaribelPerKw+'" onchange="setIficParam(\'sociaalMaribelPerKw\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Datum barema</label><input type="text" value="'+esc(ificParams.datumBarema)+'" onchange="setIficParam(\'datumBarema\',this.value)" style="width:100%"></div>';
+  h+='<div><label style="font-size:11px;color:#6b7280">Sector / PC</label><input type="text" value="'+esc(ificParams.sectorPc)+'" onchange="setIficParam(\'sectorPc\',this.value)" style="width:100%"></div>';
+  h+='</div>';
+  h+='<div style="font-size:11px;color:#6b7280;margin-top:8px"><b>Standaardwaarden (PC 330, indicatief):</b> RSZ patronaal ~25% • Eindejaarspremie ~5,46% van bruto jaar • Dubbel vakantiegeld 92% wettelijk • Arbeidsongevallen ~0,8–1,5% afhankelijk van risicoklasse • Externe preventie €60–100/wn/jaar. Pas aan op basis van je werkelijke sociaal secretariaat-cijfers.</div>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="card-title">📂 Aangepast barema laden (optioneel)</div>';
+  h+='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">';
+  h+='<input type="file" accept=".json" onchange="ificUploadBarema(this.files[0])" style="font-size:12px">';
+  if(ificBaremaOverride){
+    h+='<button class="btn" style="background:#fee2e2;color:#991b1b" onclick="ificResetBarema()">Reset naar standaard</button>';
+    h+='<span style="font-size:11px;color:#059669">✓ Aangepast barema actief</span>';
+  }
+  h+='</div>';
+  h+='<div style="font-size:11px;color:#6b7280;margin-top:8px">JSON-formaat: <code>{"meta":{"naam":"...", "datum":"..."}, "data":{"14":{"0":3540,"5":3680,...}, "15":{...}, ...}}</code>. Ontbrekende ancien-trappen worden lineair geïnterpoleerd.</div>';
+  h+='</div>';
+
+  h+='<div class="card"><div class="card-title">📊 Vergelijking</div>';
+  h+='<p style="font-size:12px;color:#6b7280">Sla scenario\'s op om naast elkaar te vergelijken (bv. 2/5 vs 4/5, cat 14 vs cat 16, met/zonder Maribel).</p>';
+  h+='<button class="btn" style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe" onclick="ificAddScenario()">+ Huidige als scenario opslaan</button>';
+  if(ificScenarios.length===0){
+    h+='<div style="font-size:12px;color:#9ca3af;margin-top:10px;font-style:italic">Nog geen scenario\'s opgeslagen.</div>';
+  } else {
+    h+='<table style="width:100%;margin-top:12px;font-size:12px"><thead><tr><th style="text-align:left">Naam</th><th>Cat</th><th>Anc.</th><th>FTE</th><th>Mar.</th><th style="text-align:right">Bruto/mnd</th><th style="text-align:right">Totaal/mnd</th><th style="text-align:right">Totaal/jr</th><th style="text-align:right">Δ vs huidig</th><th></th></tr></thead><tbody>';
+    ificScenarios.forEach(s=>{
+      const o=calcIfic(s.input);
+      const d=o.totMnd-out.totMnd;
+      const dSym=d>=0?'+':'−';
+      const dCol=d>=0?'#dc2626':'#059669';
+      h+='<tr>';
+      h+='<td><a style="cursor:pointer;color:#4f46e5" onclick="ificLoadScenario(\''+s.id+'\')">'+esc(s.naam)+'</a></td>';
+      h+='<td style="text-align:center">'+s.input.categorie+'</td>';
+      h+='<td style="text-align:center">'+s.input.ancien+'</td>';
+      h+='<td style="text-align:center">'+s.input.ftePct+'%</td>';
+      h+='<td style="text-align:center">'+(s.input.sociaalMaribel?'✔':'—')+'</td>';
+      h+='<td style="text-align:right">€'+eur(o.A_brutoMnd)+'</td>';
+      h+='<td style="text-align:right;font-weight:600">€'+eur(o.totMnd)+'</td>';
+      h+='<td style="text-align:right">€'+eur(o.totJr)+'</td>';
+      h+='<td style="text-align:right;color:'+dCol+'">'+dSym+'€'+eur(Math.abs(d))+'</td>';
+      h+='<td><button class="btn-mini" style="background:#fee2e2;color:#991b1b;border:none;border-radius:4px;padding:2px 8px;cursor:pointer" onclick="ificRemoveScenario(\''+s.id+'\')">×</button></td>';
+      h+='</tr>';
+    });
+    h+='</tbody></table>';
+    h+='<div style="font-size:11px;color:#6b7280;margin-top:8px">Klik op een scenario-naam om die input terug te laden. Δ = verschil totaal/mnd t.o.v. huidige instelling.</div>';
+  }
+  h+='</div>';
+
+  h+='<div class="card"><div class="card-title">🖨 Export</div>';
+  h+='<button class="btn" style="background:#eef2ff;color:#4f46e5;border:1px solid #c7d2fe" onclick="window.print()">Print / Opslaan als PDF</button>';
+  h+='<span style="font-size:11px;color:#6b7280;margin-left:10px">→ kies "Opslaan als PDF" in het printvenster van de browser.</span>';
+  h+='</div>';
+
+  c.innerHTML=h;
+}
+
+// Helper: euro-format zonder valuta-prefix (de prefix € wordt in template gezet)
+function eur(n){return (Math.round((+n||0)*100)/100).toLocaleString('nl-BE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
 function hv_naam(id,v){const p=team.find(x=>x.id===id);if(p){p.naam=v;refreshAll();onAnyChange();}}
 function hv_v(id,f,v){const p=team.find(x=>x.id===id);if(p){p[f]=v;renderFin();renderCapp();onAnyChange();}}
 function setPctSlider(pid,v){
@@ -2438,7 +2595,7 @@ function delMdoBooking(id){mdoBookings=mdoBookings.filter(b=>b.id!==id);renderRo
 
 function refreshFin(){const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('fin'))renderFin();if(a('kosten'))renderKosten();}
 function refreshAll(){renderTeam();renderRooster();renderFin();renderKosten();const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('overleg'))renderOverleg();if(a('capp'))renderCapp();if(a('mix'))renderMix();if(a('cap'))renderCap();}
-function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='overleg')renderOverleg();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();}
+function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='overleg')renderOverleg();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();else if(id==='ific')renderIfic();}
 
 document.getElementById('scenarios-modal').addEventListener('click',function(e){if(e.target===this)closeScenariosModal();});
 
