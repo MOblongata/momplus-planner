@@ -305,18 +305,15 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 
 <div id="tab-team" class="tab-pane">
   <div class="card">
-    <div class="card-title">Teamleden, tarieven &amp; planning</div>
-    <table><thead><tr><th>Naam</th><th style="width:56px">Type</th><th style="width:70px">Tarief €</th><th style="width:72px">Cons/blok</th><th style="width:72px">Afdracht %</th><th style="width:62px">Wk/jaar</th><th style="width:28px"></th></tr></thead><tbody id="team-tbody"></tbody></table>
+    <div class="card-title">Teamleden &amp; planning</div>
+    <table><thead><tr><th>Naam</th><th style="width:56px">Type</th><th style="width:62px">Wk/jaar</th><th style="width:28px"></th></tr></thead><tbody id="team-tbody"></tbody></table>
     <div class="add-row">
-      <div><label>Naam</label><input type="text" id="nh-naam" placeholder="Naam" style="width:130px"></div>
+      <div><label>Naam</label><input type="text" id="nh-naam" placeholder="Naam" style="width:160px"></div>
       <div><label>Type</label><select id="nh-type"><option value="zelfstandige">Zelfstandige</option><option value="bediende">Bediende</option></select></div>
-      <div><label>Tarief (€)</label><input type="number" id="nh-tarief" placeholder="80" style="width:62px"></div>
-      <div><label>Cons/blok</label><input type="number" id="nh-cons" placeholder="4" style="width:60px"></div>
-      <div><label>Afdracht %</label><input type="number" id="nh-pct" placeholder="20" style="width:60px"></div>
-      <div><label>Wk/jaar</label><input type="number" id="nh-wkjr" placeholder="46" style="width:56px"></div>
+      <div><label>Wk/jaar</label><input type="number" id="nh-wkjr" placeholder="46" style="width:62px"></div>
       <button class="btn btn-primary" onclick="addPersoon()">+ Toevoegen</button>
     </div>
-    <div class="alert alert-info" style="margin-top:10px">Tarief/cons zijn standaardwaarden. Stel per persoon een gedetailleerde mix in via de <strong>📋 Mix</strong>-tab — die vervangt dan de standaard voor alle berekeningen.</div>
+    <div class="alert alert-info" style="margin-top:10px">Voor consultatiemix, tarieven en afdracht-%: gebruik de <strong>📋 Mix</strong>-tab en de <strong>📊 Financieel</strong>-tab.</div>
   </div>
 </div>
 
@@ -1335,14 +1332,12 @@ function renderMdoAgenda(){
 function renderTeam(){
   document.getElementById('team-tbody').innerHTML=team.map((p,pi)=>{
     const isZ=p.type!=='bediende';
-    const gtar=mixGewogenTarief(p),gcons=mixGewogenCons(p),hasMix=gtar!==null;
-    const tarCell=hasMix
-      ?'<input type="number" value="'+gtar.toFixed(1)+'" readonly title="Automatisch vanuit Mix-tab" style="background:#ede9fe;color:#6d28d9;font-weight:600;cursor:not-allowed">'
-      :'<input type="number" value="'+p.tarief+'" oninput="hv_v(\''+p.id+'\',\'tarief\',+this.value)">';
-    const consCell=hasMix
-      ?'<input type="number" value="'+gcons.toFixed(2)+'" readonly title="Automatisch vanuit Mix-tab" style="background:#ede9fe;color:#6d28d9;font-weight:600;cursor:not-allowed">'
-      :'<input type="number" value="'+p.cons+'" oninput="hv_v(\''+p.id+'\',\'cons\',+this.value)">';
-    return'<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span><input type="text" value="'+esc(p.naam)+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:100px"></td><td><button class="type-badge '+(isZ?'type-z':'type-b')+'" onclick="toggleType(\''+p.id+'\')">'+(isZ?'Z':'B')+'</button></td><td>'+tarCell+'</td><td>'+consCell+'</td><td><input type="number" data-team-pct="'+p.id+'" value="'+p.pct+'" min="0" max="100" oninput="hv_v(\''+p.id+'\',\'pct\',+this.value)"></td><td><input type="number" value="'+p.wkjr+'" min="1" max="52" oninput="hv_v(\''+p.id+'\',\'wkjr\',+this.value)"></td><td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td></tr>';
+    return'<tr>'
+      +'<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span><input type="text" value="'+esc(p.naam)+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:140px"></td>'
+      +'<td><button class="type-badge '+(isZ?'type-z':'type-b')+'" onclick="toggleType(\''+p.id+'\')">'+(isZ?'Z':'B')+'</button></td>'
+      +'<td><input type="number" value="'+p.wkjr+'" min="1" max="52" oninput="hv_v(\''+p.id+'\',\'wkjr\',+this.value)"></td>'
+      +'<td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td>'
+    +'</tr>';
   }).join('');
 }
 
@@ -1853,7 +1848,7 @@ function delRuimte(id){
 }
 function renameRuimte(id,v){const r=ruimtes.find(x=>x.id===id);if(!r)return;r.naam=(v||'').toString();onAnyChange();const sels=document.querySelectorAll('.slot-sel');sels.forEach(s=>{if(s.value===id)s.setAttribute('title',r.naam);});}
 function recolorRuimte(id,v){const r=ruimtes.find(x=>x.id===id);if(!r)return;r.kleur=v||'#4f46e5';renderRooster();onAnyChange();}
-function addPersoon(){const n=document.getElementById('nh-naam').value.trim();if(!n)return;const id=nextId('tp'),t=document.getElementById('nh-type').value||'zelfstandige';const pctStr=document.getElementById('nh-pct').value;const pct=pctStr===''||pctStr==null?(t==='bediende'?0:20):+pctStr;team.push({id,naam:n,type:t,tarief:+document.getElementById('nh-tarief').value||80,cons:+document.getElementById('nh-cons').value||4,pct:pct,wkjr:+document.getElementById('nh-wkjr').value||46,brutoJaar:0,ific:''});slots[id]=mkDef();['nh-naam','nh-tarief','nh-cons','nh-pct','nh-wkjr'].forEach(x=>document.getElementById(x).value='');refreshAll();onAnyChange();}
+function addPersoon(){const n=document.getElementById('nh-naam').value.trim();if(!n)return;const id=nextId('tp'),t=document.getElementById('nh-type').value||'zelfstandige';team.push({id,naam:n,type:t,tarief:0,cons:0,pct:t==='bediende'?0:20,wkjr:+document.getElementById('nh-wkjr').value||46,brutoJaar:0,ific:''});slots[id]=mkDef();['nh-naam','nh-wkjr'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});refreshAll();onAnyChange();}
 function delPersoon(id){team=team.filter(p=>p.id!==id);delete slots[id];delete personMandaten[id];delete personOpleiding[id];delete werkelijkeCons[id];delete personMix[id];delete personTechnisch[id];delete personMDO[id];delete personAdmin[id];delete personAvond[id];delete mdoBlokken[id];delete cappOptIn[id];delete personActPct[id];delete personMinAfdrachtPct[id];delete personAvondPct[id];delete finExpanded[id];refreshAll();onAnyChange();}
 function onOverleg(){renderOverleg();renderFin();renderRooster();renderCap();renderCapp();if(document.getElementById('tab-mix').classList.contains('active'))renderMix();onAnyChange();}
 function toggleOverlegOh(active){
