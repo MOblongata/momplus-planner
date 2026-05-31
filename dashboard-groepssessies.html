@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIND+ — Dashboard Groepssessies</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  background: #f8fafc;
+  color: #1e293b;
+  padding: 24px;
+  max-width: 1320px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+h1 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+h2 { font-size: 11px; font-weight: 700; margin: 18px 0 10px; color: #334155; letter-spacing: .05em; text-transform: uppercase; }
+h3 { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #1e293b; }
+p { color: #475569; font-size: 12px; }
+
+.header { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; }
+.v-badge { display:inline-block; background:#ede9fe; color:#6d28d9; border-radius:99px; padding:2px 10px; font-size:10px; font-weight:700; margin-right:6px; }
+.ctx-badge { display:inline-block; background:#fef3c7; color:#92400e; border-radius:99px; padding:2px 10px; font-size:10px; font-weight:600; }
+.brand { color: #7c3aed; font-weight: 800; letter-spacing: -.01em; }
+
+.main-tabs { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 2px solid #e2e8f0; }
+.main-tab {
+  background: none; border: none; padding: 10px 16px;
+  font-size: 13px; font-weight: 600; color: #64748b; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+}
+.main-tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
+.main-tab:hover { color: #5b21b6; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.main { display: grid; grid-template-columns: 320px 1fr; gap: 18px; }
+
+.panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.panel-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-bottom: 10px; }
+
+.field { margin-bottom: 12px; }
+.field-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.field-label { font-size: 12px; color: #334155; font-weight: 500; }
+.field-value { font-size: 12px; font-weight: 700; color: #0f172a; background: #f1f5f9; padding: 1px 7px; border-radius: 4px; }
+input[type="range"] { width: 100%; accent-color: #7c3aed; }
+input[type="number"] { width: 70px; padding: 3px 6px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; }
+select { padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; background: #fff; width: 100%; }
+.toggle-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.toggle-row input { accent-color: #7c3aed; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; border-left: 4px solid #7c3aed; }
+.kpi.psy { border-left-color: #ec4899; }
+.kpi.neu { border-left-color: #3b82f6; }
+.kpi.vp { border-left-color: #10b981; }
+.kpi.oop { border-left-color: #f59e0b; }
+.kpi.net { border-left-color: #059669; }
+.kpi .lbl { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: .05em; }
+.kpi .val { font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 2px; }
+.kpi .delta { font-size: 11px; font-weight: 600; margin-top: 2px; color: #64748b; }
+
+.cmp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.cmp-table th { background: #f1f5f9; padding: 8px 10px; text-align: left; font-weight: 700; font-size: 11px; color: #334155; border-bottom: 1px solid #e2e8f0; }
+.cmp-table th.num, .cmp-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cmp-table td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; }
+.cmp-table tr.highlight td { background: #f5f3ff; font-weight: 700; }
+.cmp-table tr.section td { background: #f8fafc; font-weight: 700; font-size: 10px; text-transform: uppercase; color: #64748b; letter-spacing: .05em; }
+
+.note { background: #fef3c7; border-left: 3px solid #f59e0b; padding: 10px 12px; border-radius: 4px; font-size: 11px; color: #78350f; margin-top: 10px; }
+.note.info { background: #ede9fe; border-left-color: #7c3aed; color: #4c1d95; }
+.note.success { background: #d1fae5; border-left-color: #10b981; color: #065f46; }
+.note.warn { background: #fee2e2; border-left-color: #dc2626; color: #991b1b; }
+
+.legend-row { display: flex; gap: 12px; margin-bottom: 8px; font-size: 11px; color: #475569; flex-wrap: wrap; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+
+/* Tariefkaarten */
+.tarief-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.tarief { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; border-left: 4px solid #7c3aed; }
+.tarief.basis { border-left-color: #7c3aed; }
+.tarief.neuro { border-left-color: #3b82f6; }
+.tarief.vp    { border-left-color: #10b981; }
+.tarief h4 { font-size: 12px; margin-bottom: 4px; }
+.tarief .sub { font-size: 10px; color: #64748b; margin-bottom: 8px; }
+.tarief table { width: 100%; font-size: 11px; }
+.tarief td { padding: 2px 0; }
+.tarief td.k { color: #64748b; }
+.tarief td.v { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tarief .pool { border-top: 1px solid #f1f5f9; padding-top: 4px; margin-top: 4px; }
+
+/* Bar chart */
+.bar-chart { padding: 8px 0; }
+.bar-row { margin-bottom: 14px; }
+.bar-label { font-size: 11px; color: #334155; margin-bottom: 4px; display: flex; justify-content: space-between; }
+.bar-track { height: 26px; background: #f1f5f9; border-radius: 4px; overflow: hidden; display: flex; }
+.bar-seg { height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700; padding: 0 4px; overflow: hidden; }
+.bar-psy { background: #ec4899; }
+.bar-neu { background: #3b82f6; }
+.bar-vp  { background: #10b981; }
+.bar-oop { background: #f59e0b; }
+.bar-rem { background: #94a3b8; }
+.bar-supp { background: #06b6d4; }
+.bar-loon { background: #dc2626; }
+
+/* ── Planner ── */
+.planner-topbar {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 14px;
+  padding: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  flex-wrap: wrap;
+}
+.planner-topbar input, .planner-topbar select {
+  padding: 5px 8px; font-size: 12px;
+  border: 1px solid #cbd5e1; border-radius: 4px;
+}
+.planner-topbar input.scen { flex: 1; max-width: 240px; }
+.planner-topbar button {
+  background: #7c3aed; color: #fff; border: none; border-radius: 5px;
+  padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.planner-topbar button.del { background: #dc2626; }
+.planner-topbar button.alt { background: #fff; color: #334155; border: 1px solid #cbd5e1; }
+.planner-topbar button:hover { opacity: .9; }
+
+.planner-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr 280px;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.planner-palette {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 12px; max-height: 900px; overflow-y: auto;
+  position: sticky; top: 12px;
+}
+.planner-palette h3 { font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
+.palette-help { font-size: 11px; color: #64748b; margin-top: 8px; padding: 8px; background: #ede9fe; border-radius: 4px; line-height: 1.4; }
+.palette-help b { color: #5b21b6; }
+
+.planner-grid-wrap {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px;
+  overflow: auto; max-height: 900px;
+}
+.planner-grid {
+  display: grid;
+  grid-template-columns: 50px repeat(5, 1fr);
+  gap: 0;
+  position: relative;
+}
+.grid-time-axis { position: relative; }
+.grid-time-label {
+  position: absolute; right: 4px; font-size: 10px; color: #94a3b8;
+  transform: translateY(-50%);
+}
+.grid-column {
+  position: relative;
+  border-left: 1px solid #e2e8f0;
+  background: repeating-linear-gradient(to bottom,
+    transparent 0px, transparent 71px,
+    #f1f5f9 71px, #f1f5f9 72px);
+  min-width: 130px;
+}
+.grid-column.placing { cursor: crosshair; background-color: rgba(124, 58, 237, .04); }
+.grid-col-header {
+  font-size: 12px; font-weight: 700; text-align: center;
+  padding: 6px 0; background: #f1f5f9; border-radius: 4px 4px 0 0;
+  border-left: 1px solid #e2e8f0;
+  color: #334155;
+}
+.placed-session {
+  position: absolute; left: 3px; right: 3px;
+  border-radius: 4px; padding: 4px 6px;
+  font-size: 10px; color: #fff; font-weight: 600;
+  cursor: move; overflow: hidden;
+  border: 1px solid rgba(0,0,0,.12);
+  user-select: none;
+  display: flex; flex-direction: column;
+  background: #7c3aed;
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+.placed-session.with-neuro { background: linear-gradient(135deg, #7c3aed 0%, #7c3aed 50%, #3b82f6 50%, #3b82f6 100%); }
+.placed-session.selected { box-shadow: 0 0 0 2px #fbbf24, 0 2px 8px rgba(0,0,0,.25); z-index: 10; }
+.placed-session .ps-time { font-size: 9px; opacity: .9; }
+.placed-session .ps-title { font-weight: 700; }
+.placed-session .ps-meta { font-size: 9px; opacity: .85; margin-top: 1px; }
+.placed-session .ps-admin {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(0,0,0,.25);
+  font-size: 8px; padding: 1px 4px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.placed-session .ps-del {
+  position: absolute; top: 2px; right: 2px; width: 14px; height: 14px;
+  background: rgba(0,0,0,.35); color: #fff; border-radius: 50%;
+  display: none; align-items: center; justify-content: center;
+  font-size: 10px; cursor: pointer; line-height: 1;
+}
+.placed-session:hover .ps-del { display: flex; }
+.placed-session.dragging { opacity: .5; }
+
+/* Session-edit sidebar */
+.planner-edit {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 14px; max-height: 900px; overflow-y: auto;
+  position: sticky; top: 12px;
+}
+.planner-edit h3 { font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
+.planner-edit h4 { font-size: 10px; text-transform: uppercase; color: #94a3b8; margin: 12px 0 6px; }
+.planner-edit .small-num { width: 60px; padding: 4px 6px; }
+.planner-edit .field { margin-bottom: 8px; }
+.planner-edit .toggle-row { font-size: 11px; }
+.income-card { font-size: 12px; }
+.income-card .row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px solid #f1f5f9; }
+.income-card .row.highlight { background: #f5f3ff; padding: 6px 4px; font-weight: 700; border-radius: 4px; margin-top: 4px; border-bottom: none; }
+.income-card .row strong { font-variant-numeric: tabular-nums; }
+
+.session-quick-add {
+  background: #f5f3ff; border: 1px dashed #7c3aed; border-radius: 6px;
+  padding: 10px; margin-bottom: 10px;
+  font-size: 11px;
+}
+.session-quick-add button {
+  width: 100%; background: #7c3aed; color: #fff; border: none;
+  border-radius: 4px; padding: 8px; font-size: 12px; font-weight: 700;
+  cursor: pointer; margin-top: 8px;
+}
+.session-quick-add button:hover { background: #5b21b6; }
+
+footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0; font-size: 10px; color: #94a3b8; text-align: center; }
+
+.split-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+/* ===== Auth gate ===== */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;box-sizing:border-box;}
+.auth-card input:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.15);}
+.auth-card .btn-auth{width:100%;background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:#4338ca;}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+.auth-card .toggle a{color:#4f46e5;cursor:pointer;text-decoration:underline;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.auth-user-pill{position:fixed;top:10px;right:10px;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;background:#ede9fe;color:#6d28d9;border-radius:16px;font-size:11.5px;font-weight:600;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.auth-user-pill button{margin-left:4px;background:none;border:1px solid #c4b5fd;color:#6d28d9;padding:2px 8px;border-radius:11px;font-size:10.5px;cursor:pointer;font-weight:600;}
+.auth-user-pill button:hover{background:#c4b5fd;}
+</style>
+</head>
+<body>
+
+<!-- ===== Auth gate ===== -->
+<div class="auth-overlay" id="auth-overlay" style="display:flex">
+  <div class="auth-card">
+    <h1>👥 Groepssessies</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="email" placeholder="naam@praktijk.be">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" autocomplete="current-password" placeholder="••••••••">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Nog geen account? <a onclick="showSignup()">Registreer</a></div>
+    </div>
+    <div id="auth-form-signup" style="display:none">
+      <label>Naam (zoals te zien voor collega's)</label>
+      <input type="text" id="auth-name" placeholder="Voornaam Achternaam">
+      <label>Email</label>
+      <input type="email" id="auth-email-s" autocomplete="email" placeholder="naam@praktijk.be">
+      <label>Wachtwoord (min. 6 tekens)</label>
+      <input type="password" id="auth-pw-s" autocomplete="new-password" placeholder="••••••••">
+      <button class="btn-auth" id="auth-btn-signup" onclick="doSignup()">Account aanmaken</button>
+      <div class="toggle">Al een account? <a onclick="showLogin()">Inloggen</a></div>
+    </div>
+  </div>
+</div>
+<div class="auth-user-pill" id="user-pill" style="display:none">
+  <span>👤</span><span id="user-name"></span>
+  <button onclick="doLogout()" title="Uitloggen">⏻</button>
+</div>
+
+<div class="header">
+  <h1><span class="brand">MIND+</span> — Dashboard Groepssessies</h1>
+  <p style="margin-top:4px">
+    <span class="v-badge">v0.1</span>
+    <span class="ctx-badge">MIND+ · Dr. Van Steenkiste · mei 2026</span>
+  </p>
+  <p style="margin-top:8px; max-width:880px;">
+    Organisatie en financiële optimalisatie van groepssessies (ADHD/ASS/HB).
+    Basis: <b>€33/kop geconventioneerd</b> aangerekend door de psychiater (verplicht aanwezig, max 8 koppen),
+    remgeld €8/kop. Optioneel neuroloog mee (pool gedeeld + supplement-OOP), VP-presentie en VP-admin.
+  </p>
+</div>
+
+<div class="main-tabs">
+  <button class="main-tab active" data-tab="dashboard">📊 Financieel &amp; sessie-instellingen</button>
+  <button class="main-tab" data-tab="planner">🗓 Planner (sleep-blokken 8h–22h)</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     TAB 1 — FINANCIEEL DASHBOARD
+     ════════════════════════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-dashboard">
+
+  <div class="main">
+
+    <!-- LEFT: instellingen -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">⚙ Basis sessie-instellingen</div>
+
+        <div class="field">
+          <div class="field-row"><span class="field-label">Duurtijd sessie</span><span class="field-value"><span id="duur_v">90</span> min</span></div>
+          <input type="range" id="duur" min="60" max="180" step="5" value="90">
+          <p style="font-size:10px; color:#94a3b8; margin-top:2px">Minimum 90 min (riziv-vereiste); slider laat ook lager toe als referentie.</p>
+        </div>
+
+        <div class="field">
+          <div class="field-row"><span class="field-label">Aantal koppen (clienten)</span><span class="field-value"><span id="koppen_v">6</span></span></div>
+          <input type="range" id="koppen" min="2" max="8" step="1" value="6">
+        </div>
+
+        <div class="field">
+          <div class="field-row"><span class="field-label">Admin / verslag per kop</span><span class="field-value"><span id="admin_v">10</span> min</span></div>
+          <input type="range" id="admin" min="5" max="20" step="1" value="10">
+        </div>
+
+        <div class="toggle-row">
+          <input type="checkbox" id="vp_admin" checked>
+          <label for="vp_admin" style="font-size:12px">Admin/verslagen door VP</label>
+        </div>
+        <p style="font-size:10px; color:#94a3b8; margin: -4px 0 6px 24px">
+          Standaard aan: verslagen tellen mee in VP-tijd (niet psy-/neuro-tijd).
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">💰 Tarieven</div>
+
+        <div class="field">
+          <div class="field-row"><span class="field-label">Honorarium / kop (psy, conv.)</span><span class="field-value">€<span id="tarief_v">33</span></span></div>
+          <input type="range" id="tarief" min="20" max="50" step="1" value="33">
+        </div>
+
+        <div class="field">
+          <div class="field-row"><span class="field-label">Remgeld / kop (basis OOP)</span><span class="field-value">€<span id="rem_v">8</span></span></div>
+          <input type="range" id="rem" min="0" max="20" step="0.5" value="8">
+        </div>
+
+        <div class="field">
+          <div class="field-row"><span class="field-label">Supplement OOP / kop (bij neuro mee)</span><span class="field-value">€<span id="supp_v">30</span></span></div>
+          <input type="range" id="supp" min="0" max="100" step="5" value="30">
+          <p style="font-size:10px; color:#94a3b8; margin-top:2px">
+            Verhoogt het standaard remgeld als de neuroloog mee in de sessie zit; gaat naar de neuroloog buiten conv.
+          </p>
+        </div>
+
+        <div class="field">
+          <div class="field-row"><span class="field-label">VP-loonkost / uur</span><span class="field-value">€<span id="vp_loon_v">38</span></span></div>
+          <input type="range" id="vp_loon" min="25" max="60" step="1" value="38">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">👥 Wie is aanwezig</div>
+        <div class="toggle-row">
+          <input type="checkbox" id="psy_on" checked disabled>
+          <label for="psy_on" style="font-size:12px"><b>Psychiater</b> (verplicht aanwezig — rekent aan)</label>
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="neuro_on">
+          <label for="neuro_on" style="font-size:12px">Neuroloog (Frank) mee in sessie</label>
+        </div>
+        <p style="font-size:10px; color:#94a3b8; margin: -4px 0 6px 24px">
+          Pool wordt 50/50 verdeeld met de psy. Supplement-OOP komt bovenop het remgeld.
+        </p>
+        <div class="toggle-row">
+          <input type="checkbox" id="vp_on">
+          <label for="vp_on" style="font-size:12px">VP aanwezig tijdens sessie</label>
+        </div>
+        <p style="font-size:10px; color:#94a3b8; margin: -4px 0 0 24px">
+          VP-tijd telt mee als loonkost (presence + eventueel admin).
+        </p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">📅 Frequentie (per week)</div>
+        <div class="field">
+          <div class="field-row"><span class="field-label">Sessies per week</span><span class="field-value"><span id="freq_v">2</span></span></div>
+          <input type="range" id="freq" min="0" max="10" step="1" value="2">
+          <p style="font-size:10px; color:#94a3b8; margin-top:2px">Voor de week-projectie onderaan.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: kpi + grafiek + tabel -->
+    <div>
+
+      <h2>Per sessie — overzicht</h2>
+      <div class="kpi-grid">
+        <div class="kpi psy">
+          <div class="lbl">Pool psy (conv.)</div>
+          <div class="val">€<span id="kpi_psy">0</span></div>
+          <div class="delta" id="kpi_psy_sub"></div>
+        </div>
+        <div class="kpi neu">
+          <div class="lbl">Inkomst neuro</div>
+          <div class="val">€<span id="kpi_neu">0</span></div>
+          <div class="delta" id="kpi_neu_sub"></div>
+        </div>
+        <div class="kpi oop">
+          <div class="lbl">Totaal OOP / kop</div>
+          <div class="val">€<span id="kpi_oop">0</span></div>
+          <div class="delta" id="kpi_oop_sub"></div>
+        </div>
+        <div class="kpi net">
+          <div class="lbl">Netto-bruto sessie</div>
+          <div class="val">€<span id="kpi_netto">0</span></div>
+          <div class="delta" id="kpi_netto_sub"></div>
+        </div>
+      </div>
+
+      <h2>Tariefkaarten — verificatie</h2>
+      <div class="tarief-grid">
+        <div class="tarief basis">
+          <h4>💜 Basis (psy alleen)</h4>
+          <div class="sub">Conv. · psy rekent aan</div>
+          <table>
+            <tr><td class="k">Tarief/kop (pool)</td><td class="v">€<span id="t_basis_pool_per">33</span></td></tr>
+            <tr><td class="k">Remgeld/kop (OOP)</td><td class="v">€<span id="t_basis_rem_per">8</span></td></tr>
+            <tr class="pool"><td class="k">Pool totaal</td><td class="v">€<span id="t_basis_pool">0</span></td></tr>
+            <tr><td class="k">OOP totaal</td><td class="v">€<span id="t_basis_oop">0</span></td></tr>
+          </table>
+        </div>
+        <div class="tarief neuro">
+          <h4>🔵 Met neuroloog</h4>
+          <div class="sub">Pool 50/50 · supplement extra</div>
+          <table>
+            <tr><td class="k">Pool psy (1/2)</td><td class="v">€<span id="t_neu_psy">0</span></td></tr>
+            <tr><td class="k">Pool neuro (1/2)</td><td class="v">€<span id="t_neu_neu">0</span></td></tr>
+            <tr><td class="k">Supplement/kop</td><td class="v">€<span id="t_neu_supp_per">30</span></td></tr>
+            <tr class="pool"><td class="k">Supplement totaal (naar neuro)</td><td class="v">€<span id="t_neu_supp">0</span></td></tr>
+            <tr><td class="k">OOP/kop incl. supp.</td><td class="v">€<span id="t_neu_oop_per">0</span></td></tr>
+          </table>
+        </div>
+        <div class="tarief vp">
+          <h4>👩‍⚕️ VP-kost</h4>
+          <div class="sub">Presence + admin</div>
+          <table>
+            <tr><td class="k">Sessie-presence</td><td class="v"><span id="t_vp_pres">0</span> min</td></tr>
+            <tr><td class="k">Admin (alle koppen)</td><td class="v"><span id="t_vp_admin">0</span> min</td></tr>
+            <tr class="pool"><td class="k">VP-tijd totaal</td><td class="v"><span id="t_vp_total">0</span> min</td></tr>
+            <tr><td class="k">Loonkost</td><td class="v">€<span id="t_vp_kost">0</span></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <h2>Verdeling — wie krijgt wat (per sessie)</h2>
+      <div class="panel">
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-label"><span>Pool (conv. → psy + evt. neuro)</span><span id="bar_pool_total">€0</span></div>
+            <div class="bar-track" id="bar_pool"></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label"><span>OOP betaald door clienten</span><span id="bar_oop_total">€0</span></div>
+            <div class="bar-track" id="bar_oop"></div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label"><span>Tijds-investering (minuten)</span><span id="bar_tijd_total">0 min</span></div>
+            <div class="bar-track" id="bar_tijd"></div>
+          </div>
+        </div>
+        <div class="legend-row" style="margin-top:8px">
+          <span><span class="legend-dot" style="background:#ec4899"></span>Psy</span>
+          <span><span class="legend-dot" style="background:#3b82f6"></span>Neuro</span>
+          <span><span class="legend-dot" style="background:#10b981"></span>VP</span>
+          <span><span class="legend-dot" style="background:#94a3b8"></span>Remgeld</span>
+          <span><span class="legend-dot" style="background:#06b6d4"></span>Supplement</span>
+        </div>
+      </div>
+
+      <h2>Detail-tabel</h2>
+      <table class="cmp-table">
+        <thead>
+          <tr><th>Component</th><th class="num">Per kop</th><th class="num">Per sessie</th><th class="num">Per week</th></tr>
+        </thead>
+        <tbody id="detail_tbody">
+          <!-- ingevuld door JS -->
+        </tbody>
+      </table>
+
+      <div class="note info" style="margin-top:14px">
+        <b>Logica:</b> standaard rekent de psy de pool aan (€33/kop). Bij neuro mee wordt de pool 50/50 gedeeld (psy &amp; neuro krijgen elk de helft).
+        Het remgeld blijft het basis-OOP (€8/kop). Een supplement (default €30/kop, vrij regelbaar) gaat <b>volledig naar de neuro</b> bovenop de helft van de pool —
+        zo blijft "neuro mee" niet inkomstenneutraal.
+      </div>
+
+      <div class="note warn" id="warn_duur" style="display:none">
+        <b>Let op:</b> Duurtijd onder 90 min — geen geldige groepssessie volgens conventie.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     TAB 2 — PLANNER
+     ════════════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-planner">
+
+  <div class="planner-topbar">
+    <input type="text" id="scen_name" class="scen" placeholder="Naam scenario (bv. 'week reguliere ADHD-groep')">
+    <button id="save_scen">💾 Bewaar</button>
+    <select id="load_scen" style="min-width:200px"><option value="">— laad scenario —</option></select>
+    <button class="del" id="del_scen">🗑 Verwijder</button>
+    <button class="alt" id="new_scen">+ Nieuw</button>
+    <span style="margin-left:auto; font-size:11px; color:#64748b">Klik in een dagkolom om een nieuwe sessie te plaatsen op die tijd. Sleep om te verplaatsen.</span>
+  </div>
+
+  <div class="planner-layout">
+
+    <!-- Palette / defaults -->
+    <div class="planner-palette">
+      <h3>Nieuwe sessie — defaults</h3>
+
+      <div class="field">
+        <div class="field-row"><span class="field-label">Duur</span><span class="field-value"><span id="def_duur_v">90</span> min</span></div>
+        <input type="range" id="def_duur" min="60" max="180" step="5" value="90">
+      </div>
+
+      <div class="field">
+        <div class="field-row"><span class="field-label">Koppen</span><span class="field-value"><span id="def_koppen_v">6</span></span></div>
+        <input type="range" id="def_koppen" min="2" max="8" step="1" value="6">
+      </div>
+
+      <div class="toggle-row">
+        <input type="checkbox" id="def_neuro">
+        <label for="def_neuro" style="font-size:12px">Neuroloog mee</label>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="def_vp">
+        <label for="def_vp" style="font-size:12px">VP aanwezig</label>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="def_vp_admin" checked>
+        <label for="def_vp_admin" style="font-size:12px">Admin door VP</label>
+      </div>
+
+      <div class="session-quick-add">
+        <b>Klikmodus:</b> volgende klik in een kolom plaatst een nieuwe sessie met deze defaults.
+        <button id="arm_click">🎯 Activeer klik-modus</button>
+      </div>
+
+      <div class="palette-help">
+        <b>Sleep</b>: pak een blok bij de tijdsbalk om het te verplaatsen.<br>
+        <b>Klik op blok</b>: bewerk in zijbalk →<br>
+        <b>×</b> rechtsboven: verwijder
+      </div>
+
+      <h3 style="margin-top:14px">Week-totalen</h3>
+      <div class="income-card" id="week_totals">
+        <p style="font-size:11px; color:#94a3b8">— geen sessies —</p>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="planner-grid-wrap">
+      <div class="planner-grid" id="planner_grid"></div>
+    </div>
+
+    <!-- Sidebar: selected session edit + income -->
+    <div class="planner-edit" id="planner_edit">
+      <h3>Geselecteerde sessie</h3>
+      <p style="font-size:11px; color:#94a3b8" id="no_sel">Selecteer een sessie of plaats een nieuwe.</p>
+      <div id="sel_edit" style="display:none">
+        <div class="field">
+          <div class="field-row"><span class="field-label">Dag</span></div>
+          <select id="sel_day"></select>
+        </div>
+        <div class="field">
+          <div class="field-row"><span class="field-label">Start</span><span class="field-value" id="sel_start_v">08:00</span></div>
+          <input type="range" id="sel_start" min="0" max="780" step="5">
+        </div>
+        <div class="field">
+          <div class="field-row"><span class="field-label">Duur</span><span class="field-value"><span id="sel_duur_v">90</span> min</span></div>
+          <input type="range" id="sel_duur" min="60" max="180" step="5" value="90">
+        </div>
+        <div class="field">
+          <div class="field-row"><span class="field-label">Koppen</span><span class="field-value"><span id="sel_koppen_v">6</span></span></div>
+          <input type="range" id="sel_koppen" min="2" max="8" step="1" value="6">
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="sel_neuro">
+          <label for="sel_neuro" style="font-size:11px">Neuroloog mee</label>
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="sel_vp">
+          <label for="sel_vp" style="font-size:11px">VP aanwezig</label>
+        </div>
+        <div class="toggle-row">
+          <input type="checkbox" id="sel_vp_admin">
+          <label for="sel_vp_admin" style="font-size:11px">Admin door VP</label>
+        </div>
+        <div class="field" id="sel_supp_wrap" style="display:none">
+          <div class="field-row"><span class="field-label">Supplement-OOP / kop</span><span class="field-value">€<span id="sel_supp_v">30</span></span></div>
+          <input type="range" id="sel_supp" min="0" max="100" step="5" value="30">
+        </div>
+        <button id="sel_delete" style="background:#dc2626; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; width:100%; margin-top:8px">🗑 Verwijder sessie</button>
+
+        <h4>Inkomst deze sessie</h4>
+        <div class="income-card" id="sel_income"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  MIND+ Groepssessie-dashboard — alle berekeningen lokaal · geen data verzonden · localStorage voor scenarios
+</footer>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function v(id) { const el = document.getElementById(id); return el ? +el.value : 0; }
+function chk(id) { const el = document.getElementById(id); return el ? el.checked : false; }
+function setT(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function r0(x) { return Math.round(x).toLocaleString('nl-BE'); }
+function r1(x) { return (Math.round(x*10)/10).toLocaleString('nl-BE'); }
+
+const DAYS = ['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag'];
+
+// Inputs binnen tab 1 → re-compute
+const tab1Inputs = ['duur','koppen','admin','tarief','rem','supp','vp_loon','freq'];
+tab1Inputs.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    document.getElementById(id+'_v').textContent = el.value;
+    computeDashboard();
+  });
+});
+['vp_admin','neuro_on','vp_on'].forEach(id => {
+  document.getElementById(id).addEventListener('change', computeDashboard);
+});
+
+// ════════════════════════════════════════════════════════════
+// CORE BEREKENING — één sessie
+// ════════════════════════════════════════════════════════════
+function calcSession(opts) {
+  // opts = { duur, koppen, admin, tarief, rem, supp, vpLoon,
+  //         neuroOn, vpOn, vpAdmin }
+  const duur = opts.duur;
+  const koppen = opts.koppen;
+  const adminPerKop = opts.admin;
+  const tarief = opts.tarief;
+  const rem = opts.rem;
+  const supp = opts.supp;
+  const vpLoon = opts.vpLoon;
+  const neuroOn = opts.neuroOn;
+  const vpOn = opts.vpOn;
+  const vpAdmin = opts.vpAdmin;
+
+  // Pool conv. (psy rekent aan)
+  const poolTotal = koppen * tarief;
+  const poolPsy = neuroOn ? poolTotal / 2 : poolTotal;
+  const poolNeuro = neuroOn ? poolTotal / 2 : 0;
+
+  // OOP
+  const oopRemTotal = koppen * rem;
+  const oopSuppTotal = neuroOn ? koppen * supp : 0;
+  const oopTotal = oopRemTotal + oopSuppTotal;
+  const oopPerKop = rem + (neuroOn ? supp : 0);
+
+  // Tijd
+  const adminTotal = koppen * adminPerKop;
+  // VP-tijd
+  let vpPresenceMin = vpOn ? duur : 0;
+  let vpAdminMin = vpAdmin ? adminTotal : 0;
+  const vpTotalMin = vpPresenceMin + vpAdminMin;
+  const vpKost = vpTotalMin/60 * vpLoon;
+
+  // Psy / Neuro tijd (sessie + eventuele admin als VP die NIET doet)
+  // Default: admin gaat naar psy (of half/half met neuro als beide aanwezig)
+  let psyTimeMin = duur;
+  let neuroTimeMin = neuroOn ? duur : 0;
+  if (!vpAdmin) {
+    if (neuroOn) {
+      // Split admin tussen psy en neuro
+      psyTimeMin += adminTotal/2;
+      neuroTimeMin += adminTotal/2;
+    } else {
+      psyTimeMin += adminTotal;
+    }
+  }
+
+  // Bruto inkomsten
+  const psyOmzet = poolPsy;
+  const neuroOmzet = poolNeuro + oopSuppTotal;
+  const bruto = poolTotal + oopSuppTotal;  // remgeld is OOP-betaling die naar zorgverstrekker pool gaat (conv.)
+  // Echte cash naar de praktijk = bruto - vpKost
+  const netto = bruto - vpKost;
+
+  return {
+    duur, koppen,
+    poolTotal, poolPsy, poolNeuro,
+    oopRemTotal, oopSuppTotal, oopTotal, oopPerKop,
+    adminTotal,
+    psyTimeMin, neuroTimeMin,
+    vpPresenceMin, vpAdminMin, vpTotalMin, vpKost,
+    psyOmzet, neuroOmzet,
+    bruto, netto
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// TAB 1 — DASHBOARD COMPUTE
+// ════════════════════════════════════════════════════════════
+function computeDashboard() {
+  const opts = {
+    duur: v('duur'), koppen: v('koppen'), admin: v('admin'),
+    tarief: v('tarief'), rem: v('rem'), supp: v('supp'), vpLoon: v('vp_loon'),
+    neuroOn: chk('neuro_on'), vpOn: chk('vp_on'), vpAdmin: chk('vp_admin')
+  };
+  const r = calcSession(opts);
+  const freq = v('freq');
+
+  // KPIs
+  setT('kpi_psy', r0(r.poolPsy));
+  setT('kpi_psy_sub', `pool ${opts.neuroOn?'½ van €'+r0(r.poolTotal):'volledig'}`);
+  setT('kpi_neu', r0(r.neuroOmzet));
+  setT('kpi_neu_sub', opts.neuroOn ? `½ pool + €${r0(r.oopSuppTotal)} supp` : '— niet aanwezig —');
+  setT('kpi_oop', r1(r.oopPerKop));
+  setT('kpi_oop_sub', `${r0(r.oopTotal)} € totaal (${opts.koppen} koppen)`);
+  setT('kpi_netto', r0(r.netto));
+  setT('kpi_netto_sub', `bruto €${r0(r.bruto)} - VP-loon €${r0(r.vpKost)}`);
+
+  // Tarief-kaart basis
+  setT('t_basis_pool_per', opts.tarief);
+  setT('t_basis_rem_per', opts.rem);
+  setT('t_basis_pool', r0(r.poolTotal));
+  setT('t_basis_oop', r0(r.oopRemTotal));
+
+  // Tarief-kaart neuro
+  setT('t_neu_psy', r0(r.poolPsy));
+  setT('t_neu_neu', r0(r.poolNeuro));
+  setT('t_neu_supp_per', opts.supp);
+  setT('t_neu_supp', r0(r.oopSuppTotal));
+  setT('t_neu_oop_per', r1(r.oopPerKop));
+
+  // Tarief-kaart VP
+  setT('t_vp_pres', r.vpPresenceMin);
+  setT('t_vp_admin', r.vpAdminMin);
+  setT('t_vp_total', r.vpTotalMin);
+  setT('t_vp_kost', r0(r.vpKost));
+
+  // Warn op duur
+  document.getElementById('warn_duur').style.display = (opts.duur < 90) ? 'block' : 'none';
+
+  // Bar chart — Pool verdeling
+  const poolBar = document.getElementById('bar_pool');
+  setT('bar_pool_total', `€${r0(r.poolTotal)}`);
+  if (r.poolTotal === 0) {
+    poolBar.innerHTML = '<div class="bar-seg bar-rem" style="width:100%; background:#e2e8f0; color:#64748b">— geen pool —</div>';
+  } else {
+    const segs = [];
+    const pctPsy = r.poolPsy / r.poolTotal * 100;
+    const pctNeu = r.poolNeuro / r.poolTotal * 100;
+    segs.push(`<div class="bar-seg bar-psy" style="width:${pctPsy}%">Psy €${r0(r.poolPsy)}</div>`);
+    if (pctNeu > 0) segs.push(`<div class="bar-seg bar-neu" style="width:${pctNeu}%">Neuro €${r0(r.poolNeuro)}</div>`);
+    poolBar.innerHTML = segs.join('');
+  }
+
+  // OOP verdeling (remgeld → naar pool conv. dus eigenlijk niet "extra", supplement → naar neuro)
+  const oopBar = document.getElementById('bar_oop');
+  const oopBigTotal = r.oopRemTotal + r.oopSuppTotal;
+  setT('bar_oop_total', `€${r0(oopBigTotal)} (rem €${r0(r.oopRemTotal)} + supp €${r0(r.oopSuppTotal)})`);
+  if (oopBigTotal === 0) {
+    oopBar.innerHTML = '<div class="bar-seg bar-rem" style="width:100%; background:#e2e8f0; color:#64748b">— geen OOP —</div>';
+  } else {
+    const pctRem = r.oopRemTotal / oopBigTotal * 100;
+    const pctSupp = r.oopSuppTotal / oopBigTotal * 100;
+    let s = '';
+    if (pctRem > 0) s += `<div class="bar-seg bar-rem" style="width:${pctRem}%">Rem €${r0(r.oopRemTotal)}</div>`;
+    if (pctSupp > 0) s += `<div class="bar-seg bar-supp" style="width:${pctSupp}%">Supp €${r0(r.oopSuppTotal)}</div>`;
+    oopBar.innerHTML = s;
+  }
+
+  // Tijd verdeling
+  const tijdBar = document.getElementById('bar_tijd');
+  const totMin = r.psyTimeMin + r.neuroTimeMin + r.vpTotalMin;
+  setT('bar_tijd_total', `${r0(totMin)} min`);
+  if (totMin === 0) {
+    tijdBar.innerHTML = '<div class="bar-seg" style="width:100%; background:#e2e8f0; color:#64748b">—</div>';
+  } else {
+    const pctP = r.psyTimeMin / totMin * 100;
+    const pctN = r.neuroTimeMin / totMin * 100;
+    const pctV = r.vpTotalMin / totMin * 100;
+    let s = '';
+    if (pctP > 0) s += `<div class="bar-seg bar-psy" style="width:${pctP}%">Psy ${r.psyTimeMin}′</div>`;
+    if (pctN > 0) s += `<div class="bar-seg bar-neu" style="width:${pctN}%">Neuro ${r.neuroTimeMin}′</div>`;
+    if (pctV > 0) s += `<div class="bar-seg bar-vp" style="width:${pctV}%">VP ${r.vpTotalMin}′</div>`;
+    tijdBar.innerHTML = s;
+  }
+
+  // Detail-tabel
+  const rows = [
+    ['Pool psy (conv.)', '€' + r1(r.poolPsy/opts.koppen), '€' + r0(r.poolPsy), '€' + r0(r.poolPsy * freq)],
+    ['Pool neuro (1/2)', opts.neuroOn ? '€' + r1(r.poolNeuro/opts.koppen) : '—', '€' + r0(r.poolNeuro), '€' + r0(r.poolNeuro * freq)],
+    ['Supplement (naar neuro)', opts.neuroOn ? '€' + r1(opts.supp) : '—', '€' + r0(r.oopSuppTotal), '€' + r0(r.oopSuppTotal * freq)],
+    ['Inkomst psy', '€' + r1(r.psyOmzet/opts.koppen), '€' + r0(r.psyOmzet), '€' + r0(r.psyOmzet * freq)],
+    ['Inkomst neuro', opts.neuroOn ? '€' + r1(r.neuroOmzet/opts.koppen) : '—', '€' + r0(r.neuroOmzet), '€' + r0(r.neuroOmzet * freq)],
+    ['Remgeld OOP', '€' + r1(opts.rem), '€' + r0(r.oopRemTotal), '€' + r0(r.oopRemTotal * freq)],
+    ['OOP per kop (totaal)', '€' + r1(r.oopPerKop), '—', '—'],
+    ['Sessie-tijd psy', '—', `${r.psyTimeMin} min`, `${r.psyTimeMin*freq} min`],
+    ['Sessie-tijd neuro', '—', `${r.neuroTimeMin} min`, `${r.neuroTimeMin*freq} min`],
+    ['VP-tijd (presence+admin)', '—', `${r.vpTotalMin} min`, `${r.vpTotalMin*freq} min`],
+    ['VP-loonkost', '—', '€' + r0(r.vpKost), '€' + r0(r.vpKost * freq)],
+    ['Bruto inkomst', '—', '€' + r0(r.bruto), '€' + r0(r.bruto * freq)],
+    ['Netto (na VP-loon)', '—', '€' + r0(r.netto), '€' + r0(r.netto * freq)]
+  ];
+  const tbody = document.getElementById('detail_tbody');
+  tbody.innerHTML = rows.map((r, i) => {
+    const hl = (i === rows.length - 1) ? ' class="highlight"' : '';
+    return `<tr${hl}><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td></tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN TABS
+// ════════════════════════════════════════════════════════════
+document.querySelectorAll('.main-tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.main-tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('tab-' + t.dataset.tab).classList.add('active');
+    if (t.dataset.tab === 'planner') renderPlanner();
+  });
+});
+
+// ════════════════════════════════════════════════════════════
+// TAB 2 — PLANNER
+// ════════════════════════════════════════════════════════════
+const PLAN_START = 8 * 60;    // 08:00
+const PLAN_END = 22 * 60;     // 22:00
+const PX_PER_5MIN = 6;        // 72px / hour → 1008px totaal
+const SLOT_MIN = 5;
+
+// State
+let sessions = [];   // [{id, day:0..4, startMin, duur, koppen, neuroOn, vpOn, vpAdmin, supp}]
+let selectedId = null;
+let armedForClick = false;
+let dragging = null; // {id, startY, origStartMin}
+
+function sid() { return 's_' + Math.random().toString(36).slice(2,9); }
+function snap5(m) { return Math.round(m / SLOT_MIN) * SLOT_MIN; }
+function timeStr(absMin) {
+  const total = PLAN_START + absMin;
+  const h = Math.floor(total/60), m = total%60;
+  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+}
+
+// Default-binders
+['def_duur','def_koppen'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    document.getElementById(id+'_v').textContent = e.target.value;
+  });
+});
+document.getElementById('arm_click').addEventListener('click', () => {
+  armedForClick = !armedForClick;
+  document.querySelectorAll('.grid-column').forEach(c => c.classList.toggle('placing', armedForClick));
+  document.getElementById('arm_click').textContent = armedForClick ? '✓ Klik in dagkolom...' : '🎯 Activeer klik-modus';
+  document.getElementById('arm_click').style.background = armedForClick ? '#059669' : '#7c3aed';
+});
+
+function buildPlannerGrid() {
+  const grid = document.getElementById('planner_grid');
+  const totalSlots = (PLAN_END - PLAN_START) / SLOT_MIN;
+  const totalHeight = totalSlots * PX_PER_5MIN;
+
+  // Header
+  let html = `<div></div>`;
+  DAYS.forEach(d => html += `<div class="grid-col-header">${d}</div>`);
+
+  // Time axis
+  html += `<div class="grid-time-axis" style="height:${totalHeight}px; position:relative">`;
+  for (let h = 8; h <= 22; h++) {
+    const top = (h - 8) * 72;
+    html += `<div class="grid-time-label" style="top:${top}px">${h}:00</div>`;
+  }
+  html += `</div>`;
+
+  // Day columns
+  DAYS.forEach((d, i) => {
+    html += `<div class="grid-column" data-day="${i}" style="height:${totalHeight}px"></div>`;
+  });
+
+  grid.innerHTML = html;
+
+  grid.querySelectorAll('.grid-column').forEach(col => {
+    col.addEventListener('click', e => {
+      if (!armedForClick) return;
+      // ignore click on existing session
+      if (e.target.closest('.placed-session')) return;
+      const rect = col.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const startMin = snap5(Math.max(0, y / PX_PER_5MIN * SLOT_MIN));
+      addSession(+col.dataset.day, startMin);
+    });
+  });
+
+  renderSessions();
+}
+
+function addSession(day, startMin) {
+  const s = {
+    id: sid(),
+    day,
+    startMin,
+    duur: v('def_duur'),
+    koppen: v('def_koppen'),
+    neuroOn: chk('def_neuro'),
+    vpOn: chk('def_vp'),
+    vpAdmin: chk('def_vp_admin'),
+    supp: v('supp')   // default uit tab 1
+  };
+  // Clamp
+  const maxStart = (PLAN_END - PLAN_START) - s.duur;
+  s.startMin = Math.max(0, Math.min(maxStart, s.startMin));
+  sessions.push(s);
+  selectedId = s.id;
+  armedForClick = false;
+  document.querySelectorAll('.grid-column').forEach(c => c.classList.remove('placing'));
+  document.getElementById('arm_click').textContent = '🎯 Activeer klik-modus';
+  document.getElementById('arm_click').style.background = '#7c3aed';
+  renderSessions();
+  renderSelected();
+  renderWeekTotals();
+}
+
+function renderSessions() {
+  // wis bestaande
+  document.querySelectorAll('.placed-session').forEach(el => el.remove());
+  sessions.forEach(s => {
+    const col = document.querySelector(`.grid-column[data-day="${s.day}"]`);
+    if (!col) return;
+    const el = document.createElement('div');
+    el.className = 'placed-session' + (s.neuroOn ? ' with-neuro' : '') + (s.id === selectedId ? ' selected' : '');
+    el.dataset.id = s.id;
+    el.style.top = `${(s.startMin/SLOT_MIN)*PX_PER_5MIN}px`;
+    el.style.height = `${(s.duur/SLOT_MIN)*PX_PER_5MIN - 1}px`;
+    const adminMin = s.koppen * v('admin');
+    const adminPx = (adminMin/SLOT_MIN)*PX_PER_5MIN;
+    el.innerHTML = `
+      <div class="ps-time">${timeStr(s.startMin)}–${timeStr(s.startMin+s.duur)}</div>
+      <div class="ps-title">Groep · ${s.koppen} kop${s.koppen>1?'pen':''}</div>
+      <div class="ps-meta">${s.neuroOn?'🔵 Neuro · ':''}${s.vpOn?'🟢 VP · ':''}${s.vpAdmin?'📝 Admin VP':'📝 Admin psy'}</div>
+      <div class="ps-admin" title="Admin (${s.koppen}×${v('admin')}′) = ${adminMin}′">
+        <span>📝 admin ${adminMin}′</span>
+        <span>${s.vpAdmin?'→ VP':'→ ' + (s.neuroOn?'psy/neuro':'psy')}</span>
+      </div>
+      <div class="ps-del" data-del="${s.id}">×</div>
+    `;
+    col.appendChild(el);
+    el.querySelector('.pb-del, .ps-del').addEventListener('click', e => {
+      e.stopPropagation(); deleteSession(s.id);
+    });
+    el.addEventListener('mousedown', e => startDrag(e, s.id));
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('ps-del')) return;
+      e.stopPropagation();
+      selectedId = s.id;
+      renderSessions();
+      renderSelected();
+    });
+  });
+}
+
+function deleteSession(id) {
+  sessions = sessions.filter(s => s.id !== id);
+  if (selectedId === id) selectedId = null;
+  renderSessions();
+  renderSelected();
+  renderWeekTotals();
+}
+
+function startDrag(e, id) {
+  if (e.target.classList.contains('ps-del')) return;
+  e.preventDefault();
+  const s = sessions.find(x => x.id === id);
+  if (!s) return;
+  dragging = { id, startY: e.clientY, origStartMin: s.startMin };
+  document.body.style.cursor = 'grabbing';
+}
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const s = sessions.find(x => x.id === dragging.id);
+  if (!s) return;
+  const deltaY = e.clientY - dragging.startY;
+  const deltaMin = snap5(deltaY / PX_PER_5MIN * SLOT_MIN);
+  const maxStart = (PLAN_END - PLAN_START) - s.duur;
+  s.startMin = Math.max(0, Math.min(maxStart, snap5(dragging.origStartMin + deltaMin)));
+  renderSessions();
+});
+document.addEventListener('mouseup', () => {
+  if (dragging) {
+    dragging = null;
+    document.body.style.cursor = '';
+    renderSelected();
+    renderWeekTotals();
+  }
+});
+
+// ── Selected session editor
+function renderSelected() {
+  const s = sessions.find(x => x.id === selectedId);
+  document.getElementById('no_sel').style.display = s ? 'none' : 'block';
+  document.getElementById('sel_edit').style.display = s ? 'block' : 'none';
+  if (!s) return;
+
+  // Day select
+  const sd = document.getElementById('sel_day');
+  sd.innerHTML = DAYS.map((d,i)=>`<option value="${i}"${i===s.day?' selected':''}>${d}</option>`).join('');
+
+  document.getElementById('sel_start').max = (PLAN_END - PLAN_START) - s.duur;
+  document.getElementById('sel_start').value = s.startMin;
+  document.getElementById('sel_start_v').textContent = timeStr(s.startMin);
+  document.getElementById('sel_duur').value = s.duur;
+  document.getElementById('sel_duur_v').textContent = s.duur;
+  document.getElementById('sel_koppen').value = s.koppen;
+  document.getElementById('sel_koppen_v').textContent = s.koppen;
+  document.getElementById('sel_neuro').checked = s.neuroOn;
+  document.getElementById('sel_vp').checked = s.vpOn;
+  document.getElementById('sel_vp_admin').checked = s.vpAdmin;
+  document.getElementById('sel_supp_wrap').style.display = s.neuroOn ? 'block' : 'none';
+  document.getElementById('sel_supp').value = s.supp;
+  document.getElementById('sel_supp_v').textContent = s.supp;
+
+  renderSelectedIncome();
+}
+
+['sel_start','sel_duur','sel_koppen','sel_supp'].forEach(id => {
+  document.getElementById(id).addEventListener('input', e => {
+    const s = sessions.find(x => x.id === selectedId);
+    if (!s) return;
+    const val = +e.target.value;
+    if (id === 'sel_start') { s.startMin = val; document.getElementById('sel_start_v').textContent = timeStr(val); }
+    if (id === 'sel_duur')  { s.duur = val; document.getElementById('sel_duur_v').textContent = val;
+      document.getElementById('sel_start').max = (PLAN_END - PLAN_START) - s.duur;
+    }
+    if (id === 'sel_koppen'){ s.koppen = val; document.getElementById('sel_koppen_v').textContent = val; }
+    if (id === 'sel_supp')  { s.supp = val; document.getElementById('sel_supp_v').textContent = val; }
+    renderSessions();
+    renderSelectedIncome();
+    renderWeekTotals();
+  });
+});
+['sel_neuro','sel_vp','sel_vp_admin'].forEach(id => {
+  document.getElementById(id).addEventListener('change', e => {
+    const s = sessions.find(x => x.id === selectedId);
+    if (!s) return;
+    if (id === 'sel_neuro') { s.neuroOn = e.target.checked; document.getElementById('sel_supp_wrap').style.display = s.neuroOn?'block':'none'; }
+    if (id === 'sel_vp')    s.vpOn = e.target.checked;
+    if (id === 'sel_vp_admin') s.vpAdmin = e.target.checked;
+    renderSessions();
+    renderSelectedIncome();
+    renderWeekTotals();
+  });
+});
+document.getElementById('sel_day').addEventListener('change', e => {
+  const s = sessions.find(x => x.id === selectedId);
+  if (!s) return;
+  s.day = +e.target.value;
+  renderSessions();
+});
+document.getElementById('sel_delete').addEventListener('click', () => {
+  if (selectedId) deleteSession(selectedId);
+});
+
+function sessionOpts(s) {
+  return {
+    duur: s.duur, koppen: s.koppen, admin: v('admin'),
+    tarief: v('tarief'), rem: v('rem'), supp: s.supp,
+    vpLoon: v('vp_loon'),
+    neuroOn: s.neuroOn, vpOn: s.vpOn, vpAdmin: s.vpAdmin
+  };
+}
+
+function renderSelectedIncome() {
+  const s = sessions.find(x => x.id === selectedId);
+  if (!s) return;
+  const r = calcSession(sessionOpts(s));
+  document.getElementById('sel_income').innerHTML = `
+    <div class="row"><span>Pool psy</span><strong>€${r0(r.poolPsy)}</strong></div>
+    <div class="row"><span>Pool neuro</span><strong>€${r0(r.poolNeuro)}</strong></div>
+    <div class="row"><span>Supplement (neuro)</span><strong>€${r0(r.oopSuppTotal)}</strong></div>
+    <div class="row"><span>Remgeld (van clienten)</span><strong>€${r0(r.oopRemTotal)}</strong></div>
+    <div class="row"><span>VP-tijd</span><strong>${r.vpTotalMin}′</strong></div>
+    <div class="row"><span>VP-loonkost</span><strong>−€${r0(r.vpKost)}</strong></div>
+    <div class="row highlight"><span>Netto sessie</span><strong>€${r0(r.netto)}</strong></div>
+  `;
+}
+
+function renderWeekTotals() {
+  const div = document.getElementById('week_totals');
+  if (!sessions.length) {
+    div.innerHTML = '<p style="font-size:11px; color:#94a3b8">— geen sessies geplaatst —</p>';
+    return;
+  }
+  let totPsy=0, totNeu=0, totSupp=0, totRem=0, totVPmin=0, totVPkost=0, totBruto=0, totNetto=0;
+  const perDay = [0,0,0,0,0];
+  sessions.forEach(s => {
+    const r = calcSession(sessionOpts(s));
+    totPsy += r.poolPsy;
+    totNeu += r.poolNeuro;
+    totSupp += r.oopSuppTotal;
+    totRem += r.oopRemTotal;
+    totVPmin += r.vpTotalMin;
+    totVPkost += r.vpKost;
+    totBruto += r.bruto;
+    totNetto += r.netto;
+    perDay[s.day] += r.netto;
+  });
+  div.innerHTML = `
+    <div class="row"><span>Aantal sessies</span><strong>${sessions.length}</strong></div>
+    <div class="row"><span>Pool psy (totaal)</span><strong>€${r0(totPsy)}</strong></div>
+    <div class="row"><span>Pool neuro</span><strong>€${r0(totNeu)}</strong></div>
+    <div class="row"><span>Supplement-OOP</span><strong>€${r0(totSupp)}</strong></div>
+    <div class="row"><span>Remgeld</span><strong>€${r0(totRem)}</strong></div>
+    <div class="row"><span>VP-tijd</span><strong>${r0(totVPmin)}′ (${r1(totVPmin/60)}u)</strong></div>
+    <div class="row"><span>VP-loonkost</span><strong>−€${r0(totVPkost)}</strong></div>
+    <div class="row"><span>Bruto/week</span><strong>€${r0(totBruto)}</strong></div>
+    <div class="row highlight"><span>Netto/week</span><strong>€${r0(totNetto)}</strong></div>
+    <h4 style="margin-top:8px">Per dag — netto</h4>
+    ${DAYS.map((d,i)=>`<div class="row"><span>${d}</span><strong>€${r0(perDay[i])}</strong></div>`).join('')}
+  `;
+}
+
+function renderPlanner() {
+  buildPlannerGrid();
+  renderSelected();
+  renderWeekTotals();
+}
+
+// ════════════════════════════════════════════════════════════
+// SCENARIOS (localStorage)
+// ════════════════════════════════════════════════════════════
+const LS_KEY = 'mindplus_groep_scenarios';
+function loadAll() { try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch(e){ return {}; } }
+function saveAll(o) { try { localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch(e){} }
+function refreshScenList() {
+  const all = loadAll();
+  const sel = document.getElementById('load_scen');
+  sel.innerHTML = '<option value="">— laad scenario —</option>' +
+    Object.keys(all).map(n => `<option value="${n}">${n}</option>`).join('');
+}
+document.getElementById('save_scen').addEventListener('click', () => {
+  const name = document.getElementById('scen_name').value.trim();
+  if (!name) { alert('Geef het scenario een naam.'); return; }
+  const all = loadAll();
+  all[name] = { sessions: JSON.parse(JSON.stringify(sessions)), savedAt: new Date().toISOString() };
+  saveAll(all);
+  refreshScenList();
+  alert(`Scenario "${name}" opgeslagen.`);
+});
+document.getElementById('load_scen').addEventListener('change', e => {
+  if (!e.target.value) return;
+  const all = loadAll();
+  if (!all[e.target.value]) return;
+  sessions = JSON.parse(JSON.stringify(all[e.target.value].sessions));
+  document.getElementById('scen_name').value = e.target.value;
+  selectedId = null;
+  renderSessions(); renderSelected(); renderWeekTotals();
+});
+document.getElementById('del_scen').addEventListener('click', () => {
+  const name = document.getElementById('scen_name').value.trim();
+  if (!name) return;
+  if (!confirm(`Scenario "${name}" verwijderen?`)) return;
+  const all = loadAll(); delete all[name]; saveAll(all);
+  refreshScenList();
+});
+document.getElementById('new_scen').addEventListener('click', () => {
+  if (sessions.length && !confirm('Huidige planner wissen?')) return;
+  sessions = []; selectedId = null;
+  document.getElementById('scen_name').value = '';
+  renderSessions(); renderSelected(); renderWeekTotals();
+});
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+computeDashboard();
+refreshScenList();
+</script>
+<!-- ===== Auth script ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='dashboard-groepssessies';
+let sb=null,currentUser=null;
+function showAuthMsg(t,k){const e=document.getElementById('auth-msg');if(!e)return;e.innerHTML=t?'<div class="msg '+(k||'err')+'">'+t+'</div>':'';}
+function showLogin(){document.getElementById('auth-form-login').style.display='';document.getElementById('auth-form-signup').style.display='none';document.getElementById('auth-sub').textContent='Log in om verder te gaan';showAuthMsg('');}
+function showSignup(){document.getElementById('auth-form-login').style.display='none';document.getElementById('auth-form-signup').style.display='';document.getElementById('auth-sub').textContent='Maak een account aan';showAuthMsg('');}
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+async function doSignup(){
+  const name=document.getElementById('auth-name').value.trim(),email=document.getElementById('auth-email-s').value.trim(),pw=document.getElementById('auth-pw-s').value;
+  if(!name||!email||!pw){showAuthMsg('Vul alle velden in.');return;}
+  if(pw.length<6){showAuthMsg('Wachtwoord moet minstens 6 tekens hebben.');return;}
+  const btn=document.getElementById('auth-btn-signup');btn.disabled=true;btn.textContent='Bezig…';showAuthMsg('');
+  const {data,error}=await sb.auth.signUp({email,password:pw,options:{data:{display_name:name}}});
+  btn.disabled=false;btn.textContent='Account aanmaken';
+  if(error){showAuthMsg('Registratie mislukt: '+error.message);return;}
+  if(data.session){await afterLogin(data.session);}
+  else{showAuthMsg('Account aangemaakt. Een beheerder moet je nog toegang geven tot dit dashboard.','ok');setTimeout(showLogin,2500);}
+}
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();currentUser=null;
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';showLogin();
+}
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:access,error:accErr}=await sb.from('user_tool_access').select('tool_id').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+  if(accErr||!access){
+    showAuthMsg('Je account heeft (nog) geen toegang tot dit dashboard. Vraag een beheerder om toegang.','err');
+    await sb.auth.signOut();currentUser=null;return;
+  }
+  const {data:prof}=await sb.from('profiles').select('display_name,role').eq('id',currentUser.id).maybeSingle();
+  const dn=(prof&&prof.display_name)||currentUser.email;
+  document.getElementById('auth-overlay').style.display='none';
+  const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
+  document.getElementById('user-name').textContent=dn+((prof&&prof.role==='admin')?' ⭐':'');
+}
+(async function(){
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
+  catch(e){console.error('Supabase init mislukt',e);document.getElementById('auth-overlay').style.display='none';return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await afterLogin(session);}
+})();
+</script>
+</body>
+</html>
