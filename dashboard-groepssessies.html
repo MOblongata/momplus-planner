@@ -407,25 +407,25 @@ footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0; fon
 
       <h2>Per sessie — overzicht</h2>
       <div class="kpi-grid">
-        <div class="kpi psy">
-          <div class="lbl">Pool psy (conv.)</div>
-          <div class="val">€<span id="kpi_psy">0</span></div>
-          <div class="delta" id="kpi_psy_sub"></div>
+        <div class="kpi net">
+          <div class="lbl" id="kpi_netto_lbl">Netto inkomen → pool</div>
+          <div class="val">€<span id="kpi_netto">0</span></div>
+          <div class="delta" id="kpi_netto_sub"></div>
         </div>
-        <div class="kpi neu">
-          <div class="lbl">Inkomst neuro</div>
-          <div class="val">€<span id="kpi_neu">0</span></div>
-          <div class="delta" id="kpi_neu_sub"></div>
+        <div class="kpi psy">
+          <div class="lbl">Bruto → pool</div>
+          <div class="val">€<span id="kpi_bruto">0</span></div>
+          <div class="delta" id="kpi_bruto_sub"></div>
         </div>
         <div class="kpi oop">
           <div class="lbl">Totaal OOP / kop</div>
           <div class="val">€<span id="kpi_oop">0</span></div>
           <div class="delta" id="kpi_oop_sub"></div>
         </div>
-        <div class="kpi net">
-          <div class="lbl">Netto-bruto sessie</div>
-          <div class="val">€<span id="kpi_netto">0</span></div>
-          <div class="delta" id="kpi_netto_sub"></div>
+        <div class="kpi vp">
+          <div class="lbl">VP-loonkost</div>
+          <div class="val">€<span id="kpi_vp_kost">0</span></div>
+          <div class="delta" id="kpi_vp_sub"></div>
         </div>
       </div>
 
@@ -445,10 +445,10 @@ footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0; fon
           <h4>🔵 Met neuroloog</h4>
           <div class="sub">Pool 50/50 · supplement extra</div>
           <table>
-            <tr><td class="k">Pool psy (1/2)</td><td class="v">€<span id="t_neu_psy">0</span></td></tr>
-            <tr><td class="k">Pool neuro (1/2)</td><td class="v">€<span id="t_neu_neu">0</span></td></tr>
+            <tr><td class="k">Conv. ½ via psy → pool</td><td class="v">€<span id="t_neu_psy">0</span></td></tr>
+            <tr><td class="k">Conv. ½ via neuro → pool</td><td class="v">€<span id="t_neu_neu">0</span></td></tr>
             <tr><td class="k">Supplement/kop</td><td class="v">€<span id="t_neu_supp_per">30</span></td></tr>
-            <tr class="pool"><td class="k">Supplement totaal (naar neuro)</td><td class="v">€<span id="t_neu_supp">0</span></td></tr>
+            <tr class="pool"><td class="k">Supplement → pool (via neuro)</td><td class="v">€<span id="t_neu_supp">0</span></td></tr>
             <tr><td class="k">OOP/kop incl. supp.</td><td class="v">€<span id="t_neu_oop_per">0</span></td></tr>
           </table>
         </div>
@@ -464,11 +464,11 @@ footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0; fon
         </div>
       </div>
 
-      <h2>Verdeling — wie krijgt wat (per sessie)</h2>
+      <h2>Wat stroomt naar de pool (per sessie)</h2>
       <div class="panel">
         <div class="bar-chart">
           <div class="bar-row">
-            <div class="bar-label"><span>Pool (conv. → psy + evt. neuro)</span><span id="bar_pool_total">€0</span></div>
+            <div class="bar-label"><span>Bruto-pool (conv. — verdeeld over aanwezige artsen)</span><span id="bar_pool_total">€0</span></div>
             <div class="bar-track" id="bar_pool"></div>
           </div>
           <div class="bar-row">
@@ -500,9 +500,10 @@ footer { margin-top: 20px; padding-top: 14px; border-top: 1px solid #e2e8f0; fon
       </table>
 
       <div class="note info" style="margin-top:14px">
-        <b>Logica:</b> standaard rekent de psy de pool aan (€33/kop). Bij neuro mee wordt de pool 50/50 gedeeld (psy &amp; neuro krijgen elk de helft).
-        Het remgeld blijft het basis-OOP (€8/kop). Een supplement (default €30/kop, vrij regelbaar) gaat <b>volledig naar de neuro</b> bovenop de helft van de pool —
-        zo blijft "neuro mee" niet inkomstenneutraal.
+        <b>Logica:</b> alles wat geïncasseerd wordt komt in de praktijk-pool. Standaard rekent de psy €33/kop conv. aan
+        (volledige pool naar pool). Bij neuro mee wordt die conv.-pool 50/50 verdeeld voor RIZIV-administratie, maar
+        beide helften belanden netto in dezelfde pool. Een supplement (default €30/kop) wordt aangerekend wanneer de
+        neuro meedoet en gaat ook naar de pool. Het remgeld (€8/kop) is OOP voor de cliënt maar telt mee in de conv.-pool.
       </div>
 
       <div class="note warn" id="warn_duur" style="display:none">
@@ -735,15 +736,17 @@ function computeDashboard() {
   const r = calcSession(opts);
   const freq = v('freq');
 
-  // KPIs
-  setT('kpi_psy', r0(r.poolPsy));
-  setT('kpi_psy_sub', `pool ${opts.neuroOn?'½ van €'+r0(r.poolTotal):'volledig'}`);
-  setT('kpi_neu', r0(r.neuroOmzet));
-  setT('kpi_neu_sub', opts.neuroOn ? `½ pool + €${r0(r.oopSuppTotal)} supp` : '— niet aanwezig —');
+  // KPIs — focus op pool
+  const wie = opts.neuroOn ? 'van neuroloog + psychiater' : 'van psychiater';
+  setT('kpi_netto_lbl', `Netto inkomen ${wie} → pool`);
+  setT('kpi_netto', r0(r.netto));
+  setT('kpi_netto_sub', `bruto €${r0(r.bruto)} − VP-loon €${r0(r.vpKost)}`);
+  setT('kpi_bruto', r0(r.bruto));
+  setT('kpi_bruto_sub', opts.neuroOn ? `conv. €${r0(r.poolTotal)} + supplement €${r0(r.oopSuppTotal)}` : `conv. €${r0(r.poolTotal)}`);
   setT('kpi_oop', r1(r.oopPerKop));
   setT('kpi_oop_sub', `${r0(r.oopTotal)} € totaal (${opts.koppen} koppen)`);
-  setT('kpi_netto', r0(r.netto));
-  setT('kpi_netto_sub', `bruto €${r0(r.bruto)} - VP-loon €${r0(r.vpKost)}`);
+  setT('kpi_vp_kost', r0(r.vpKost));
+  setT('kpi_vp_sub', `${r.vpTotalMin}′ presence + admin`);
 
   // Tarief-kaart basis
   setT('t_basis_pool_per', opts.tarief);
@@ -813,25 +816,32 @@ function computeDashboard() {
     tijdBar.innerHTML = s;
   }
 
-  // Detail-tabel
+  // Detail-tabel — pool-framing
+  const wieKort = opts.neuroOn ? 'neuro + psy' : 'psy alleen';
   const rows = [
-    ['Pool psy (conv.)', '€' + r1(r.poolPsy/opts.koppen), '€' + r0(r.poolPsy), '€' + r0(r.poolPsy * freq)],
-    ['Pool neuro (1/2)', opts.neuroOn ? '€' + r1(r.poolNeuro/opts.koppen) : '—', '€' + r0(r.poolNeuro), '€' + r0(r.poolNeuro * freq)],
-    ['Supplement (naar neuro)', opts.neuroOn ? '€' + r1(opts.supp) : '—', '€' + r0(r.oopSuppTotal), '€' + r0(r.oopSuppTotal * freq)],
-    ['Inkomst psy', '€' + r1(r.psyOmzet/opts.koppen), '€' + r0(r.psyOmzet), '€' + r0(r.psyOmzet * freq)],
-    ['Inkomst neuro', opts.neuroOn ? '€' + r1(r.neuroOmzet/opts.koppen) : '—', '€' + r0(r.neuroOmzet), '€' + r0(r.neuroOmzet * freq)],
+    { section: 'Naar de pool — conv.' },
+    ['Conv.-tarief (via psy)', '€' + r1(r.poolPsy/opts.koppen), '€' + r0(r.poolPsy), '€' + r0(r.poolPsy * freq)],
+    ['Conv.-tarief (via neuro, ½)', opts.neuroOn ? '€' + r1(r.poolNeuro/opts.koppen) : '—', '€' + r0(r.poolNeuro), '€' + r0(r.poolNeuro * freq)],
+    ['Subtotaal conv. → pool', '—', '€' + r0(r.poolTotal), '€' + r0(r.poolTotal * freq)],
+    { section: 'Naar de pool — supplement (alleen met neuro)' },
+    ['Supplement / kop', opts.neuroOn ? '€' + r1(opts.supp) : '—', '€' + r0(r.oopSuppTotal), '€' + r0(r.oopSuppTotal * freq)],
+    { section: 'Cliëntenkant' },
     ['Remgeld OOP', '€' + r1(opts.rem), '€' + r0(r.oopRemTotal), '€' + r0(r.oopRemTotal * freq)],
-    ['OOP per kop (totaal)', '€' + r1(r.oopPerKop), '—', '—'],
+    ['Totaal OOP per kop', '€' + r1(r.oopPerKop), '—', '—'],
+    { section: 'Tijd & kost' },
     ['Sessie-tijd psy', '—', `${r.psyTimeMin} min`, `${r.psyTimeMin*freq} min`],
-    ['Sessie-tijd neuro', '—', `${r.neuroTimeMin} min`, `${r.neuroTimeMin*freq} min`],
+    ['Sessie-tijd neuro', '—', opts.neuroOn ? `${r.neuroTimeMin} min` : '—', opts.neuroOn ? `${r.neuroTimeMin*freq} min` : '—'],
     ['VP-tijd (presence+admin)', '—', `${r.vpTotalMin} min`, `${r.vpTotalMin*freq} min`],
-    ['VP-loonkost', '—', '€' + r0(r.vpKost), '€' + r0(r.vpKost * freq)],
-    ['Bruto inkomst', '—', '€' + r0(r.bruto), '€' + r0(r.bruto * freq)],
-    ['Netto (na VP-loon)', '—', '€' + r0(r.netto), '€' + r0(r.netto * freq)]
+    ['VP-loonkost', '—', '−€' + r0(r.vpKost), '−€' + r0(r.vpKost * freq)],
+    { section: `Saldo naar pool (${wieKort})` },
+    ['Bruto → pool', '—', '€' + r0(r.bruto), '€' + r0(r.bruto * freq)],
+    ['Netto → pool (na VP-loon)', '—', '€' + r0(r.netto), '€' + r0(r.netto * freq)]
   ];
   const tbody = document.getElementById('detail_tbody');
-  tbody.innerHTML = rows.map((r, i) => {
-    const hl = (i === rows.length - 1) ? ' class="highlight"' : '';
+  tbody.innerHTML = rows.map(r => {
+    if (r.section) return `<tr class="section"><td colspan="4">${r.section}</td></tr>`;
+    const isNetto = r[0].startsWith('Netto');
+    const hl = isNetto ? ' class="highlight"' : '';
     return `<tr${hl}><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td></tr>`;
   }).join('');
 }
@@ -1101,14 +1111,15 @@ function renderSelectedIncome() {
   const s = sessions.find(x => x.id === selectedId);
   if (!s) return;
   const r = calcSession(sessionOpts(s));
+  const wie = s.neuroOn ? 'neuroloog + psychiater' : 'psychiater';
   document.getElementById('sel_income').innerHTML = `
-    <div class="row"><span>Pool psy</span><strong>€${r0(r.poolPsy)}</strong></div>
-    <div class="row"><span>Pool neuro</span><strong>€${r0(r.poolNeuro)}</strong></div>
-    <div class="row"><span>Supplement (neuro)</span><strong>€${r0(r.oopSuppTotal)}</strong></div>
-    <div class="row"><span>Remgeld (van clienten)</span><strong>€${r0(r.oopRemTotal)}</strong></div>
+    <div class="row"><span>Conv. → pool (via psy)</span><strong>€${r0(r.poolPsy)}</strong></div>
+    <div class="row"><span>Conv. → pool (via neuro)</span><strong>€${r0(r.poolNeuro)}</strong></div>
+    <div class="row"><span>Supplement → pool</span><strong>€${r0(r.oopSuppTotal)}</strong></div>
+    <div class="row"><span>Remgeld (van cliënten)</span><strong>€${r0(r.oopRemTotal)}</strong></div>
     <div class="row"><span>VP-tijd</span><strong>${r.vpTotalMin}′</strong></div>
     <div class="row"><span>VP-loonkost</span><strong>−€${r0(r.vpKost)}</strong></div>
-    <div class="row highlight"><span>Netto sessie</span><strong>€${r0(r.netto)}</strong></div>
+    <div class="row highlight"><span>Netto van ${wie} → pool</span><strong>€${r0(r.netto)}</strong></div>
   `;
 }
 
@@ -1119,6 +1130,7 @@ function renderWeekTotals() {
     return;
   }
   let totPsy=0, totNeu=0, totSupp=0, totRem=0, totVPmin=0, totVPkost=0, totBruto=0, totNetto=0;
+  let nSolo=0, nDuo=0;
   const perDay = [0,0,0,0,0];
   sessions.forEach(s => {
     const r = calcSession(sessionOpts(s));
@@ -1131,18 +1143,23 @@ function renderWeekTotals() {
     totBruto += r.bruto;
     totNetto += r.netto;
     perDay[s.day] += r.netto;
+    if (s.neuroOn) nDuo++; else nSolo++;
   });
+  const mix = nDuo>0 && nSolo>0 ? `${nSolo}× psy alleen + ${nDuo}× neuro+psy`
+             : nDuo>0 ? 'allemaal neuro + psy'
+             : 'allemaal psy alleen';
   div.innerHTML = `
     <div class="row"><span>Aantal sessies</span><strong>${sessions.length}</strong></div>
-    <div class="row"><span>Pool psy (totaal)</span><strong>€${r0(totPsy)}</strong></div>
-    <div class="row"><span>Pool neuro</span><strong>€${r0(totNeu)}</strong></div>
-    <div class="row"><span>Supplement-OOP</span><strong>€${r0(totSupp)}</strong></div>
-    <div class="row"><span>Remgeld</span><strong>€${r0(totRem)}</strong></div>
+    <div class="row" style="color:#64748b; font-size:11px"><span>Bezetting</span><strong>${mix}</strong></div>
+    <div class="row"><span>Conv. → pool (via psy)</span><strong>€${r0(totPsy)}</strong></div>
+    <div class="row"><span>Conv. → pool (via neuro)</span><strong>€${r0(totNeu)}</strong></div>
+    <div class="row"><span>Supplement → pool</span><strong>€${r0(totSupp)}</strong></div>
+    <div class="row"><span>Remgeld (cliënten)</span><strong>€${r0(totRem)}</strong></div>
     <div class="row"><span>VP-tijd</span><strong>${r0(totVPmin)}′ (${r1(totVPmin/60)}u)</strong></div>
     <div class="row"><span>VP-loonkost</span><strong>−€${r0(totVPkost)}</strong></div>
-    <div class="row"><span>Bruto/week</span><strong>€${r0(totBruto)}</strong></div>
-    <div class="row highlight"><span>Netto/week</span><strong>€${r0(totNetto)}</strong></div>
-    <h4 style="margin-top:8px">Per dag — netto</h4>
+    <div class="row"><span>Bruto naar pool / week</span><strong>€${r0(totBruto)}</strong></div>
+    <div class="row highlight"><span>Netto naar pool / week</span><strong>€${r0(totNetto)}</strong></div>
+    <h4 style="margin-top:8px">Per dag — netto naar pool</h4>
     ${DAYS.map((d,i)=>`<div class="row"><span>${d}</span><strong>€${r0(perDay[i])}</strong></div>`).join('')}
   `;
 }
