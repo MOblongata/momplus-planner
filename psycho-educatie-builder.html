@@ -360,7 +360,7 @@ const BLOCKS = [
         <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · ADHD</div><h2>ADHD — <span class="accent">waar begin je best?</span></h2></div>
         <div class="highlight-box"><div class="adv-label">Beste startpunt</div><p><strong>ADDitude Magazine</strong> — additudemag.com</p><p>Veruit de meest bruikbare bron voor ADHD: korte, concrete artikels over medicatie, gedrag, school, emotieregulatie en praktische tips. Gebruik dit wanneer je "even snel iets wil opzoeken" in plaats van Google.</p></div>
         <div class="cards">
-          <div class="card"><div class="ci">🇧🇪</div><h4>SIT STILL (BE)</h4><p>sitstill.be — Belgische basisbron. Inhoudelijk correct, eerder beperkt. Handig voor praktische info, schoolcontext en ondersteuningstrajecten.</p></div>
+          <div class="card"><div class="ci">🇧🇪</div><h4>Zitstil (BE)</h4><p>zitstil.be — Belgische basisbron. Inhoudelijk correct, eerder beperkt. Handig voor praktische info, schoolcontext en ondersteuningstrajecten.</p></div>
           <div class="card"><div class="ci">🌐</div><h4>CHADD</h4><p>Evidence-based informatie en richtlijnen.</p></div>
           <div class="card"><div class="ci">🏫</div><h4>Understood.org</h4><p>Sterk voor schoolcontext en praktische tools.</p></div>
         </div>
@@ -383,7 +383,7 @@ const BLOCKS = [
       { id:'algemeen', label:'Breder & reflectief', default:true, content:`
         <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · Breder & reflectief</div><h2>Breder kaderen & <span class="accent">reflectie</span></h2></div>
         <div class="cards">
-          <div class="card"><div class="ci">🎧</div><h4>Is het leven een zeven?</h4><p>Reflectieve podcast rond mentale gezondheid, functioneren en zingeving.</p></div>
+          <div class="card"><div class="ci">🎧</div><h4>Is het leven een zeven?</h4><p>Reflectieve podcast rond mentale gezondheid, functioneren en zingeving. Beschikbaar op <strong>Spotify</strong>.</p></div>
           <div class="card"><div class="ci">📚</div><h4>Ken Jezelf — Tinneke Beeckman</h4><p>Helpt om gedrag en emoties breder te kaderen en kritisch, genuanceerd over jezelf en de maatschappij te denken.</p></div>
         </div>` }
     ]
@@ -604,16 +604,32 @@ function genPDF(){
   const naam = document.getElementById('naam').value.trim();
   const fname = slug(currentTitle()) + (naam?('_'+slug(naam)):'') + '.pdf';
   const el = document.getElementById('preview');
+
+  // Clone preview naar off-screen sandbox met vaste A4-content breedte (178mm)
+  // → omzeilt flex-layout / contenteditable / windowWidth-issues die content lijks afsnijden
+  const sandbox = document.createElement('div');
+  sandbox.style.cssText = 'position:fixed;left:-99999px;top:0;width:178mm;background:#ffffff;padding:0;margin:0;';
+  const clone = el.cloneNode(true);
+  clone.removeAttribute('contenteditable');
+  clone.id = 'preview-print';
+  clone.style.width = '178mm';
+  clone.style.margin = '0';
+  clone.style.padding = '0';
+  sandbox.appendChild(clone);
+  document.body.appendChild(sandbox);
+
   const opt = {
     margin:[16,16,18,16],
     filename:fname,
     image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:el.scrollWidth},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
     pagebreak:{mode:['css','legacy'],after:'.cover',avoid:['.block-section','.card','.step','.highlight-box','.before-after','.pull-quote','.closing']}
   };
-  html2pdf().set(opt).from(el).save().then(()=>{ btn.textContent=old; btn.disabled=false; })
-    .catch(()=>{ btn.textContent=old; btn.disabled=false; alert('Er liep iets mis bij het genereren. Probeer opnieuw.'); });
+  const cleanup = ()=>{ try{document.body.removeChild(sandbox);}catch(e){} btn.textContent=old; btn.disabled=false; };
+  html2pdf().set(opt).from(clone).save()
+    .then(cleanup)
+    .catch(err=>{ cleanup(); console.error(err); alert('Er liep iets mis bij het genereren. Probeer opnieuw.'); });
 }
 
 /* init */
