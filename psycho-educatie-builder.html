@@ -205,7 +205,7 @@
       </div>
       <div class="field">
         <label for="onderteken">Ondertekening</label>
-        <input type="text" id="onderteken" value="Dr. Van Steenkiste Frank" oninput="render()">
+        <select id="onderteken" onchange="render()"></select>
       </div>
     </div>
 
@@ -414,6 +414,22 @@ const CAT = {
 };
 
 const state = { on:new Set(), opts:new Set(), subs:new Set() };
+
+/* ---------- ondertekenaars (voeg hier toe om de lijst uit te breiden) ---------- */
+const ONDERTEKENAARS = [
+  'Dr. Van Steenkiste Frank',
+  'Dr. Vervaet Jeroen',
+  'Psycholoog Sare De Caster'
+];
+function populateOndertekenaars(){
+  const sel = document.getElementById('onderteken');
+  if(!sel) return;
+  // Onthoud huidige waarde (bij her-init)
+  const huidig = sel.value || ONDERTEKENAARS[0];
+  sel.innerHTML = ONDERTEKENAARS.map(n =>
+    '<option value="'+n.replace(/"/g,'&quot;')+'"'+(n===huidig?' selected':'')+'>'+n+'</option>'
+  ).join('');
+}
 
 /* ---------- build sidebar ---------- */
 function buildGroups(){
@@ -633,6 +649,7 @@ function genPDF(){
 }
 
 /* init */
+populateOndertekenaars();
 buildGroups();
 render();
 </script>
