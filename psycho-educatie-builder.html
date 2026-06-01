@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Psycho-Educatie Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --bg:#f4f1ec; --panel:#ffffff; --ink:#2c2a26; --muted:#6a655d; --line:#e3ddd2;
+    --accent:#c4a882; --accent-dk:#b08d5a; --accent2:#7eb3c8; --accent3:#a89fc4; --warm:#d4956a;
+    --ok:#5a8a6a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);height:100vh;overflow:hidden;}
+
+  /* ---------- APP LAYOUT ---------- */
+  .app{display:flex;height:100vh;}
+  .sidebar{width:46%;max-width:680px;min-width:420px;height:100vh;overflow-y:auto;padding:26px 30px 60px;background:var(--panel);border-right:1px solid var(--line);}
+  .stage{flex:1;height:100vh;overflow-y:auto;padding:34px;background:#e9e4dc;display:flex;flex-direction:column;align-items:center;}
+
+  .brand{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:4px;}
+  .brand h1{font-family:'Lora',serif;font-weight:500;font-size:1.5rem;color:#1a1814;}
+  .brand .sub{font-size:.78rem;color:var(--muted);}
+  .hairline{height:3px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));margin:14px 0 22px;}
+
+  .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-bottom:8px;}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+  .field.full{grid-column:1/-1;}
+  label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500;}
+  input[type=text],textarea,select{font-family:'DM Sans',sans-serif;font-size:.92rem;color:var(--ink);background:#fbf9f6;border:1px solid var(--line);border-radius:8px;padding:9px 11px;width:100%;transition:border-color .2s;}
+  input[type=text]:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+  textarea{resize:vertical;min-height:46px;line-height:1.5;}
+  .check{display:flex;align-items:flex-start;gap:9px;font-size:.86rem;color:var(--ink);cursor:pointer;line-height:1.45;}
+  .check input{margin-top:3px;accent-color:var(--accent-dk);width:15px;height:15px;cursor:pointer;}
+
+  .group-title{font-family:'Lora',serif;font-size:1.04rem;color:#1a1814;margin:26px 0 4px;display:flex;align-items:center;gap:10px;}
+  .group-title .tag{font-family:'DM Sans',sans-serif;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--accent);padding:3px 8px;border-radius:20px;font-weight:600;}
+  .group-title .tag.lit{background:var(--accent2);}
+  .group-title .tag.life{background:var(--accent3);}
+  .group-title .tag.ther{background:var(--warm);}
+  .group-desc{font-size:.78rem;color:var(--muted);margin-bottom:12px;}
+
+  .blocks{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .block{position:relative;text-align:left;background:#fbf9f6;border:1.5px solid var(--line);border-radius:11px;padding:12px 13px;cursor:pointer;transition:all .18s ease;}
+  .block:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.05);}
+  .block.on{border-color:var(--accent-dk);background:#fbf4ea;box-shadow:0 4px 16px rgba(176,141,90,.16);}
+  .block .ic{font-size:1.25rem;line-height:1;margin-bottom:7px;display:block;}
+  .block .nm{font-family:'Lora',serif;font-size:.98rem;color:#1a1814;margin-bottom:2px;}
+  .block .ds{font-size:.74rem;color:var(--muted);line-height:1.35;}
+  .block .pick{position:absolute;top:10px;right:10px;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#fff;background:transparent;transition:all .18s;}
+  .block.on .pick{background:var(--ok);border-color:var(--ok);}
+  .block.on .pick::after{content:'✓';}
+
+  .opts{grid-column:1/-1;margin:-2px 0 4px;padding:11px 13px;background:#f6efe4;border:1px dashed var(--accent);border-radius:10px;display:flex;flex-direction:column;gap:8px;}
+  .opts .ohead{font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-dk);font-weight:600;}
+
+  /* ---------- ACTION BAR ---------- */
+  .actionbar{position:sticky;bottom:0;margin-top:24px;padding-top:16px;background:linear-gradient(to top,var(--panel) 70%,transparent);display:flex;gap:10px;align-items:center;}
+  .btn{font-family:'DM Sans',sans-serif;font-size:.92rem;font-weight:600;border:none;border-radius:10px;padding:13px 20px;cursor:pointer;transition:all .2s;}
+  .btn-primary{background:#1a1814;color:#fff;flex:1;letter-spacing:.03em;}
+  .btn-primary:hover{background:var(--accent-dk);}
+  .btn-primary:disabled{background:#cfc8bc;cursor:not-allowed;}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--ink);}
+  .count{font-size:.78rem;color:var(--muted);white-space:nowrap;}
+
+  /* ---------- PREVIEW (light A4 house style) ---------- */
+  .stage-head{width:100%;max-width:178mm;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .stage-head .lbl{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:#8a8278;}
+  .stage-head .edit-hint{font-size:.74rem;color:#8a8278;font-style:italic;}
+  .a4-frame{width:210mm;background:#fff;box-shadow:0 10px 40px rgba(0,0,0,.13);padding:18mm 16mm;border-radius:2px;margin-bottom:40px;}
+  #preview{width:178mm;}
+  #preview:focus{outline:none;}
+  .empty{padding:60px 20px;text-align:center;color:#b3ada2;font-family:'Lora',serif;font-size:1.1rem;}
+
+  /* document building blocks (mirrors praktijk-huisstijl) */
+  .doc{font-family:'DM Sans',sans-serif;font-size:10.8pt;color:#2c2a26;line-height:1.7;}
+  .cover{min-height:232mm;display:flex;flex-direction:column;justify-content:center;position:relative;page-break-after:always;}
+  .cover-rule{position:absolute;top:-4mm;left:0;right:0;height:3pt;background:linear-gradient(90deg,#c4a882,#7eb3c8,#a89fc4);}
+  .cover-eyebrow{font-family:'Lora',serif;font-size:9pt;letter-spacing:.18em;text-transform:uppercase;color:#c4a882;margin-bottom:14mm;}
+  .cover h1{font-family:'Lora',serif;font-size:34pt;font-weight:400;line-height:1.12;color:#1a1814;margin-bottom:8mm;max-width:150mm;}
+  .cover h1 em{font-style:italic;color:#c4a882;}
+  .cover-sub{font-size:12pt;color:#7a7368;max-width:130mm;line-height:1.6;margin-bottom:16mm;}
+  .cover-divider{width:40mm;height:1pt;background:#e0d8ce;margin-bottom:16mm;}
+  .cover-note{font-size:9pt;color:#a09890;font-style:italic;max-width:120mm;line-height:1.6;}
+  .cover-deco{position:absolute;bottom:14mm;right:0;width:64mm;height:64mm;border-radius:50%;border:1pt solid #e8e2d8;opacity:.55;}
+  .cover-deco2{position:absolute;bottom:6mm;right:10mm;width:42mm;height:42mm;border-radius:50%;border:1pt solid #dcd5c9;opacity:.45;}
+
+  .section-header{margin:0 0 6mm;padding-bottom:4mm;border-bottom:.5pt solid #e0d8ce;}
+  .section-label{font-size:7.5pt;letter-spacing:.2em;text-transform:uppercase;color:#c4a882;margin-bottom:2.5mm;font-weight:600;}
+  .section-header h2{font-family:'Lora',serif;font-size:18pt;font-weight:400;color:#1a1814;line-height:1.2;}
+  .block-section{margin-bottom:9mm;}
+  .body-text{font-size:10.8pt;color:#3e3b36;line-height:1.7;margin-bottom:4mm;}
+  .body-text strong{color:#1a1814;}
+  .controle-line{font-size:9.5pt;color:#6a655d;margin-top:1mm;}
+  .controle-line .accent{color:#b08d5a;font-weight:600;}
+
+  .highlight-box{margin:4mm 0;padding:5mm 7mm;background:#fdf6f0;border-radius:4pt;border-left:3pt solid #c4a882;}
+  .highlight-box .adv-label{font-size:7.5pt;letter-spacing:.14em;text-transform:uppercase;color:#b08d5a;font-weight:600;margin-bottom:2mm;}
+  .highlight-box p{font-size:10pt;color:#3e3b36;line-height:1.62;margin-bottom:2mm;}
+  .highlight-box p:last-child{margin-bottom:0;}
+  .highlight-box ul{margin:1mm 0 2mm 5mm;}
+  .highlight-box li{font-size:9.6pt;color:#4a463f;line-height:1.55;margin-bottom:1mm;}
+  .opt-note{font-size:9.4pt;color:#5a5650;font-style:italic;margin-top:2mm;padding-left:4mm;border-left:2pt solid #e0d8ce;}
+
+  .before-after{display:flex;gap:4mm;margin:5mm 0;}
+  .ba-side{flex:1;padding:5mm 6mm;border-radius:4pt;}
+  .ba-side.before{background:#fdf6f0;border-left:2.5pt solid #d4956a;}
+  .ba-side.after{background:#f0f6fb;border-left:2.5pt solid #7eb3c8;}
+  .ba-label{font-size:7pt;letter-spacing:.15em;text-transform:uppercase;margin-bottom:2mm;font-weight:600;}
+  .ba-side.before .ba-label{color:#d4956a;}
+  .ba-side.after .ba-label{color:#7eb3c8;}
+  .ba-side h3{font-family:'Lora',serif;font-size:11pt;font-weight:400;margin-bottom:2mm;color:#1a1814;}
+  .ba-side p{font-size:9.4pt;color:#5a5650;line-height:1.55;}
+
+  .step{display:flex;gap:5mm;padding:4mm 0;border-bottom:.5pt solid #ede8e1;}
+  .step:first-child{border-top:.5pt solid #ede8e1;}
+  .step-num{flex-shrink:0;width:7mm;height:7mm;border-radius:50%;border:.5pt solid #c4a882;display:flex;align-items:center;justify-content:center;font-size:8pt;color:#b08d5a;}
+  .step-content h3{font-family:'Lora',serif;font-size:11pt;font-weight:400;margin-bottom:1mm;color:#1a1814;}
+  .step-content p{font-size:9.4pt;color:#5a5650;line-height:1.55;}
+
+  .cards{display:flex;flex-wrap:wrap;gap:4mm;margin:5mm 0;}
+  .card{flex:1;min-width:48mm;padding:5mm 6mm;background:#faf8f5;border-radius:4pt;border:.5pt solid #e8e2d8;}
+  .card .ci{font-size:13pt;margin-bottom:2mm;}
+  .card h4{font-family:'Lora',serif;font-size:10pt;font-weight:400;margin-bottom:1.5mm;color:#1a1814;}
+  .card p{font-size:9pt;color:#6a6560;line-height:1.5;}
+
+  .pull-quote{margin:5mm 0;padding:6mm 7mm;background:#f4f8fb;border-radius:4pt;border-top:2pt solid #7eb3c8;}
+  .pull-quote .qt{font-family:'Lora',serif;font-size:12.5pt;font-style:italic;color:#1a1814;line-height:1.5;margin-bottom:3mm;}
+  .pull-quote .qt em{font-style:normal;color:#7eb3c8;}
+  .pull-quote .qs{font-size:9pt;color:#7a7368;line-height:1.55;}
+
+  .closing{margin-top:9mm;padding-top:6mm;border-top:.5pt solid #e0d8ce;}
+  .closing .body-text{margin-bottom:3mm;}
+  .sig{font-family:'Lora',serif;font-size:11pt;color:#1a1814;}
+  .accent{color:#b08d5a;}
+  .force-break{page-break-before:always;}
+
+  @media (max-width:1100px){.sidebar{min-width:380px;width:50%;}}
+
+  /* ===== Auth gate ===== */
+  .auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0ea5e9,#06b6d4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+  .auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+  .auth-card h1{font-family:'Lora',serif;font-size:22px;font-weight:600;color:#1f2937;margin-bottom:6px;text-align:center;}
+  .auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+  .auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+  .auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;box-sizing:border-box;}
+  .auth-card input:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.15);}
+  .auth-card .btn-auth{width:100%;background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit;}
+  .auth-card .btn-auth:hover{background:#0284c7;}
+  .auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+  .auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+  .auth-card .toggle a{color:#0ea5e9;cursor:pointer;text-decoration:underline;}
+  .auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+  .auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+  .auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+  .auth-user-pill{position:fixed;top:10px;right:10px;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;background:#cffafe;color:#0e7490;border-radius:16px;font-size:11.5px;font-weight:600;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.1);font-family:'DM Sans',sans-serif;}
+  .auth-user-pill a{color:#0e7490;text-decoration:none;border:1px solid #67e8f9;padding:2px 7px;border-radius:11px;font-size:10.5px;font-weight:600;}
+  .auth-user-pill a:hover{background:#67e8f9;}
+  .auth-user-pill button{margin-left:4px;background:none;border:1px solid #67e8f9;color:#0e7490;padding:2px 8px;border-radius:11px;font-size:10.5px;cursor:pointer;font-weight:600;font-family:inherit;}
+  .auth-user-pill button:hover{background:#67e8f9;}
+</style>
+</head>
+<body>
+
+<!-- ===== Auth gate ===== -->
+<div class="auth-overlay" id="auth-overlay" style="display:flex">
+  <div class="auth-card">
+    <h1>📖 Psycho-Educatie Builder</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="email" placeholder="naam@praktijk.be">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" autocomplete="current-password" placeholder="••••••••">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Naar <a href="praktijk.html">praktijk-hub</a></div>
+    </div>
+  </div>
+</div>
+<div class="auth-user-pill" id="user-pill" style="display:none">
+  <a href="praktijk.html" title="Terug naar praktijk-hub">←</a>
+  <span>👤</span><span id="user-name"></span>
+  <button onclick="doLogout()" title="Uitloggen">⏻</button>
+</div>
+
+<div class="app">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>Psycho-Educatie Builder</h1>
+      <span class="sub">Dr. Van Steenkiste</span>
+    </div>
+    <div class="hairline"></div>
+
+    <!-- Patient / opening fields -->
+    <div class="field-grid">
+      <div class="field">
+        <label for="naam">Aanhef (naam cliënt)</label>
+        <input type="text" id="naam" placeholder="bv. Jan" oninput="render()">
+      </div>
+      <div class="field">
+        <label for="onderteken">Ondertekening</label>
+        <input type="text" id="onderteken" value="Dr. Van Steenkiste Frank" oninput="render()">
+      </div>
+    </div>
+
+    <div class="field full">
+      <label for="titel">Titel PDF (leeg = automatisch)</label>
+      <input type="text" id="titel" placeholder="automatisch op basis van inhoud" oninput="render()">
+    </div>
+
+    <label class="check" style="margin-bottom:8px;">
+      <input type="checkbox" id="opt-intro" onchange="render()">
+      <span>Toevoegen: "…geruststellend, <em>met enkele aandachtspunten</em>."</span>
+    </label>
+    <label class="check">
+      <input type="checkbox" id="opt-afspraak" onchange="render()">
+      <span>Afsluiting: "je krijgt hiervoor nog een afspraak."</span>
+    </label>
+
+    <!-- Block groups injected here -->
+    <div id="groups"></div>
+
+    <!-- Action bar -->
+    <div class="actionbar">
+      <span class="count" id="count">0 blokken</span>
+      <button class="btn btn-ghost" onclick="clearAll()">Wissen</button>
+      <button class="btn btn-primary" id="genbtn" onclick="genPDF()" disabled>GENEREER PDF</button>
+    </div>
+  </aside>
+
+  <!-- ================= STAGE / PREVIEW ================= -->
+  <main class="stage">
+    <div class="stage-head">
+      <span class="lbl">Voorbeeld</span>
+      <span class="edit-hint">Tip: klik in het document om tekst aan te passen vóór je downloadt</span>
+    </div>
+    <div class="a4-frame">
+      <div id="preview" class="doc" contenteditable="true"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   BLOKKEN-BIBLIOTHEEK
+   Nieuw blok toevoegen? Kopieer een object hieronder.
+   - cat: 'supplement' | 'literatuur' | 'leefstijl' | 'therapie'
+   - supplement-blokken gebruiken: watdoet / advies / controle / deficientie / opties
+   - andere blokken gebruiken: content (vrije HTML in huisstijl)
+   ============================================================ */
+const BLOCKS = [
+  /* ---------- SUPPLEMENTEN / TEKORTEN ---------- */
+  {
+    id:'ijzer', cat:'supplement', ic:'🩸', naam:'IJzer', deficientie:'ijzer',
+    ds:'Energie, concentratie, ferritine',
+    watdoet:'IJzer speelt een rol bij je energiepeil, concentratie en een rustig gevoel in de benen. Bij aandacht- en concentratieklachten is een goede ijzervoorraad (ferritine) extra belangrijk.',
+    advies:'<p>Start met een ijzersupplement. Voor een goede opname:</p><ul><li>neem het nuchter of samen met vitamine C (bv. een glas sinaasappelsap);</li><li>niet samen met koffie, thee, melk of calcium — die remmen de opname;</li><li>inname <strong>om de dag</strong> wordt vaak beter opgenomen én geeft minder maagklachten dan dagelijks.</li></ul>',
+    controle:'labo over ± 4 maanden (ijzer en ferritine)',
+    opties:[{id:'ijzer_menstr', label:'Vermelding hevige menstruatie', tekst:'Bij hevige menstruatie: bespreek dit ook met je gynaecoloog — dat is vaak de onderliggende oorzaak.'}]
+  },
+  {
+    id:'vitd', cat:'supplement', ic:'☀️', naam:'Vitamine D', deficientie:'vitamine D',
+    ds:'Slaap, weerstand, botten, stemming',
+    watdoet:'Vitamine D ondersteunt vooral je slaap, je weerstand, je botten en je stemming.',
+    advies:'<p>Vitamine D3, te starten aan een hogere dosis van <strong>3200 IE per dag</strong>. Eens dit op is, overschakelen naar een onderhoudsdosis van <strong>2000 IE per dag</strong>. Dit mag je gerust levenslang innemen. Neem het bij voorkeur in bij een maaltijd met wat vet — dat verbetert de opname.</p>',
+    controle:'labo over ± 1 jaar (vitamine D)',
+    opties:[]
+  },
+  {
+    id:'folium', cat:'supplement', ic:'🌿', naam:'Foliumzuur', deficientie:'foliumzuur',
+    ds:'Energie, concentratie, rode bloedcellen',
+    watdoet:'Net als ijzer is foliumzuur belangrijk voor je energie en concentratie, en daarnaast voor de aanmaak van rode bloedcellen en een gezond zenuwstelsel.',
+    advies:'<p>Een foliumzuursupplement aanvullen.</p>',
+    controle:'labo over ± 4 maanden (foliumzuur)',
+    opties:[{id:'folium_b12', label:'Vermelding B12-controle vooraf', tekst:'Belangrijk: vooraf controleren we ook je vitamine B12 — een foliumzuursupplement kan een B12-tekort namelijk verbergen.'}]
+  },
+  {
+    id:'selenium', cat:'supplement', ic:'✨', naam:'Selenium', deficientie:'selenium',
+    ds:'Schildklier, afweer, antioxidant',
+    watdoet:'Selenium ondersteunt je schildklier, je afweer en werkt als antioxidant.',
+    advies:'<p>Dit is vaak al via voeding bij te sturen — <strong>paranoten</strong> zijn een zeer rijke bron (1 à 2 per dag volstaat meestal). Een supplement kan ook, maar overdoseer niet: de marge tussen te weinig en te veel is bij selenium klein.</p>',
+    controle:'labo over ± 4 maanden (selenium)',
+    opties:[]
+  },
+  {
+    id:'koper', cat:'supplement', ic:'🔶', naam:'Koper', deficientie:'koper',
+    ds:'IJzerstofwisseling, zenuwstelsel',
+    watdoet:'Koper is betrokken bij de ijzerstofwisseling, je zenuwstelsel en je bindweefsel.',
+    advies:'<p>Aan te vullen via voeding (noten, zaden, volle granen, cacao, orgaanvlees) of een supplement. Let op de balans met zink: een teveel aan zink veroorzaakt net een kopertekort. Vul je beide aan, neem ze dan niet op hetzelfde moment in. Een langdurig kopertekort kan op termijn zenuwklachten geven, dus we volgen dit goed op.</p>',
+    controle:'labo over ± 4 maanden (koper)',
+    opties:[]
+  },
+  {
+    id:'zink', cat:'supplement', ic:'⚪', naam:'Zink', deficientie:'zink',
+    ds:'Afweer, huid, smaak en reuk',
+    watdoet:'Zink is belangrijk voor je afweer, wondheling, huid en je smaak en reuk.',
+    advies:'<p>Een zinksupplement aanvullen. Aandachtspunten:</p><ul><li>niet gelijktijdig met ijzer of koper innemen (ze concurreren om dezelfde opname);</li><li>niet op een nuchtere maag, dat geeft snel misselijkheid;</li><li>niet eindeloos hoog doseren — langdurig veel zink kan op zijn beurt een kopertekort uitlokken.</li></ul>',
+    controle:'labo over ± 4 maanden (zink)',
+    opties:[]
+  },
+
+  /* ---------- THERAPIE-UITLEG ---------- */
+  {
+    id:'emdr', cat:'therapie', ic:'🌀', naam:'EMDR', soloTitle:'Wat doet EMDR eigenlijk?',
+    ds:'Uitleg therapie: hoe & waarom',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Het basisidee</div><h2>Sommige herinneringen zitten vast op de <span class="accent">verkeerde plek</span></h2></div>
+        <p class="body-text">Normaal verwerkt je brein ervaringen terwijl je slaapt, praat of gewoon leeft. Ze worden opgeslagen als iets wat <strong>voorbij</strong> is. Je kunt eraan terugdenken zonder dat het voelt alsof het opnieuw gebeurt.</p>
+        <p class="body-text">Bij angsten, schok of moeilijke ervaringen lukt dat soms niet goed. De herinnering blijft "actief" — het alarmsysteem in je brein blijft reageren alsof er gevaar is, ook al is dat gevaar er allang niet meer.</p>
+        <p class="body-text">EMDR helpt je brein om die verwerking alsnog te doen. Niet door er eindeloos over te praten, maar door een specifiek mechanisme te activeren dat je brein zelf gebruikt om ervaringen te integreren.</p>
+        <div class="before-after">
+          <div class="ba-side before"><div class="ba-label">Vóór verwerking</div><h3>De herinnering voelt rauw aan</h3><p>Elke keer dat je eraan denkt — of iets je eraan herinnert — reageert je lichaam alsof het nú gebeurt. Hartslag omhoog, spanning, vermijding.</p></div>
+          <div class="ba-side after"><div class="ba-label">Na verwerking</div><h3>De herinnering voelt verder weg aan</h3><p>Je weet nog dat het is gebeurd, maar het activeert je niet meer op dezelfde manier. Het is verleden tijd geworden — echt.</p></div>
+        </div>
+      </div>
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Tijdens een sessie</div><h2>Wat er stap voor stap <span class="accent">gebeurt</span></h2></div>
+        <p class="body-text">Een EMDR-sessie volgt een duidelijke structuur. Je weet altijd wat er komt.</p>
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h3>Voorbereiding</h3><p>De therapeut legt uit wat gaat gebeuren. Je kiest samen een "veilige plek" in je hoofd — een beeld of gevoel waar je naartoe kunt als iets te veel wordt. Pas als je klaar bent, gaan jullie verder.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-content"><h3>De herinnering activeren</h3><p>Je roept de moeilijke herinnering op — het beeld, de gedachte, wat je in je lichaam voelde. Je hoeft het niet uitgebreid te vertellen; een momentopname is genoeg.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-content"><h3>Bilaterale stimulatie</h3><p>Terwijl je de herinnering vasthoudt, volg je de vingers van de therapeut met je ogen heen en weer — of je krijgt afwisselende tikjes op je handen. Dit gaat in korte sets van een halve minuut.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-content"><h3>Volgen wat opkomt</h3><p>Na elke set vraagt de therapeut: "Wat merk je nu?" Je volgt gewoon wat er spontaan naar boven komt — een gedachte, een beeld, een gevoel. Je hoeft niets te sturen of te begrijpen.</p></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-content"><h3>Afronden</h3><p>De sessie eindigt altijd in rust. De therapeut zorgt dat je grounded bent voordat je vertrekt, ongeacht hoever de verwerking in die sessie is gekomen.</p></div></div>
+      </div>
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">De wetenschap, zonder jargon</div><h2>Waarom helpt die <span class="accent">beweging</span> eigenlijk?</h2></div>
+        <p class="body-text">Er zijn twee ideeën waarvan wetenschappers denken dat ze het verklaren — en waarschijnlijk spelen ze allebei een rol.</p>
+        <div class="cards">
+          <div class="card"><div class="ci">🧠</div><h4>Het werkgeheugen loopt vol</h4><p>De oogbeweging volgen vraagt aandacht. Daardoor raakt de herinnering je minder hard — ze verliest tijdelijk wat emotionele kracht. Net genoeg om er doorheen te werken.</p></div>
+          <div class="card"><div class="ci">🌙</div><h4>Vergelijkbaar met diepe slaap</h4><p>Tijdens REM-slaap beweegt je brein ook heen en weer en verwerkt het ervaringen. EMDR activeert een vergelijkbaar proces — maar wakker en bewust.</p></div>
+          <div class="card"><div class="ci">💬</div><h4>Het lichaam doet mee</h4><p>Herinneringen zitten niet alleen in gedachten, maar ook in lichamelijke spanning. EMDR werkt via het lichaam, niet alleen via praten.</p></div>
+        </div>
+      </div>
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Wat je mag weten</div><h2>Jij bepaalt nooit <span class="accent">alleen</span> het tempo</h2></div>
+        <div class="pull-quote"><p class="qt">"De therapeut kijkt voortdurend wat je <em>aankan</em> — en stopt, vertraagt of verschuift als dat nodig is."</p><p class="qs">Je hoeft op voorhand niet te weten hoe ver je geraakt. Dat is precies wat de therapeut voor je bewaakt. EMDR is geen methode waarbij je tot het einde moet "doorbijten" — het is een samenwerking, stap voor stap.</p></div>
+        <p class="body-text">Angst voor wat er boven kan komen is heel begrijpelijk. Maar onverwerkte herinneringen zijn nu al aanwezig — EMDR geeft je brein de kans om er iets mee te doen, op een manier die veilig is.</p>
+      </div>`
+  },
+
+  /* ---------- LITERATUUR / BRONNEN (met subtopics) ---------- */
+  {
+    id:'bronnen', cat:'literatuur', ic:'📚', naam:'Bronnen & leesadvies',
+    soloTitle:'Betrouwbare bronnen & leesadvies', ds:'Curated bronnen — kies subtopics',
+    intro:`
+      <div class="section-header"><div class="section-label">Bronnen</div><h2>Betrouwbare <span class="accent">bronnen</span> & leesadvies</h2></div>
+      <p class="body-text">Zoals besproken geef ik je graag een aantal betrouwbare en kwalitatieve bronnen mee. Het doel is tweeledig: enerzijds beter begrijpen wat er speelt (bij jezelf of je kind), anderzijds gericht en correct informatie vinden zonder te verdwalen in het grote online aanbod.</p>
+      <div class="highlight-box"><div class="adv-label">Belangrijk</div><p>Zoek niet eindeloos via algemene zoekmachines of losse AI-bronnen — die geven vaak tegenstrijdige, onvolledige of fout geïnterpreteerde informatie. De bronnen hieronder zijn curated en inhoudelijk betrouwbaar.</p></div>`,
+    outro:`
+      <div class="highlight-box" style="border-left-color:#7eb3c8;background:#f0f6fb;"><div class="adv-label" style="color:#5f97ad;">Belangrijke nuance</div><p>ADHD en stress/trauma zijn geen zwart-wit diagnoses — er is vaak overlap en wisselwerking. Online informatie is bovendien vaak te simplistisch óf te extreem. Gebruik deze bronnen daarom als ondersteuning, niet als vervanging van begeleiding.</p></div>`,
+    subtopics:[
+      { id:'adhd', label:'ADHD', default:true, content:`
+        <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · ADHD</div><h2>ADHD — <span class="accent">waar begin je best?</span></h2></div>
+        <div class="highlight-box"><div class="adv-label">Beste startpunt</div><p><strong>ADDitude Magazine</strong> — additudemag.com</p><p>Veruit de meest bruikbare bron voor ADHD: korte, concrete artikels over medicatie, gedrag, school, emotieregulatie en praktische tips. Gebruik dit wanneer je "even snel iets wil opzoeken" in plaats van Google.</p></div>
+        <div class="cards">
+          <div class="card"><div class="ci">🇧🇪</div><h4>SIT STILL (BE)</h4><p>sitstill.be — Belgische basisbron. Inhoudelijk correct, eerder beperkt. Handig voor praktische info, schoolcontext en ondersteuningstrajecten.</p></div>
+          <div class="card"><div class="ci">🌐</div><h4>CHADD</h4><p>Evidence-based informatie en richtlijnen.</p></div>
+          <div class="card"><div class="ci">🏫</div><h4>Understood.org</h4><p>Sterk voor schoolcontext en praktische tools.</p></div>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="ci">📕</div><h4>Driven to Distraction</h4><p>E. Hallowell — klassieker rond ADHD bij kinderen en volwassenen.</p></div>
+          <div class="card"><div class="ci">📗</div><h4>Taking Charge of ADHD</h4><p>R. Barkley — zeer gestructureerde, evidence-based aanpak.</p></div>
+          <div class="card"><div class="ci">📘</div><h4>The ADHD Advantage</h4><p>A. Hansen — ADHD als evolutionair voordeel, bron van creativiteit en drive.</p></div>
+        </div>
+        <div class="highlight-box"><div class="adv-label">Podcast</div><p><strong>ADHD Chatter</strong> — praktische en herkenbare gesprekken rond ADHD.</p></div>` },
+      { id:'ass', label:'ASS (autisme)', default:false, content:`
+        <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · ASS</div><h2>Autisme — <span class="accent">betrouwbare bronnen</span></h2></div>
+        <p class="body-text" style="color:#8a8278;font-style:italic;">Nog aan te vullen — klik hier in het document om jouw vertrouwde ASS-bronnen toe te voegen (of laat het me weten, dan vul ik een curated lijst aan).</p>` },
+      { id:'trauma', label:'Trauma & stress', default:true, content:`
+        <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · Trauma & stress</div><h2>Stress, trauma & <span class="accent">het lichaam</span></h2></div>
+        <div class="highlight-box"><div class="adv-label">Aanrader</div><p><strong>The Body Keeps the Score</strong> — Bessel van der Kolk (NL: <em>Traumasporen</em>)</p><p>Legt helder uit hoe stress en trauma zich in het lichaam vastzetten, hoe emoties en gedrag hieruit voortkomen, en hoe herstel mogelijk is. Vooral relevant bij overprikkeling, emotionele ontregeling en "onverklaarbare" lichamelijke klachten.</p></div>
+        <div class="cards"><div class="card"><div class="ci">📙</div><h4>Scattered Minds</h4><p>Gabor Maté — link tussen ADHD, ontwikkeling en omgeving (meer psychodynamisch).</p></div></div>` },
+      { id:'relaties', label:'Relaties', default:false, content:`
+        <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · Relaties</div><h2>Relaties & <span class="accent">verbinding</span></h2></div>
+        <p class="body-text" style="color:#8a8278;font-style:italic;">Nog aan te vullen — klik hier in het document om jouw vertrouwde bronnen rond relaties toe te voegen (of laat het me weten, dan stel ik een curated lijst voor).</p>` },
+      { id:'algemeen', label:'Breder & reflectief', default:true, content:`
+        <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · Breder & reflectief</div><h2>Breder kaderen & <span class="accent">reflectie</span></h2></div>
+        <div class="cards">
+          <div class="card"><div class="ci">🎧</div><h4>Is het leven een zeven?</h4><p>Reflectieve podcast rond mentale gezondheid, functioneren en zingeving.</p></div>
+          <div class="card"><div class="ci">📚</div><h4>Ken Jezelf — Tinneke Beeckman</h4><p>Helpt om gedrag en emoties breder te kaderen en kritisch, genuanceerd over jezelf en de maatschappij te denken.</p></div>
+        </div>` }
+    ]
+  },
+
+  /* ---------- LEEFSTIJL ---------- */
+  {
+    id:'life_slaap', cat:'leefstijl', ic:'😴', naam:'Slaap & ritme', soloTitle:'Slaap & dagritme',
+    ds:'Praktische slaaphygiëne',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Leefstijl</div><h2>Slaap & <span class="accent">dagritme</span></h2></div>
+        <p class="body-text">Een regelmatig ritme is een van de krachtigste hefbomen voor concentratie, stemming en energie. Enkele aandachtspunten:</p>
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h3>Vaste opsta-tijd</h3><p>Sta elke dag rond hetzelfde uur op — ook in het weekend. Dat verankert je biologische klok sterker dan het uur waarop je gaat slapen.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-content"><h3>Licht in de ochtend</h3><p>Daglicht binnen het eerste uur na het opstaan helpt je ritme op gang. Een korte wandeling werkt ideaal.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-content"><h3>Schermen afbouwen</h3><p>Bouw het laatste uur voor het slapen de prikkels af. Niet perfect hoeven zijn — kleine stappen tellen.</p></div></div>
+      </div>`
+  }
+];
+
+/* category metadata: volgorde bepaalt titelvolgorde */
+const CAT_ORDER = ['therapie','literatuur','leefstijl','supplement'];
+const CAT = {
+  supplement:{label:'Supplementen',  tag:'',     term:'supplementenadvies', groupDesc:'Tekorten uit het bloedonderzoek. Verschijnen in de opening en in een controleschema.'},
+  therapie:  {label:'Therapie-uitleg',tag:'ther', term:'therapie-uitleg',    groupDesc:'Uitleg over een therapievorm in de huisstijl.'},
+  literatuur:{label:'Literatuur',    tag:'lit',  term:'literatuur',          groupDesc:'Lees- en bronadvies om mee te geven.'},
+  leefstijl: {label:'Leefstijl',     tag:'life', term:'leefstijladvies',     groupDesc:'Praktische leefstijladviezen.'}
+};
+
+const state = { on:new Set(), opts:new Set(), subs:new Set() };
+
+/* ---------- build sidebar ---------- */
+function buildGroups(){
+  const g = document.getElementById('groups');
+  let html='';
+  CAT_ORDER.forEach(cat=>{
+    const items = BLOCKS.filter(b=>b.cat===cat);
+    if(!items.length) return;
+    const c = CAT[cat];
+    html+=`<div class="group-title">${c.label}<span class="tag ${c.tag}">${cat}</span></div>`;
+    html+=`<div class="group-desc">${c.groupDesc}</div><div class="blocks">`;
+    items.forEach(b=>{
+      html+=`<button class="block" id="blk-${b.id}" onclick="toggle('${b.id}')">
+        <span class="pick"></span>
+        <span class="ic">${b.ic}</span>
+        <span class="nm">${b.naam}</span>
+        <span class="ds">${b.ds||''}</span>
+      </button>`;
+      if(b.opties && b.opties.length){
+        html+=`<div class="opts" id="opts-${b.id}" style="display:none">
+          <span class="ohead">Optioneel toe te voegen</span>`;
+        b.opties.forEach(o=>{
+          html+=`<label class="check"><input type="checkbox" onchange="toggleOpt('${o.id}')"><span>${o.label}</span></label>`;
+        });
+        html+=`</div>`;
+      }
+      if(b.subtopics && b.subtopics.length){
+        html+=`<div class="opts" id="subs-${b.id}" style="display:none">
+          <span class="ohead">Subtopics — kies wat je meegeeft</span>`;
+        b.subtopics.forEach(st=>{
+          html+=`<label class="check"><input type="checkbox" id="sub-${b.id}-${st.id}" onchange="toggleSub('${b.id}','${st.id}')"><span>${st.label}</span></label>`;
+        });
+        html+=`</div>`;
+      }
+    });
+    html+=`</div>`;
+  });
+  g.innerHTML=html;
+}
+
+function toggle(id){
+  const b = BLOCKS.find(x=>x.id===id);
+  if(state.on.has(id)){ state.on.delete(id); }
+  else{
+    state.on.add(id);
+    if(b.subtopics){
+      const any = b.subtopics.some(st=>state.subs.has(id+':'+st.id));
+      if(!any) b.subtopics.forEach(st=>{ if(st.default) state.subs.add(id+':'+st.id); });
+      b.subtopics.forEach(st=>{ const c=document.getElementById('sub-'+id+'-'+st.id); if(c) c.checked=state.subs.has(id+':'+st.id); });
+    }
+  }
+  document.getElementById('blk-'+id).classList.toggle('on', state.on.has(id));
+  const o=document.getElementById('opts-'+id); if(o) o.style.display = state.on.has(id) ? 'flex' : 'none';
+  const s=document.getElementById('subs-'+id); if(s) s.style.display = state.on.has(id) ? 'flex' : 'none';
+  render();
+}
+function toggleOpt(oid){ state.opts.has(oid)?state.opts.delete(oid):state.opts.add(oid); render(); }
+function toggleSub(bid,sid){ const k=bid+':'+sid; state.subs.has(k)?state.subs.delete(k):state.subs.add(k); render(); }
+function clearAll(){
+  state.on.clear(); state.opts.clear(); state.subs.clear();
+  document.querySelectorAll('.block.on').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.opts').forEach(e=>e.style.display='none');
+  document.querySelectorAll('#groups input[type=checkbox]').forEach(e=>e.checked=false);
+  render();
+}
+
+/* ---------- title logic ---------- */
+function selectedBlocks(){ return BLOCKS.filter(b=>state.on.has(b.id)); }
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+function autoTitle(){
+  const sel = selectedBlocks();
+  if(!sel.length) return 'Persoonlijk advies';
+  if(sel.length===1 && sel[0].soloTitle) return sel[0].soloTitle;
+  const cats = new Set(sel.map(b=>b.cat));
+  const parts = CAT_ORDER.filter(c=>cats.has(c)).map(c=>CAT[c].term);
+  let t = parts.length===1 ? parts[0]
+        : parts.slice(0,-1).join(', ')+' en '+parts[parts.length-1];
+  return cap(t);
+}
+function currentTitle(){
+  const man = document.getElementById('titel').value.trim();
+  return man || autoTitle();
+}
+
+/* ---------- render preview ---------- */
+function render(){
+  const sel = selectedBlocks();
+  const cnt = document.getElementById('count');
+  cnt.textContent = sel.length + (sel.length===1?' blok':' blokken');
+  document.getElementById('genbtn').disabled = sel.length===0;
+
+  const prev = document.getElementById('preview');
+  if(!sel.length){ prev.innerHTML='<div class="empty">Selecteer blokken links<br>om het document op te bouwen</div>'; return; }
+
+  const naam = document.getElementById('naam').value.trim() || '[naam]';
+  const onderteken = document.getElementById('onderteken').value.trim() || '[naam]';
+  const title = currentTitle();
+
+  const supp = sel.filter(b=>b.cat==='supplement');
+  const others = sel.filter(b=>b.cat!=='supplement');
+
+  let h = '';
+
+  /* COVER */
+  h += `<div class="cover"><div class="cover-rule"></div>
+    <div class="cover-eyebrow">Een toelichting voor jou</div>
+    <h1>${escTitle(title)}</h1>
+    <p class="cover-sub">Een persoonlijke toelichting bij je situatie en mijn advies — als houvast om rustig na te lezen.</p>
+    <div class="cover-divider"></div>
+    <p class="cover-note">Deze tekst is bedoeld als houvast, niet als vervanging van het gesprek. Al je vragen zijn welkom op de volgende afspraak.</p>
+    <div class="cover-deco"></div><div class="cover-deco2"></div></div>`;
+
+  /* OPENING */
+  h += `<div class="block-section">`;
+  h += `<p class="body-text">Beste ${naam},</p>`;
+  const introExtra = document.getElementById('opt-intro').checked ? ', met enkele aandachtspunten' : '';
+  h += `<p class="body-text">Je bloedwaarden zijn gekend. Het algemene beeld is geruststellend${introExtra}.</p>`;
+  if(supp.length){
+    const lijst = listToText(supp.map(b=>b.deficientie));
+    h += `<p class="body-text">Er zijn wel enkele tekorten vastgesteld: <strong>${lijst}</strong>. Deze hangen samen met de klachten waarmee je je aanmeldde, en er is goede wetenschappelijke onderbouwing om ze via supplementen aan te vullen. Hieronder lees je per tekort wat het betekent en wat ik je adviseer.</p>`;
+  }
+  h += `</div>`;
+
+  /* SUPPLEMENT SECTIONS */
+  supp.forEach(b=>{
+    h += `<div class="block-section">
+      <div class="section-header"><div class="section-label">Supplementenadvies</div><h2>${b.ic} ${b.naam}</h2></div>
+      <p class="body-text"><strong>Wat doet ${b.naam.toLowerCase()}?</strong> ${b.watdoet}</p>
+      <div class="highlight-box"><div class="adv-label">Advies</div>${b.advies}`;
+    (b.opties||[]).forEach(o=>{ if(state.opts.has(o.id)) h+=`<p class="opt-note">${o.tekst}</p>`; });
+    h += `</div><p class="controle-line"><span class="accent">Controle:</span> ${b.controle}.</p></div>`;
+  });
+
+  /* CONTROLESCHEMA overview */
+  if(supp.length>=2){
+    h += `<div class="block-section"><div class="section-header"><div class="section-label">Overzicht</div><h2>Je controleschema</h2></div><div class="cards">`;
+    supp.forEach(b=>{ h += `<div class="card"><div class="ci">${b.ic}</div><h4>${b.naam}</h4><p>${b.controle}</p></div>`; });
+    h += `</div></div>`;
+  }
+
+  /* OTHER CATEGORY BLOCKS (therapie/literatuur/leefstijl) */
+  others.forEach((b,i)=>{
+    let inner;
+    if(b.subtopics){
+      inner = (b.intro||'');
+      b.subtopics.forEach(st=>{ if(state.subs.has(b.id+':'+st.id)) inner += st.content; });
+      inner += (b.outro||'');
+    } else {
+      inner = b.content || '';
+    }
+    const brk = (supp.length>0 || i>0) ? 'force-break ' : '';
+    h += `<div class="${brk}block-section">${inner}</div>`;
+  });
+
+  /* CLOSING */
+  const afspraak = document.getElementById('opt-afspraak').checked
+    ? '; je krijgt hiervoor nog een afspraak' : '';
+  h += `<div class="closing">`;
+  if(supp.length) h += `<p class="body-text">Ik plan een controle van je labo in zoals hierboven aangegeven${afspraak}. Heb je in tussentijd vragen, laat het gerust weten.</p>`;
+  else h += `<p class="body-text">Heb je na het lezen nog vragen, dan bespreken we die graag samen op de volgende afspraak.</p>`;
+  h += `<p class="body-text" style="margin-bottom:1mm;">Vriendelijke groeten,</p><p class="sig">${onderteken}</p></div>`;
+
+  prev.innerHTML = h;
+}
+
+/* helpers */
+function listToText(arr){
+  if(arr.length===1) return arr[0];
+  return arr.slice(0,-1).join(', ')+' en '+arr[arr.length-1];
+}
+function escTitle(t){
+  // accent the part after "en " for a touch of style
+  const idx = t.toLowerCase().lastIndexOf(' en ');
+  if(idx>-1){ return t.slice(0,idx+4)+'<em>'+t.slice(idx+4)+'</em>'; }
+  return t;
+}
+function slug(t){
+  return t.toLowerCase()
+    .replace(/[àáâä]/g,'a').replace(/[èéêë]/g,'e').replace(/[ïî]/g,'i').replace(/[öô]/g,'o').replace(/[üû]/g,'u')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,60) || 'document';
+}
+
+/* ---------- PDF download ---------- */
+function genPDF(){
+  const btn=document.getElementById('genbtn');
+  const old=btn.textContent; btn.textContent='Bezig…'; btn.disabled=true;
+  const naam = document.getElementById('naam').value.trim();
+  const fname = slug(currentTitle()) + (naam?('_'+slug(naam)):'') + '.pdf';
+  const el = document.getElementById('preview');
+  const opt = {
+    margin:[16,16,18,16],
+    filename:fname,
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:el.scrollWidth},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+    pagebreak:{mode:['css','legacy'],after:'.cover',avoid:['.block-section','.card','.step','.highlight-box','.before-after','.pull-quote','.closing']}
+  };
+  html2pdf().set(opt).from(el).save().then(()=>{ btn.textContent=old; btn.disabled=false; })
+    .catch(()=>{ btn.textContent=old; btn.disabled=false; alert('Er liep iets mis bij het genereren. Probeer opnieuw.'); });
+}
+
+/* init */
+buildGroups();
+render();
+</script>
+
+<!-- ===== Auth script ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='psycho-educatie-builder';
+let sb=null,currentUser=null;
+function showAuthMsg(t,k){const e=document.getElementById('auth-msg');if(!e)return;e.innerHTML=t?'<div class="msg '+(k||'err')+'">'+t+'</div>':'';}
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();currentUser=null;
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';
+}
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:access,error:accErr}=await sb.from('user_tool_access').select('tool_id').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+  if(accErr||!access){
+    showAuthMsg('Je account heeft (nog) geen toegang tot deze tool. Vraag een beheerder om toegang.','err');
+    await sb.auth.signOut();currentUser=null;return;
+  }
+  const {data:prof}=await sb.from('profiles').select('display_name,role').eq('id',currentUser.id).maybeSingle();
+  const dn=(prof&&prof.display_name)||currentUser.email;
+  document.getElementById('auth-overlay').style.display='none';
+  const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
+  document.getElementById('user-name').textContent=dn+((prof&&prof.role==='admin')?' ⭐':'');
+}
+(async function(){
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
+  catch(e){console.error('Supabase init mislukt',e);document.getElementById('auth-overlay').style.display='none';return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await afterLogin(session);}
+})();
+</script>
+
+</body>
+</html>
