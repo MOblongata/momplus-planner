@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Klinisch Zorgpad Neurodivergentie",
+  "schemaVersion": 1,
+  "description": "Klinisch zorgpad neurodivergente zorg v1.1 — 7 fases, 3 aanmeldingstypes, 3 modellen, Dundee-geïnspireerd met MBC en ICHOM"
+}
+</script>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Klinisch Zorgpad — Neurodivergente Zorg v1.1</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  background: #f8fafc;
+  color: #1e293b;
+  padding: 20px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* ── HEADER ── */
+.header { margin-bottom: 16px; }
+.header h1 { font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 4px; }
+.header p { font-size: 11px; color: #64748b; }
+.v-badge { display:inline-block; background:#dbeafe; color:#1d4ed8; border-radius:99px; padding:2px 10px; font-size:10px; font-weight:700; margin-right:6px; }
+.date-badge { display:inline-block; background:#f1f5f9; color:#64748b; border-radius:99px; padding:2px 10px; font-size:10px; }
+
+/* ── PHASE TAG ── */
+.phase-tag {
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+  color: #64748b; background: #e2e8f0; border-radius: 4px;
+  padding: 3px 10px; display: block; text-align: center;
+  margin: 12px 0 6px;
+}
+
+/* ── CONNECTOR ── */
+.conn { text-align: center; color: #94a3b8; font-size: 18px; line-height: 1.2; margin: 3px 0; }
+.conn-label { text-align: center; font-size: 9px; color: #94a3b8; margin: -2px 0 4px; }
+
+/* ── BASE NODE ── */
+.node {
+  border: 1.5px solid;
+  border-radius: 8px;
+  padding: 9px 14px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.node em { display: block; font-style: normal; font-size: 9.5px; font-weight: 400; opacity: .8; margin-top: 3px; }
+
+.n-gray   { background: #f1f5f9; border-color: #cbd5e1; }
+.n-blue   { background: #dbeafe; border-color: #3b82f6; }
+.n-green  { background: #d1fae5; border-color: #10b981; }
+.n-amber  { background: #fef3c7; border-color: #f59e0b; }
+.n-red    { background: #fee2e2; border-color: #ef4444; }
+.n-purple { background: #ede9fe; border-color: #8b5cf6; }
+
+/* ── DECISION ── */
+.decision {
+  border: 2px solid #f59e0b; background: #fef3c7;
+  border-radius: 8px; padding: 9px 16px;
+  text-align: center; font-size: 11px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  color: #92400e;
+}
+.decision.purple { border-color: #8b5cf6; background: #ede9fe; color: #4c1d95; }
+
+/* ── INTAKE ROW ── */
+.intake-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* ── TYPE CARDS ── */
+.type-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.type-card {
+  border: 2px solid; border-radius: 8px;
+  padding: 9px 10px; font-size: 10px; line-height: 1.5;
+}
+.type-card .badge {
+  display: inline-block; border-radius: 99px;
+  padding: 1px 9px; font-size: 11px; font-weight: 800;
+  margin-bottom: 4px;
+}
+.type-card .tname { font-size: 11px; font-weight: 700; margin-bottom: 3px; }
+.tc-A { border-color: #3b82f6; background: #dbeafe; }
+.tc-A .badge { background: #3b82f6; color: #fff; }
+.tc-B { border-color: #10b981; background: #d1fae5; }
+.tc-B .badge { background: #10b981; color: #fff; }
+.tc-C { border-color: #ec4899; background: #fce7f3; }
+.tc-C .badge { background: #ec4899; color: #fff; }
+
+/* ── MODEL CARDS ── */
+.model-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.model-card {
+  border: 2px solid; border-radius: 8px;
+  padding: 9px 10px; text-align: center; font-size: 10px; line-height: 1.5;
+}
+.model-card .mtitle { font-size: 13px; font-weight: 800; margin-bottom: 3px; }
+.mc-1 { border-color: #ef4444; background: #fee2e2; }
+.mc-1 .mtitle { color: #b91c1c; }
+.mc-2 { border-color: #10b981; background: #d1fae5; }
+.mc-2 .mtitle { color: #065f46; }
+.mc-3 { border-color: #8b5cf6; background: #ede9fe; }
+.mc-3 .mtitle { color: #4c1d95; }
+
+/* ── TRACKS ── */
+.track-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.track { border: 1.5px solid; border-radius: 8px; overflow: hidden; }
+.track-hdr { padding: 6px 8px; font-weight: 700; font-size: 10px; text-align: center; color: #fff; }
+.track-body { padding: 8px 10px; font-size: 9.5px; line-height: 1.65; background: #fff; }
+.tr-1 { border-color: #ef4444; } .tr-1 .track-hdr { background: #ef4444; }
+.tr-2 { border-color: #3b82f6; } .tr-2 .track-hdr { background: #3b82f6; }
+.tr-3 { border-color: #8b5cf6; } .tr-3 .track-hdr { background: #8b5cf6; }
+
+/* ── MBC ── */
+.mbc-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.mbc-node {
+  border: 1.5px solid #10b981; background: #d1fae5;
+  border-radius: 8px; padding: 8px 6px;
+  text-align: center; font-size: 10px; line-height: 1.4;
+}
+.mbc-node em { display:block; font-style:normal; font-size:9px; color:#064e3b; margin-top:2px; }
+
+/* ── RESPONSE ── */
+.resp-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+/* ── SPLIT LABELS ── */
+.split { display: grid; text-align: center; font-size: 9px; color: #94a3b8; padding: 3px 0; }
+.split-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+/* ── CENTER ── */
+.center { display: flex; justify-content: center; }
+
+/* ── LEGEND ── */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 9.5px; color: #475569;
+}
+.leg { display: flex; align-items: center; gap: 4px; }
+.leg-dot { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; border: 1px solid transparent; }
+
+/* ── FOOTER ── */
+.footer {
+  margin-top: 14px; padding-top: 10px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 9px; color: #94a3b8; text-align: center;
+}
+
+/* ── INTERACTIVE FILTER BAR ── */
+.filter-bar {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 10px 12px; background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 10px; margin: 10px 0 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  position: sticky; top: 10px; z-index: 50;
+}
+.filter-bar .lbl { font-size: 10.5px; font-weight: 700; color: #475569; margin-right: 4px; }
+.filter-bar .group-sep { color: #cbd5e1; font-size: 14px; line-height: 1; margin: 0 4px; }
+.filter-bar button {
+  border: 1.5px solid #cbd5e1; background: #f8fafc; color: #475569;
+  padding: 4px 10px; border-radius: 6px; cursor: pointer;
+  font-size: 10.5px; font-weight: 600; transition: all .15s;
+  font-family: inherit;
+}
+.filter-bar button:hover { background: #f1f5f9; border-color: #94a3b8; }
+.filter-bar button[data-filter="reset"] { color: #64748b; border-style: dashed; }
+.filter-bar button.active { background: #1e293b; color: #fff; border-color: #1e293b; }
+.filter-bar button.type-A.active { background: #3b82f6; border-color: #3b82f6; }
+.filter-bar button.type-B.active { background: #10b981; border-color: #10b981; }
+.filter-bar button.type-C.active { background: #ec4899; border-color: #ec4899; }
+.filter-bar button.model-1.active { background: #ef4444; border-color: #ef4444; }
+.filter-bar button.model-2.active { background: #10b981; border-color: #10b981; }
+.filter-bar button.model-3.active { background: #8b5cf6; border-color: #8b5cf6; }
+.filter-bar button.spoor-1.active { background: #ef4444; border-color: #ef4444; }
+.filter-bar button.spoor-2.active { background: #3b82f6; border-color: #3b82f6; }
+.filter-bar button.spoor-3.active { background: #8b5cf6; border-color: #8b5cf6; }
+
+/* Dim & highlight effecten */
+.tc-A, .tc-B, .tc-C, .mc-1, .mc-2, .mc-3, .tr-1, .tr-2, .tr-3 {
+  cursor: pointer; transition: all .25s;
+}
+.tc-A:hover, .tc-B:hover, .tc-C:hover,
+.mc-1:hover, .mc-2:hover, .mc-3:hover,
+.tr-1:hover, .tr-2:hover, .tr-3:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,.08);
+}
+.dimmed { opacity: .22; filter: grayscale(.5); }
+.highlighted {
+  box-shadow: 0 0 0 3px #fbbf24, 0 6px 14px rgba(251,191,36,.35) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── AUTH GATE ── */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#1e293b,#475569);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;box-sizing:border-box;}
+.auth-card input:focus{outline:none;border-color:#1e293b;box-shadow:0 0 0 3px rgba(30,41,59,.15);}
+.auth-card .btn-auth{width:100%;background:#1e293b;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:#0f172a;}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+.auth-card .toggle a{color:#1e293b;cursor:pointer;text-decoration:underline;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.auth-user-pill{position:fixed;top:10px;right:10px;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;background:#e2e8f0;color:#1e293b;border-radius:16px;font-size:11.5px;font-weight:600;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.auth-user-pill a{color:#1e293b;text-decoration:none;border:1px solid #94a3b8;padding:2px 7px;border-radius:11px;font-size:10.5px;font-weight:600;}
+.auth-user-pill a:hover{background:#94a3b8;color:#fff;}
+.auth-user-pill button{margin-left:4px;background:none;border:1px solid #94a3b8;color:#1e293b;padding:2px 8px;border-radius:11px;font-size:10.5px;cursor:pointer;font-weight:600;}
+.auth-user-pill button:hover{background:#94a3b8;color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- ===== Auth gate ===== -->
+<div class="auth-overlay" id="auth-overlay" style="display:flex">
+  <div class="auth-card">
+    <h1>🗺 Klinisch Zorgpad</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="email" placeholder="naam@praktijk.be">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" autocomplete="current-password" placeholder="••••••••">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Naar <a href="index.html">hoofdpagina</a></div>
+    </div>
+  </div>
+</div>
+<div class="auth-user-pill" id="user-pill" style="display:none">
+  <a href="index.html" title="Terug naar hoofdpagina">←</a>
+  <span>👤</span><span id="user-name"></span>
+  <button onclick="doLogout()" title="Uitloggen">⏻</button>
+</div>
+
+<div class="header">
+  <h1>Klinisch Zorgpad — Neurodivergente Zorg</h1>
+  <p>
+    <span class="v-badge">v1.1</span>
+    <span class="date-badge">vzw KNAP · April 2026</span>
+  </p>
+  <p style="margin-top:6px;font-size:10px;color:#64748b;">3 aanmeldingstypes · 3 eerste-afspraakmodellen · Dundee IPJM-geïnspireerd · VBHC · MBC · ICHOM</p>
+  <p style="margin-top:4px;font-size:10px;color:#94a3b8;">💡 <strong>Tip:</strong> Klik op een Type-card, Model-card of Spoor-track om het bijbehorende traject door het zorgpad te volgen.</p>
+</div>
+
+<!-- ===== Interactieve filter-balk ===== -->
+<div class="filter-bar" id="filter-bar">
+  <span class="lbl">Toon traject voor:</span>
+  <button class="type-A" data-filter="type-A">Type A</button>
+  <button class="type-B" data-filter="type-B">Type B</button>
+  <button class="type-C" data-filter="type-C">Type C</button>
+  <span class="group-sep">·</span>
+  <button class="model-1" data-filter="model-1">Model 1</button>
+  <button class="model-2" data-filter="model-2">Model 2</button>
+  <button class="model-3" data-filter="model-3">Model 3</button>
+  <span class="group-sep">·</span>
+  <button class="spoor-1" data-filter="spoor-1">Spoor 1</button>
+  <button class="spoor-2" data-filter="spoor-2">Spoor 2</button>
+  <button class="spoor-3" data-filter="spoor-3">Spoor 3</button>
+  <span style="flex:1"></span>
+  <button data-filter="reset">↻ Reset</button>
+</div>
+
+<!-- FASE 1 -->
+<span class="phase-tag">Fase 1 — Aanmelding</span>
+<div class="intake-row">
+  <div class="node n-blue">📞 Telefonisch</div>
+  <div class="node n-blue">🌐 Online formulier</div>
+  <div class="node n-blue">📄 Verwijsbrief (HA/spec.)</div>
+</div>
+
+<div class="conn">↓</div>
+
+<div class="center">
+  <div class="node n-gray" style="max-width:340px">
+    📋 Secretariaat
+    <em>Eerste contact · basisdata · wachtlijst plaatsing</em>
+  </div>
+</div>
+
+<div class="conn">↓</div>
+
+<!-- FASE 2 -->
+<span class="phase-tag">Fase 2 — Pre-intake (verpleegkundige)</span>
+<div class="center">
+  <div class="node n-blue" style="max-width:420px">
+    🔍 Vragenlijsten + anamnese
+    <em>DIVA · SRS · BRIEF · schoolverslagen · medische voorgeschiedenis</em>
+  </div>
+</div>
+
+<div class="conn">↓</div>
+
+<!-- CLASSIFICATIE -->
+<span class="phase-tag">Classificatie — Type aanmelding (v1.1)</span>
+<div class="center">
+  <div class="decision purple" style="max-width:280px">
+    <span>◆</span> Type aanmelding?
+  </div>
+</div>
+
+<div class="split split-3" style="padding:4px 0;">
+  <div>▼ Type A</div>
+  <div>▼ Type B</div>
+  <div>▼ Type C</div>
+</div>
+
+<div class="type-grid">
+  <div class="type-card tc-A">
+    <span class="badge">A</span>
+    <div class="tname">Geen / vage diagnose</div>
+    Vage hulpvraag · urgente of zware presentatie · diagnostiek noodzakelijk<br>
+    <span style="font-size:9px;font-style:italic">Typisch: LHD</span>
+  </div>
+  <div class="type-card tc-B">
+    <span class="badge">B</span>
+    <div class="tname">Diagnostiek aanwezig</div>
+    Gekende voorgeschiedenis · gerichte hulpvraag nog te exploreren
+  </div>
+  <div class="type-card tc-C">
+    <span class="badge">C</span>
+    <div class="tname">Duidelijke hulpvraag</div>
+    Volledig dossier · heropvolging · bijsturing · nieuwe counseling
+  </div>
+</div>
+
+<div class="conn">↓</div>
+<div class="conn-label">complexiteitsweging</div>
+
+<!-- AARD & COMPLEXITEIT -->
+<div class="center">
+  <div class="decision" style="max-width:280px">
+    <span>◆</span> Aard &amp; complexiteit?
+  </div>
+</div>
+
+<div class="split split-3" style="padding:4px 0;">
+  <div>▼ Neurol. focus</div>
+  <div>▼ Psych./ped. focus</div>
+  <div>▼ Psychiatrisch</div>
+</div>
+
+<!-- FASE 3 -->
+<span class="phase-tag">Fase 3 — Eerste afspraak (model-routing)</span>
+<div class="model-grid">
+  <div class="model-card mc-1">
+    <div class="mtitle">Model 1</div>
+    <strong>Neuroloog eerst</strong><br>
+    Type A · ADHD/ASS · complexe neurologische vragen · co-morbiditeit
+  </div>
+  <div class="model-card mc-2">
+    <div class="mtitle">Model 2</div>
+    <strong>Psycholoog / orthopedagoog eerst</strong><br>
+    Type B/C · gedrag · executief functioneren · coaching
+  </div>
+  <div class="model-card mc-3">
+    <div class="mtitle">Model 3</div>
+    <strong>Psychiater eerst</strong><br>
+    Type A/B · psychiatrische co-morbiditeit · medicatie herevaluatie
+  </div>
+</div>
+
+<div class="conn">↓</div>
+
+<!-- FASE 4 -->
+<span class="phase-tag">Fase 4 — Diagnostiek &amp; stratificatie</span>
+<div class="center">
+  <div class="node n-amber" style="max-width:420px">
+    🩺 Klinische assessment sessie
+    <em>Neuropsychologisch testing · observatie · heteroanamnese</em>
+  </div>
+</div>
+
+<div class="conn">↓</div>
+
+<div class="track-grid">
+  <div class="track tr-1">
+    <div class="track-hdr">🔴 Spoor 1 — Intensief</div>
+    <div class="track-body">Multidisciplinair team<br>Volledige diagnostiek<br>Co-morbiditeiten<br>Psychiatrische opvolging</div>
+  </div>
+  <div class="track tr-2">
+    <div class="track-hdr">🔵 Spoor 2 — Standaard</div>
+    <div class="track-body">Neuroloog + psycholoog<br>ADHD / ASS protocol<br>Standaard traject<br>Periodieke opvolging</div>
+  </div>
+  <div class="track tr-3">
+    <div class="track-hdr">🟣 Spoor 3 — Begeleid</div>
+    <div class="track-body">Coaching / psychoeducatie<br>Self-management<br>HB-begeleiding<br>Minimale medicatie</div>
+  </div>
+</div>
+
+<div class="conn">↓</div>
+
+<!-- FASE 5 -->
+<span class="phase-tag">Fase 5 — Terugkoppeling &amp; behandelplan</span>
+<div class="center">
+  <div class="node n-green" style="max-width:380px">
+    💬 Terugkoppelgesprek
+    <em>Diagnose · shared decision making · behandelplan opstellen</em>
+  </div>
+</div>
+
+<div class="conn">↓</div>
+
+<!-- FASE 6 -->
+<span class="phase-tag">Fase 6 — Behandeling (Measurement-Based Care)</span>
+<div class="mbc-row">
+  <div class="mbc-node">📊 Meting<em>PRO-vragenlijsten</em></div>
+  <div class="mbc-node">🧪 Interventie<em>behandeling</em></div>
+  <div class="mbc-node">📈 Review<em>multidisc. overleg</em></div>
+  <div class="mbc-node">🔄 Bijsturing<em>aanpassen plan</em></div>
+</div>
+
+<div class="conn">↓</div>
+
+<div class="center">
+  <div class="decision" style="max-width:260px">
+    <span>◆</span> Behandelrespons?
+  </div>
+</div>
+
+<div class="split split-3" style="padding:4px 0;">
+  <div>▼ Goed</div>
+  <div>▼ Partieel</div>
+  <div>▼ Onvoldoende</div>
+</div>
+
+<div class="resp-row">
+  <div class="node n-green" style="font-size:10px">✅ Continueren<em>Periodieke opvolging</em></div>
+  <div class="node n-amber" style="font-size:10px">⚙️ Bijsturen<em>Dosering · frequentie</em></div>
+  <div class="node n-red" style="font-size:10px">🔁 Her-routing<em>Herdiagnose of spoorwijziging</em></div>
+</div>
+
+<div class="conn">↓</div>
+
+<!-- FASE 7 -->
+<span class="phase-tag">Fase 7 — Evaluatie &amp; afsluiting</span>
+<div class="center">
+  <div class="node n-gray" style="max-width:420px">
+    📝 Eindevaluatie (ICHOM outcome meting)
+    <em>Doorverwijzing · ontslag · herval-preventieplan</em>
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <strong style="align-self:center">Legende:</strong>
+  <div class="leg"><div class="leg-dot" style="background:#dbeafe;border-color:#3b82f6"></div> Type A</div>
+  <div class="leg"><div class="leg-dot" style="background:#d1fae5;border-color:#10b981"></div> Type B</div>
+  <div class="leg"><div class="leg-dot" style="background:#fce7f3;border-color:#ec4899"></div> Type C</div>
+  <div class="leg"><div class="leg-dot" style="background:#fee2e2;border-color:#ef4444"></div> Model 1 / Spoor 1</div>
+  <div class="leg"><div class="leg-dot" style="background:#d1fae5;border-color:#10b981"></div> Model 2 / Spoor 2</div>
+  <div class="leg"><div class="leg-dot" style="background:#ede9fe;border-color:#8b5cf6"></div> Model 3 / Spoor 3</div>
+  <div class="leg"><div class="leg-dot" style="background:#fef3c7;border-color:#f59e0b"></div> ◆ Beslissing</div>
+  <div class="leg"><div class="leg-dot" style="background:#ede9fe;border-color:#8b5cf6"></div> ◆ Classificatie</div>
+</div>
+
+<div class="footer">
+  vzw KNAP · Dr. Van Steenkiste · Klinisch Zorgpad Neurodivergente Zorg v1.1 · April 2026<br>
+  Gebaseerd op: VBHC (Porter &amp; Teisberg) · ICHOM · Dundee ADHD Care Pathway (Harris et al., JMIR 2025) · MBC
+</div>
+
+<!-- ===== Interactieve filter-logica ===== -->
+<script>
+// Mapping: per filter welke elementen highlight, rest dimt.
+// Type A → Model 1 + Model 3 → Spoor 1 (intensief)
+// Type B → Model 2 + Model 3 → Spoor 2 (standaard)
+// Type C → Model 2 → Spoor 3 (begeleid)
+const ZP_MAP = {
+  'type-A':  ['.tc-A','.mc-1','.mc-3','.tr-1'],
+  'type-B':  ['.tc-B','.mc-2','.mc-3','.tr-2'],
+  'type-C':  ['.tc-C','.mc-2','.tr-3'],
+  'model-1': ['.mc-1','.tc-A','.tr-1'],
+  'model-2': ['.mc-2','.tc-B','.tc-C','.tr-2','.tr-3'],
+  'model-3': ['.mc-3','.tc-A','.tc-B','.tr-1','.tr-2'],
+  'spoor-1': ['.tr-1','.tc-A','.mc-1','.mc-3'],
+  'spoor-2': ['.tr-2','.tc-B','.mc-2','.mc-3'],
+  'spoor-3': ['.tr-3','.tc-C','.mc-2']
+};
+const ZP_DIMMABLE = '.tc-A,.tc-B,.tc-C,.mc-1,.mc-2,.mc-3,.tr-1,.tr-2,.tr-3';
+let zpActive = null;
+
+function zpApply(f){
+  // Reset
+  document.querySelectorAll(ZP_DIMMABLE).forEach(el => el.classList.remove('dimmed','highlighted'));
+  document.querySelectorAll('#filter-bar button').forEach(b => b.classList.remove('active'));
+  // Toggle: zelfde filter terug klikken → reset
+  if(!f || f==='reset' || f===zpActive){zpActive=null;return;}
+  const sels = ZP_MAP[f]; if(!sels) return;
+  zpActive = f;
+  const btn = document.querySelector('#filter-bar button[data-filter="'+f+'"]');
+  if(btn) btn.classList.add('active');
+  document.querySelectorAll(ZP_DIMMABLE).forEach(el => el.classList.add('dimmed'));
+  sels.forEach(sel => document.querySelectorAll(sel).forEach(el => {
+    el.classList.remove('dimmed'); el.classList.add('highlighted');
+  }));
+}
+
+// Filter-knoppen
+document.querySelectorAll('#filter-bar button').forEach(b => {
+  b.addEventListener('click', () => zpApply(b.dataset.filter));
+});
+
+// Klikbare type/model/spoor cards
+const ZP_CLICK_MAP = {
+  '.tc-A':'type-A','.tc-B':'type-B','.tc-C':'type-C',
+  '.mc-1':'model-1','.mc-2':'model-2','.mc-3':'model-3',
+  '.tr-1':'spoor-1','.tr-2':'spoor-2','.tr-3':'spoor-3'
+};
+Object.entries(ZP_CLICK_MAP).forEach(([sel,f]) => {
+  document.querySelectorAll(sel).forEach(el => {
+    el.addEventListener('click', () => zpApply(f));
+  });
+});
+</script>
+
+<!-- ===== Auth script ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='zorgpad-neurodivergente';
+let sb=null,currentUser=null;
+function showAuthMsg(t,k){const e=document.getElementById('auth-msg');if(!e)return;e.innerHTML=t?'<div class="msg '+(k||'err')+'">'+t+'</div>':'';}
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();currentUser=null;
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';
+}
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:access,error:accErr}=await sb.from('user_tool_access').select('tool_id').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+  if(accErr||!access){
+    showAuthMsg('Je account heeft (nog) geen toegang tot dit zorgpad. Vraag een beheerder.','err');
+    await sb.auth.signOut();currentUser=null;return;
+  }
+  const {data:prof}=await sb.from('profiles').select('display_name,role').eq('id',currentUser.id).maybeSingle();
+  const dn=(prof&&prof.display_name)||currentUser.email;
+  document.getElementById('auth-overlay').style.display='none';
+  const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
+  document.getElementById('user-name').textContent=dn+((prof&&prof.role==='admin')?' ⭐':'');
+}
+(async function(){
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
+  catch(e){console.error('Supabase init mislukt',e);document.getElementById('auth-overlay').style.display='none';return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await afterLogin(session);}
+})();
+</script>
+
+</body>
+</html>
