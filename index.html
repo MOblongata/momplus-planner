@@ -258,12 +258,15 @@ async function afterLogin(session){
   document.getElementById('hub').style.display='';
   document.getElementById('user-name').textContent=currentProfile.display_name+(currentProfile.role==='admin'?' ⭐':'');
   await renderMyTools();
-  await renderMyFeedback();
   if(currentProfile.role==='admin'){
+    // Admins: feedback-invoer verbergen, alleen ontvangen feedback tonen
+    document.getElementById('feedback-section').style.display='none';
     document.getElementById('admin-section').style.display='';
     document.getElementById('admin-feedback-section').style.display='';
     await renderAdminPanel();
     await renderAdminFeedback();
+  } else {
+    await renderMyFeedback();
   }
 }
 
