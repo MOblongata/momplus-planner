@@ -112,6 +112,17 @@ section h2 small{font-weight:400;color:#9ca3af;font-size:12.5px;margin-left:8px;
     <div id="tools-grid" class="tools-grid"><div class="loading">Laden…</div></div>
   </section>
 
+  <section id="praktijk-section" style="display:none">
+    <h2>🩺 Praktijk-toepassingen <small>tools voor in de spreekkamer</small></h2>
+    <div class="tools-grid">
+      <a class="tool-card" href="praktijk.html">
+        <span class="icon">🩺</span>
+        <div class="titel">Praktijk-toepassingen</div>
+        <div class="beschr">Open de aparte pagina met tools voor in de spreekkamer (psycho-educatie, protocollen, …).</div>
+      </a>
+    </div>
+  </section>
+
   <section id="admin-section" style="display:none">
     <h2>⚙️ Beheer <small>gebruikers &amp; toegangen (alleen voor admins)</small></h2>
     <div class="info-banner">
@@ -187,11 +198,23 @@ async function afterLogin(session){
 
 async function renderMyTools(){
   const grid=document.getElementById('tools-grid');
-  const {data,error}=await sb.from('user_tool_access').select('tool_id,tools(id,naam,beschrijving,icoon,url)').eq('user_id',currentUser.id);
+  const {data,error}=await sb.from('user_tool_access').select('tool_id,tools(id,naam,beschrijving,icoon,url,categorie)').eq('user_id',currentUser.id);
   if(error){grid.innerHTML='<div class="no-tools">⚠ Fout bij laden: '+error.message+'</div>';return;}
-  const tools=(data||[]).map(d=>d.tools).filter(Boolean);
-  if(!tools.length){grid.innerHTML='<div class="no-tools">⏳ <strong>Je hebt nog geen toegang tot tools.</strong><br>Vraag een beheerder om je toegang te geven — je naam staat al in het systeem.</div>';return;}
-  grid.innerHTML=tools.map(t=>'<a class="tool-card" href="'+(t.url||'#')+'"><span class="icon">'+(t.icoon||'📊')+'</span><div class="titel">'+t.naam+'</div><div class="beschr">'+(t.beschrijving||'')+'</div></a>').join('');
+  const allMine=(data||[]).map(d=>d.tools).filter(Boolean);
+  // Hoofdpagina toont enkel categorie='beheer' (of legacy zonder categorie)
+  const beheer=allMine.filter(t=>!t.categorie||t.categorie==='beheer');
+  const praktijk=allMine.filter(t=>t.categorie==='praktijk');
+  if(!beheer.length && !praktijk.length){
+    grid.innerHTML='<div class="no-tools">⏳ <strong>Je hebt nog geen toegang tot tools.</strong><br>Vraag een beheerder om je toegang te geven — je naam staat al in het systeem.</div>';
+  } else if(!beheer.length){
+    grid.innerHTML='<div class="no-tools">Je hebt enkel toegang tot praktijk-toepassingen → zie hieronder.</div>';
+  } else {
+    grid.innerHTML=beheer.map(t=>'<a class="tool-card" href="'+(t.url||'#')+'"><span class="icon">'+(t.icoon||'📊')+'</span><div class="titel">'+t.naam+'</div><div class="beschr">'+(t.beschrijving||'')+'</div></a>').join('');
+  }
+  // Praktijk-knop alleen tonen als gebruiker minstens 1 praktijk-tool heeft
+  if(praktijk.length){
+    document.getElementById('praktijk-section').style.display='';
+  }
 }
 
 async function renderAdminPanel(){

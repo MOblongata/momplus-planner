@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slaaprestrictie — Protocol Dashboard</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  background: #f8fafc;
+  color: #1e293b;
+  padding: 24px;
+  max-width: 1320px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+h1 { font-size: 22px; font-weight: 800; margin-bottom: 4px; color: #1a4d6b; }
+h2 { font-size: 11px; font-weight: 700; margin: 18px 0 10px; color: #334155; letter-spacing: .05em; text-transform: uppercase; }
+h3 { font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #1a4d6b; }
+p { color: #475569; font-size: 12px; }
+
+.header { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.header .subtitle { color: #64748b; font-size: 12px; margin-top: 4px; }
+.v-badge { display:inline-block; background:#e0f2fe; color:#075985; border-radius:99px; padding:2px 10px; font-size:10px; font-weight:700; margin-right:6px; }
+.ctx-badge { display:inline-block; background:#d4edda; color:#1f5e34; border-radius:99px; padding:2px 10px; font-size:10px; font-weight:600; }
+
+.actions { display: flex; gap: 8px; }
+.btn { background: #1a4d6b; color: #fff; border: none; padding: 9px 16px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; font-family: inherit; }
+.btn:hover { background: #143d57; }
+.btn.secondary { background: #fff; color: #1a4d6b; border: 1px solid #cdd9e3; }
+.btn.secondary:hover { background: #f4f8fb; }
+
+.main { display: grid; grid-template-columns: 340px 1fr; gap: 18px; }
+
+.panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.panel-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-bottom: 12px; }
+
+.field { margin-bottom: 14px; }
+.field-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.field-label { font-size: 12px; color: #334155; font-weight: 500; }
+.field-value { font-size: 12px; font-weight: 700; color: #0f172a; background: #eaf2f8; padding: 2px 8px; border-radius: 4px; min-width: 56px; text-align: center; }
+input[type="range"] { width: 100%; accent-color: #1a4d6b; }
+input[type="text"], input[type="date"] { padding: 6px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; font-family: inherit; width: 100%; }
+textarea { padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 12px; font-family: inherit; width: 100%; resize: vertical; min-height: 60px; }
+
+.seg { display: flex; gap: 4px; background: #f1f5f9; padding: 3px; border-radius: 6px; }
+.seg button { flex: 1; background: transparent; border: none; padding: 6px 10px; font-size: 11px; font-weight: 600; color: #64748b; cursor: pointer; border-radius: 4px; font-family: inherit; }
+.seg button.active { background: #1a4d6b; color: #fff; }
+
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+.kpi { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; border-left: 4px solid #1a4d6b; }
+.kpi.goal { border-left-color: #2e7d32; }
+.kpi.start { border-left-color: #6b7280; }
+.kpi.dur { border-left-color: #b45309; }
+.kpi .lbl { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: .05em; }
+.kpi .val { font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+.sched-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sched-table th { background: #1a4d6b; color: #fff; padding: 9px 10px; text-align: left; font-weight: 700; font-size: 11px; }
+.sched-table th.num, .sched-table td.num { text-align: center; font-variant-numeric: tabular-nums; }
+.sched-table td { padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+.sched-table tr:nth-child(even) td { background: #f4f8fb; }
+.sched-table tr.goal td { background: #d4edda !important; font-weight: 700; }
+
+.timeline { padding: 12px 0; }
+.legend-row { display: flex; gap: 16px; margin-top: 8px; font-size: 11px; color: #475569; flex-wrap: wrap; }
+.legend-dot { width: 12px; height: 12px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+.note { background: #eaf2f8; border-left: 3px solid #1a4d6b; padding: 10px 12px; border-radius: 4px; font-size: 11px; color: #1a4d6b; margin-top: 10px; }
+.note.warn { background: #fef3c7; border-left-color: #b45309; color: #78350f; }
+
+.err { background: #fee2e2; border-left: 3px solid #dc2626; padding: 10px 12px; border-radius: 4px; font-size: 12px; color: #991b1b; margin-bottom: 12px; display: none; }
+.err.show { display: block; }
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+/* ===== Auth gate ===== */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0ea5e9,#06b6d4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;box-sizing:border-box;}
+.auth-card input:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.15);}
+.auth-card .btn-auth{width:100%;background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:#0284c7;}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+.auth-card .toggle a{color:#0ea5e9;cursor:pointer;text-decoration:underline;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.auth-user-pill{position:fixed;top:10px;right:10px;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;background:#cffafe;color:#0e7490;border-radius:16px;font-size:11.5px;font-weight:600;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.auth-user-pill a{color:#0e7490;text-decoration:none;border:1px solid #67e8f9;padding:2px 7px;border-radius:11px;font-size:10.5px;font-weight:600;}
+.auth-user-pill a:hover{background:#67e8f9;}
+.auth-user-pill button{margin-left:4px;background:none;border:1px solid #67e8f9;color:#0e7490;padding:2px 8px;border-radius:11px;font-size:10.5px;cursor:pointer;font-weight:600;}
+.auth-user-pill button:hover{background:#67e8f9;}
+</style>
+</head>
+<body>
+
+<!-- ===== Auth gate ===== -->
+<div class="auth-overlay" id="auth-overlay" style="display:flex">
+  <div class="auth-card">
+    <h1>🌙 Slaaprestrictie</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="email" placeholder="naam@praktijk.be">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" autocomplete="current-password" placeholder="••••••••">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Naar <a href="praktijk.html">praktijk-hub</a></div>
+    </div>
+  </div>
+</div>
+<div class="auth-user-pill" id="user-pill" style="display:none">
+  <a href="praktijk.html" title="Terug naar praktijk-hub">←</a>
+  <span>👤</span><span id="user-name"></span>
+  <button onclick="doLogout()" title="Uitloggen">⏻</button>
+</div>
+
+<div class="header">
+  <div>
+    <h1>Slaaprestrictie — Protocol Dashboard</h1>
+    <p class="subtitle">CGT-I bedtime restriction · dynamische opbouw richting doel-TIB en doel-opstaan</p>
+    <div style="margin-top:8px;">
+      <span class="v-badge">v1.0</span>
+      <span class="ctx-badge">Live preview + PDF</span>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn secondary" id="btn-reset">Reset</button>
+    <button class="btn" id="btn-pdf">PDF downloaden</button>
+  </div>
+</div>
+
+<div class="err" id="err"></div>
+
+<div class="main">
+  <!-- LEFT PANEL: PARAMETERS -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">Doel</div>
+
+      <div class="field">
+        <div class="field-row">
+          <label class="field-label">Target slaap</label>
+          <span class="field-value" id="v-target">7u00</span>
+        </div>
+        <input type="range" id="s-target" min="240" max="540" step="15" value="420">
+        <p style="font-size:10px;color:#94a3b8;margin-top:2px;">Doel-TIB wordt automatisch +15 min</p>
+      </div>
+
+      <div class="field">
+        <div class="field-row">
+          <label class="field-label">Voorkeursuur opstaan</label>
+          <span class="field-value" id="v-doelop">07u00</span>
+        </div>
+        <input type="range" id="s-doelop" min="300" max="540" step="5" value="420">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Startsituatie (dag 1)</div>
+
+      <div class="field">
+        <div class="field-row">
+          <label class="field-label">Start-TIB</label>
+          <span class="field-value" id="v-stib">5u00</span>
+        </div>
+        <input type="range" id="s-stib" min="240" max="480" step="15" value="300">
+      </div>
+
+      <div class="field">
+        <div class="field-row">
+          <label class="field-label">Start opstaantijd</label>
+          <span class="field-value" id="v-sop">06u00</span>
+        </div>
+        <input type="range" id="s-sop" min="240" max="540" step="5" value="360">
+        <p style="font-size:10px;color:#94a3b8;margin-top:2px;" id="bedhint">Naar bed dag 1: 01u00</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Opbouwsnelheid</div>
+
+      <div class="seg" id="mode-seg" style="margin-bottom:14px;">
+        <button class="active" data-mode="interval">Interval</button>
+        <button data-mode="versneld">Versneld</button>
+      </div>
+
+      <div class="field" id="field-interval">
+        <div class="field-row">
+          <label class="field-label">Dagen per stap (+15 min TIB)</label>
+          <span class="field-value" id="v-interval">3</span>
+        </div>
+        <input type="range" id="s-interval" min="1" max="7" step="1" value="3">
+      </div>
+
+      <div class="field" id="field-versneld" style="display:none;">
+        <div class="field-row">
+          <label class="field-label">Doel halen in N dagen</label>
+          <span class="field-value" id="v-versneld">9</span>
+        </div>
+        <input type="range" id="s-versneld" min="3" max="30" step="1" value="9">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">PDF-metadata</div>
+      <div class="field">
+        <div class="field-row"><label class="field-label">Datum generatie</label></div>
+        <input type="date" id="pdf-date">
+      </div>
+      <div class="field">
+        <div class="field-row"><label class="field-label">Disclaimer / notitie (onderaan PDF)</label></div>
+        <textarea id="pdf-note">Dit schema is een richtlijn binnen een CGT-I-traject. Combineer met stimuluscontrole en slaaphygiëne. Pas aan indien klinisch geïndiceerd.</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div>
+    <div class="kpi-grid">
+      <div class="kpi goal">
+        <div class="lbl">Doel-TIB</div>
+        <div class="val" id="k-doeltib">—</div>
+        <div class="sub" id="k-doelvenster">—</div>
+      </div>
+      <div class="kpi start">
+        <div class="lbl">Start dag 1</div>
+        <div class="val" id="k-startbed">—</div>
+        <div class="sub" id="k-startsub">—</div>
+      </div>
+      <div class="kpi dur">
+        <div class="lbl">Duur protocol</div>
+        <div class="val" id="k-duur">—</div>
+        <div class="sub" id="k-stappen">—</div>
+      </div>
+      <div class="kpi">
+        <div class="lbl">Opstaan-shift</div>
+        <div class="val" id="k-shift">—</div>
+        <div class="sub">vroeger op te staan</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Timeline — slaapvenster per stap</div>
+      <div class="timeline">
+        <svg id="timeline-svg" width="100%" height="280" viewBox="0 0 800 280" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="legend-row">
+          <span><span class="legend-dot" style="background:#1a4d6b;"></span>Slaapvenster (naar bed → opstaan)</span>
+          <span><span class="legend-dot" style="background:#d4edda;border:1px solid #2e7d32;"></span>Doelvenster (laatste stap)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Schema</div>
+      <table class="sched-table" id="sched">
+        <thead>
+          <tr>
+            <th>Daginterval</th>
+            <th class="num">Naar bed</th>
+            <th class="num">Opstaan</th>
+            <th class="num">TIB</th>
+            <th>Opmerkingen</th>
+          </tr>
+        </thead>
+        <tbody id="sched-body"></tbody>
+      </table>
+      <div class="note">De <b>groene rij</b> markeert het einddoel. De opstaantijd schuift front-loaded richting het voorkeursuur en blijft daarna vast; doel-TIB en doel-opstaan komen samen uit op de laatste dag.</div>
+    </div>
+  </div>
+</div>
+
+<!-- jsPDF + autoTable via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+// ============= CORE ALGORITME (port van generate_protocol.py) =============
+const DAY = 24 * 60;
+
+function hhmm(m) {
+  m = ((m % DAY) + DAY) % DAY;
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${String(h).padStart(2,'0')}u${String(mm).padStart(2,'0')}`;
+}
+function tibfmt(m) {
+  const h = Math.floor(m / 60), mm = m % 60;
+  return `${h}u${String(mm).padStart(2,'0')}`;
+}
+function frontLoad(total, n) {
+  const base = Math.floor(total / n), rem = total % n;
+  return Array.from({length: n}, (_, i) => base + (i < rem ? 1 : 0));
+}
+function backLoad(total, n) {
+  const base = Math.floor(total / n), rem = total % n;
+  return Array.from({length: n}, (_, i) => base + (i >= n - rem ? 1 : 0));
+}
+
+function buildProtocol({targetSleep, doelOpstaan, startTib, startOpstaan, intervalDagen, aantalDagen}) {
+  const doelTib = targetSleep + 15;
+  const tibTotal = doelTib - startTib;
+  if (tibTotal <= 0) throw new Error("Doel-TIB moet groter zijn dan start-TIB.");
+  if (tibTotal % 15 !== 0) throw new Error("TIB-totaal moet een veelvoud van 15 min zijn.");
+  const nTibUnits = tibTotal / 15;
+
+  const wakeTotal = doelOpstaan - startOpstaan;
+  if (wakeTotal % 5 !== 0 || wakeTotal < 0) throw new Error("Opstaan-verschuiving moet niet-negatief en veelvoud van 5 min zijn.");
+  const wakeUnits = wakeTotal / 5;
+
+  if ((intervalDagen == null) === (aantalDagen == null))
+    throw new Error("Geef OFWEL interval_dagen OFWEL aantal_dagen op (niet beide).");
+
+  let nSteps, tibInc;
+  if (intervalDagen != null) {
+    nSteps = nTibUnits;
+    tibInc = Array(nSteps).fill(15);
+  } else {
+    nSteps = aantalDagen - 1;
+    if (nSteps < 1)
+      throw new Error(`Aantal dagen moet minstens 2 zijn.`);
+    // Wanneer aantalDagen > minimaal nodig (nTibUnits + 1), worden sommige stappen 0:
+    // consolidatie-dagen zonder TIB-toename. backLoad zet de 0-stappen vooraan.
+    tibInc = backLoad(nTibUnits, nSteps).map(u => u * 15);
+  }
+  const wakeInc = frontLoad(wakeUnits, nSteps).map(u => u * 5);
+
+  function label(i) {
+    if (intervalDagen != null && intervalDagen > 1) {
+      const a = i * intervalDagen + 1, b = (i + 1) * intervalDagen;
+      return `Dag ${a} tot ${b}`;
+    }
+    return `Dag ${i + 1}`;
+  }
+
+  const rows = [];
+  let tib = startTib, op = startOpstaan;
+  for (let i = 0; i <= nSteps; i++) {
+    const bed = ((op - tib) % DAY + DAY) % DAY;
+    // markeer consolidatie: stap i kwam binnen zonder TIB- of opstaan-wijziging
+    const consolidatie = i > 0 && tibInc[i-1] === 0 && wakeInc[i-1] === 0;
+    rows.push({
+      label: label(i),
+      naarBed: hhmm(bed),
+      opstaan: hhmm(op),
+      tib: tibfmt(tib),
+      tibMin: tib,
+      bedMin: bed,
+      opMin: op % DAY,
+      isDoel: tib === doelTib,
+      opmerking: consolidatie ? 'consolidatie' : ''
+    });
+    if (i < nSteps) { tib += tibInc[i]; op += wakeInc[i]; }
+  }
+
+  // duur in dagen
+  let dagen;
+  if (intervalDagen != null) dagen = nSteps * intervalDagen + intervalDagen;
+  else dagen = aantalDagen;
+
+  return { rows, doelTib, dagen, nSteps };
+}
+
+// ============= UI STATE =============
+const state = {
+  targetSleep: 420, doelOpstaan: 420, startTib: 300, startOpstaan: 360,
+  mode: 'interval', intervalDagen: 3, aantalDagen: 9
+};
+
+// ============= RENDER =============
+function render() {
+  // labels updaten
+  document.getElementById('v-target').textContent = tibfmt(state.targetSleep);
+  document.getElementById('v-doelop').textContent = hhmm(state.doelOpstaan);
+  document.getElementById('v-stib').textContent = tibfmt(state.startTib);
+  document.getElementById('v-sop').textContent = hhmm(state.startOpstaan);
+  document.getElementById('v-interval').textContent = state.intervalDagen;
+  document.getElementById('v-versneld').textContent = state.aantalDagen;
+  document.getElementById('bedhint').textContent = `Naar bed dag 1: ${hhmm(state.startOpstaan - state.startTib)}`;
+
+  const errEl = document.getElementById('err');
+  errEl.classList.remove('show');
+
+  let result;
+  try {
+    result = buildProtocol({
+      targetSleep: state.targetSleep,
+      doelOpstaan: state.doelOpstaan,
+      startTib: state.startTib,
+      startOpstaan: state.startOpstaan,
+      intervalDagen: state.mode === 'interval' ? state.intervalDagen : null,
+      aantalDagen: state.mode === 'versneld' ? state.aantalDagen : null,
+    });
+  } catch (e) {
+    errEl.textContent = "⚠ " + e.message;
+    errEl.classList.add('show');
+    document.getElementById('sched-body').innerHTML = '';
+    document.getElementById('timeline-svg').innerHTML = '';
+    ['k-doeltib','k-doelvenster','k-startbed','k-startsub','k-duur','k-stappen','k-shift']
+      .forEach(id => document.getElementById(id).textContent = '—');
+    window._lastResult = null;
+    return;
+  }
+
+  window._lastResult = result;
+
+  // KPI
+  document.getElementById('k-doeltib').textContent = tibfmt(result.doelTib);
+  document.getElementById('k-doelvenster').textContent =
+    `${hhmm(state.doelOpstaan - result.doelTib)} – ${hhmm(state.doelOpstaan)}`;
+  document.getElementById('k-startbed').textContent = hhmm(state.startOpstaan - state.startTib);
+  document.getElementById('k-startsub').textContent = `TIB ${tibfmt(state.startTib)}, op ${hhmm(state.startOpstaan)}`;
+  document.getElementById('k-duur').textContent = `${result.dagen}d`;
+  document.getElementById('k-stappen').textContent = `${result.nSteps} stappen`;
+  document.getElementById('k-shift').textContent = `${(state.doelOpstaan - state.startOpstaan)} min`;
+
+  // tabel
+  const tbody = document.getElementById('sched-body');
+  tbody.innerHTML = result.rows.map(r => `
+    <tr class="${r.isDoel ? 'goal' : ''}">
+      <td>${r.label}</td>
+      <td class="num">${r.naarBed}</td>
+      <td class="num">${r.opstaan}</td>
+      <td class="num">${r.tib}</td>
+      <td style="font-size:11px;color:#64748b;">${r.opmerking}</td>
+    </tr>`).join('');
+
+  // timeline
+  renderTimeline(result.rows);
+}
+
+function renderTimeline(rows) {
+  const svg = document.getElementById('timeline-svg');
+  const W = 800, H = 280;
+  const padL = 60, padR = 20, padT = 20, padB = 40;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const n = rows.length;
+
+  // x = uur 18..30 (18u tot 06u next day = 12h window); we pakken 18..32 → 14h
+  const X_START = 18 * 60, X_END = 32 * 60; // minuten
+  const xRange = X_END - X_START;
+
+  function toMinScaled(m, refOp) {
+    // map clock-min to a 18..32 axis, putting bed times in [18..24+] and opstaan in [24..32]
+    // m is minutes since midnight; if m < 12*60 (i.e. early AM), shift +24h
+    let v = m;
+    if (v < 12 * 60) v += 24 * 60;
+    return v;
+  }
+  const xScale = m => padL + ((toMinScaled(m) - X_START) / xRange) * innerW;
+  const yScale = i => padT + (i + 0.5) * (innerH / n);
+  const barH = Math.max(8, (innerH / n) * 0.6);
+
+  // gridlines per 2h
+  let grid = '';
+  for (let t = X_START; t <= X_END; t += 120) {
+    const x = padL + ((t - X_START) / xRange) * innerW;
+    const h = (Math.floor(t / 60)) % 24;
+    grid += `<line x1="${x}" y1="${padT}" x2="${x}" y2="${padT+innerH}" stroke="#e2e8f0" stroke-width="1"/>`;
+    grid += `<text x="${x}" y="${padT+innerH+16}" font-size="10" fill="#64748b" text-anchor="middle">${String(h).padStart(2,'0')}u</text>`;
+  }
+
+  let bars = '';
+  rows.forEach((r, i) => {
+    const x1 = xScale(r.bedMin);
+    const x2 = xScale(r.opMin);
+    const y = yScale(i) - barH/2;
+    const fill = r.isDoel ? '#d4edda' : '#1a4d6b';
+    const stroke = r.isDoel ? '#2e7d32' : '#1a4d6b';
+    bars += `<rect x="${x1}" y="${y}" width="${x2-x1}" height="${barH}" fill="${fill}" stroke="${stroke}" stroke-width="${r.isDoel?1.5:0}" rx="2"/>`;
+    bars += `<text x="${padL-8}" y="${yScale(i)+3}" font-size="10" fill="#475569" text-anchor="end">${r.label}</text>`;
+    if (barH >= 14) {
+      bars += `<text x="${x1+4}" y="${yScale(i)+3}" font-size="9" fill="#fff" font-weight="600">${r.naarBed}</text>`;
+      bars += `<text x="${x2-4}" y="${yScale(i)+3}" font-size="9" fill="${r.isDoel?'#1f5e34':'#fff'}" font-weight="600" text-anchor="end">${r.opstaan}</text>`;
+    }
+  });
+
+  svg.innerHTML = grid + bars;
+}
+
+// ============= EVENTS =============
+function bindSlider(id, key, fmt) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    state[key] = parseInt(el.value, 10);
+    render();
+  });
+}
+bindSlider('s-target', 'targetSleep');
+bindSlider('s-doelop', 'doelOpstaan');
+bindSlider('s-stib', 'startTib');
+bindSlider('s-sop', 'startOpstaan');
+bindSlider('s-interval', 'intervalDagen');
+bindSlider('s-versneld', 'aantalDagen');
+
+document.querySelectorAll('#mode-seg button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#mode-seg button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.mode = b.dataset.mode;
+    document.getElementById('field-interval').style.display = state.mode === 'interval' ? '' : 'none';
+    document.getElementById('field-versneld').style.display = state.mode === 'versneld' ? '' : 'none';
+    render();
+  });
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  Object.assign(state, {
+    targetSleep: 420, doelOpstaan: 420, startTib: 300, startOpstaan: 360,
+    mode: 'interval', intervalDagen: 3, aantalDagen: 9
+  });
+  document.getElementById('s-target').value = 420;
+  document.getElementById('s-doelop').value = 420;
+  document.getElementById('s-stib').value = 300;
+  document.getElementById('s-sop').value = 360;
+  document.getElementById('s-interval').value = 3;
+  document.getElementById('s-versneld').value = 9;
+  document.querySelectorAll('#mode-seg button').forEach(x =>
+    x.classList.toggle('active', x.dataset.mode === 'interval'));
+  document.getElementById('field-interval').style.display = '';
+  document.getElementById('field-versneld').style.display = 'none';
+  render();
+});
+
+// init datum
+document.getElementById('pdf-date').value = new Date().toISOString().slice(0,10);
+
+// ============= PDF EXPORT =============
+function fmtDateNL(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+document.getElementById('btn-pdf').addEventListener('click', () => {
+  if (!window._lastResult) { alert('Geen geldig schema om af te drukken.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  const navy = [26, 77, 107];
+  const grid = [205, 217, 227];
+  const alt = [244, 248, 251];
+  const green = [212, 237, 218];
+  const headerBg = [234, 242, 248];
+  const grey = [102, 102, 102];
+
+  // Title
+  doc.setTextColor(...navy);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('Slaaprestrictie protocol', 20, 22);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...grey);
+  doc.text('Geleidelijke opbouw van time-in-bed (TIB) richting het gewenste slaapvenster', 20, 28);
+
+  const dateStr = fmtDateNL(document.getElementById('pdf-date').value);
+  if (dateStr) doc.text(`Datum: ${dateStr}`, 190, 22, { align: 'right' });
+
+  // Legende + disclaimer direct onder de titel (pagina 1)
+  let yTop = 34;
+  doc.setDrawColor(...grid);
+  doc.setLineWidth(0.3);
+  doc.line(20, yTop - 2, 190, yTop - 2);
+
+  doc.setFontSize(8.5);
+  doc.setTextColor(85, 85, 85);
+  doc.setFont('helvetica', 'normal');
+  const legend = 'Legende: TIB = Time In Bed. De groen gemarkeerde rij is de einddoelstelling. De opstaantijd schuift vervroegd richting het voorkeursuur en blijft daarna vast; doel-TIB en doel-opstaan komen samen uit op de laatste dag.';
+  const legendLines = doc.splitTextToSize(legend, 170);
+  doc.text(legendLines, 20, yTop + 2);
+  let yAfterLegend = yTop + 2 + legendLines.length * 3.3;
+
+  const note = document.getElementById('pdf-note').value.trim();
+  if (note) {
+    doc.setFont('helvetica', 'italic');
+    const noteLines = doc.splitTextToSize(note, 170);
+    doc.text(noteLines, 20, yAfterLegend + 2);
+    yAfterLegend += 2 + noteLines.length * 3.3;
+  }
+  doc.line(20, yAfterLegend + 2, 190, yAfterLegend + 2);
+
+  // Parameters table
+  const yParams = yAfterLegend + 8;
+  doc.setFontSize(12);
+  doc.setTextColor(...navy);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Parameters', 20, yParams);
+
+  const r = window._lastResult;
+  const snelheid = state.mode === 'interval'
+    ? `+15 min TIB per ${state.intervalDagen} dag(en)`
+    : `versneld — doel op dag ${state.aantalDagen}`;
+  const params = [
+    ['Doel slaap', `${tibfmt(state.targetSleep)} per nacht`],
+    ['Doel TIB', `${tibfmt(r.doelTib)}  (doel slaap + 15 min buffer)`],
+    ['Voorkeursuur opstaan', hhmm(state.doelOpstaan)],
+    ['Doel slaapvenster', `${hhmm(state.doelOpstaan - r.doelTib)} tot ${hhmm(state.doelOpstaan)}`],
+    ['Start TIB', tibfmt(state.startTib)],
+    ['Start opstaantijd', `${hhmm(state.startOpstaan)}  (naar bed ${hhmm(state.startOpstaan - state.startTib)} op dag 1)`],
+    ['Snelheid opbouw', snelheid],
+  ];
+
+  doc.autoTable({
+    startY: yParams + 3,
+    body: params,
+    theme: 'grid',
+    styles: { fontSize: 9.5, cellPadding: 2.5, lineColor: grid, lineWidth: 0.2, textColor: [30, 41, 59] },
+    columnStyles: {
+      0: { fillColor: headerBg, fontStyle: 'bold', cellWidth: 50 },
+      1: { cellWidth: 'auto' }
+    },
+    margin: { left: 20, right: 20 }
+  });
+
+  // Schema title
+  let y = doc.lastAutoTable.finalY + 8;
+  doc.setFontSize(12);
+  doc.setTextColor(...navy);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Schema', 20, y);
+
+  // Schema table
+  const head = [['Daginterval', 'Naar bed', 'Opstaan', 'TIB', 'Opmerkingen']];
+  const body = r.rows.map(row => [row.label, row.naarBed, row.opstaan, row.tib, row.opmerking || '']);
+  const goalIndices = r.rows.map((row, i) => row.isDoel ? i : -1).filter(i => i >= 0);
+
+  doc.autoTable({
+    startY: y + 3,
+    head, body,
+    theme: 'grid',
+    headStyles: { fillColor: navy, textColor: [255,255,255], fontStyle: 'bold', halign: 'center', fontSize: 10 },
+    styles: { fontSize: 10, cellPadding: 3, lineColor: grid, lineWidth: 0.25, textColor: [30,41,59] },
+    alternateRowStyles: { fillColor: alt },
+    columnStyles: {
+      0: { cellWidth: 32, halign: 'left' },
+      1: { cellWidth: 29, halign: 'center' },
+      2: { cellWidth: 26, halign: 'center' },
+      3: { cellWidth: 23, halign: 'center' },
+      4: { cellWidth: 'auto' }
+    },
+    margin: { left: 20, right: 20 },
+    didParseCell: (data) => {
+      if (data.section === 'body' && goalIndices.includes(data.row.index)) {
+        data.cell.styles.fillColor = green;
+        data.cell.styles.fontStyle = 'bold';
+      }
+    }
+  });
+
+  // Timeline graphic
+  y = doc.lastAutoTable.finalY + 8;
+  if (y > 240) { doc.addPage(); y = 20; }
+  doc.setFontSize(12);
+  doc.setTextColor(...navy);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Timeline — slaapvenster', 20, y);
+
+  drawTimelinePdf(doc, r.rows, 20, y + 3, 170, Math.min(70, 4 + r.rows.length * 5));
+
+  doc.save(`slaaprestrictie_protocol_${(document.getElementById('pdf-date').value || 'protocol')}.pdf`);
+});
+
+function drawTimelinePdf(doc, rows, x, y, w, h) {
+  const padL = 22;
+  const innerW = w - padL - 2;
+  const innerH = h - 8;
+  const n = rows.length;
+
+  const X_START = 18 * 60, X_END = 32 * 60;
+  const xRange = X_END - X_START;
+  function xScale(m) {
+    let v = m;
+    if (v < 12 * 60) v += 24 * 60;
+    return x + padL + ((v - X_START) / xRange) * innerW;
+  }
+  const yScale = i => y + (i + 0.5) * (innerH / n);
+  const barH = Math.max(2.5, (innerH / n) * 0.6);
+
+  // gridlines
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.15);
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  for (let t = X_START; t <= X_END; t += 120) {
+    const xx = x + padL + ((t - X_START) / xRange) * innerW;
+    doc.line(xx, y, xx, y + innerH);
+    const hh = (Math.floor(t / 60)) % 24;
+    doc.text(`${String(hh).padStart(2,'0')}u`, xx, y + innerH + 3.5, { align: 'center' });
+  }
+
+  // bars
+  rows.forEach((r, i) => {
+    const x1 = xScale(r.bedMin);
+    const x2 = xScale(r.opMin);
+    const yy = yScale(i) - barH/2;
+    if (r.isDoel) {
+      doc.setFillColor(212, 237, 218);
+      doc.setDrawColor(46, 125, 50);
+      doc.setLineWidth(0.3);
+      doc.rect(x1, yy, x2 - x1, barH, 'FD');
+    } else {
+      doc.setFillColor(26, 77, 107);
+      doc.rect(x1, yy, x2 - x1, barH, 'F');
+    }
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(7);
+    doc.text(r.label, x + padL - 2, yScale(i) + 1.2, { align: 'right' });
+  });
+}
+
+// initial render
+render();
+</script>
+
+<!-- ===== Auth script ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='dashboard-slaaprestrictie';
+let sb=null,currentUser=null;
+function showAuthMsg(t,k){const e=document.getElementById('auth-msg');if(!e)return;e.innerHTML=t?'<div class="msg '+(k||'err')+'">'+t+'</div>':'';}
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();currentUser=null;
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';
+}
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:access,error:accErr}=await sb.from('user_tool_access').select('tool_id').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+  if(accErr||!access){
+    showAuthMsg('Je account heeft (nog) geen toegang tot dit dashboard. Vraag een beheerder om toegang.','err');
+    await sb.auth.signOut();currentUser=null;return;
+  }
+  const {data:prof}=await sb.from('profiles').select('display_name,role').eq('id',currentUser.id).maybeSingle();
+  const dn=(prof&&prof.display_name)||currentUser.email;
+  document.getElementById('auth-overlay').style.display='none';
+  const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
+  document.getElementById('user-name').textContent=dn+((prof&&prof.role==='admin')?' ⭐':'');
+}
+(async function(){
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
+  catch(e){console.error('Supabase init mislukt',e);document.getElementById('auth-overlay').style.display='none';return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await afterLogin(session);}
+})();
+</script>
+
+</body>
+</html>
