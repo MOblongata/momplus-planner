@@ -62,6 +62,47 @@ section h2 small{font-weight:400;color:#9ca3af;font-size:12.5px;margin-left:8px;
 .loading{padding:30px;text-align:center;color:#9ca3af;font-size:13px;}
 .footer{text-align:center;color:#9ca3af;font-size:11.5px;margin-top:40px;padding:20px;}
 .footer a{color:inherit;}
+/* ===== Feedback ===== */
+.fb-card{background:#fff;border-radius:12px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.05);border:1px solid #e0e7ff;}
+.fb-card textarea{width:100%;min-height:90px;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;line-height:1.5;}
+.fb-card textarea:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.fb-card .fb-row{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;}
+.fb-card .fb-row .hint{flex:1;font-size:11px;color:#9ca3af;}
+.fb-btn{background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;}
+.fb-btn:hover{background:#4338ca;}.fb-btn:disabled{opacity:.6;cursor:wait;}
+.fb-msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-top:10px;}
+.fb-msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.fb-msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.fb-mine{margin-top:14px;padding-top:14px;border-top:1px dashed #e5e7eb;font-size:12px;color:#6b7280;}
+.fb-mine h4{font-size:12px;font-weight:600;color:#374151;margin-bottom:8px;}
+.fb-mine-item{padding:7px 10px;background:#f9fafb;border-radius:6px;margin-bottom:5px;display:flex;align-items:flex-start;gap:8px;}
+.fb-mine-item .fb-st{flex-shrink:0;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:11px;}
+.fb-mine-item .fb-st.nieuw{background:#dbeafe;color:#1e40af;}
+.fb-mine-item .fb-st.gezien{background:#fef3c7;color:#92400e;}
+.fb-mine-item .fb-st.opgelost{background:#dcfce7;color:#166534;}
+.fb-mine-item .fb-tx{flex:1;font-size:11.5px;color:#374151;line-height:1.45;}
+.fb-mine-item .fb-tx small{display:block;color:#9ca3af;font-size:10px;margin-top:2px;}
+/* Admin feedback */
+.admin-fb-card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:10px;border-left:4px solid #cbd5e1;}
+.admin-fb-card.nieuw{border-left-color:#3b82f6;}
+.admin-fb-card.gezien{border-left-color:#f59e0b;}
+.admin-fb-card.opgelost{border-left-color:#10b981;}
+.admin-fb-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+.admin-fb-head .fb-user{font-weight:700;color:#1f2937;font-size:13.5px;}
+.admin-fb-head .fb-email{color:#9ca3af;font-size:11px;}
+.admin-fb-head .fb-date{color:#6b7280;font-size:11px;margin-left:auto;}
+.admin-fb-body{white-space:pre-wrap;font-size:13px;color:#374151;line-height:1.5;background:#f9fafb;padding:10px 12px;border-radius:7px;margin-bottom:9px;}
+.admin-fb-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.fb-status-btn{background:#fff;border:1.5px solid;border-radius:6px;padding:3px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.fb-status-btn.nieuw{border-color:#3b82f6;color:#1e40af;}
+.fb-status-btn.gezien{border-color:#f59e0b;color:#92400e;}
+.fb-status-btn.opgelost{border-color:#10b981;color:#166534;}
+.fb-del-btn{background:none;border:1px solid #fca5a5;color:#991b1b;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;font-family:inherit;}
+.fb-del-btn:hover{background:#fee2e2;}
+.fb-filter{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;}
+.fb-filter button{background:#fff;border:1px solid #e5e7eb;border-radius:6px;padding:4px 12px;font-size:11.5px;cursor:pointer;font-family:inherit;color:#6b7280;}
+.fb-filter button.active{background:#1f2937;color:#fff;border-color:#1f2937;}
+.fb-empty{padding:30px;text-align:center;color:#9ca3af;font-size:12.5px;background:#f9fafb;border-radius:8px;}
 </style>
 </head>
 <body>
@@ -123,6 +164,19 @@ section h2 small{font-weight:400;color:#9ca3af;font-size:12.5px;margin-left:8px;
     </div>
   </section>
 
+  <section id="feedback-section">
+    <h2>💬 Suggestie of vraag tot optimalisatie? <small>stuur een seintje naar Frank</small></h2>
+    <div class="fb-card">
+      <textarea id="fb-input" placeholder="Wat zou beter kunnen? Bug, nieuwe feature, of een vraag over een tool — alles welkom. Frank krijgt dit te zien in zijn beheer-paneel."></textarea>
+      <div class="fb-row">
+        <span class="hint">Je naam en e-mail worden meegestuurd zodat Frank kan antwoorden.</span>
+        <button class="fb-btn" id="fb-send" onclick="submitFeedback()">📨 Verstuur</button>
+      </div>
+      <div id="fb-result"></div>
+      <div class="fb-mine" id="fb-mine"></div>
+    </div>
+  </section>
+
   <section id="admin-section" style="display:none">
     <h2>⚙️ Beheer <small>gebruikers &amp; toegangen (alleen voor admins)</small></h2>
     <div class="info-banner">
@@ -131,6 +185,20 @@ section h2 small{font-weight:400;color:#9ca3af;font-size:12.5px;margin-left:8px;
     <div class="admin-card">
       <div id="admin-users-table"><div class="loading">Gebruikers laden…</div></div>
     </div>
+  </section>
+
+  <section id="admin-feedback-section" style="display:none">
+    <h2>📨 Feedback van gebruikers <small><span id="fb-count-badge">—</span></small></h2>
+    <div class="info-banner">
+      <strong>Tip:</strong> klik op de status-knop om door 🆕 nieuw → 👁 gezien → ✅ opgelost te cyclen. Filter hieronder om enkel openstaande te tonen.
+    </div>
+    <div class="fb-filter">
+      <button class="active" data-fb-filter="all" onclick="setFbFilter('all')">Alles</button>
+      <button data-fb-filter="nieuw" onclick="setFbFilter('nieuw')">🆕 Nieuw</button>
+      <button data-fb-filter="gezien" onclick="setFbFilter('gezien')">👁 Gezien</button>
+      <button data-fb-filter="opgelost" onclick="setFbFilter('opgelost')">✅ Opgelost</button>
+    </div>
+    <div id="admin-feedback-list"><div class="loading">Feedback laden…</div></div>
   </section>
 
   <div class="footer">
@@ -190,10 +258,127 @@ async function afterLogin(session){
   document.getElementById('hub').style.display='';
   document.getElementById('user-name').textContent=currentProfile.display_name+(currentProfile.role==='admin'?' ⭐':'');
   await renderMyTools();
+  await renderMyFeedback();
   if(currentProfile.role==='admin'){
     document.getElementById('admin-section').style.display='';
+    document.getElementById('admin-feedback-section').style.display='';
     await renderAdminPanel();
+    await renderAdminFeedback();
   }
+}
+
+// ===== Feedback (gebruikers) =====
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fbDate(d){
+  try{const dt=new Date(d);return dt.toLocaleString('nl-BE',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}
+  catch(e){return String(d).slice(0,16);}
+}
+async function submitFeedback(){
+  const txt=document.getElementById('fb-input').value.trim();
+  const res=document.getElementById('fb-result');
+  res.innerHTML='';
+  if(txt.length<5){res.innerHTML='<div class="fb-msg err">Schrijf even iets meer (minstens 5 tekens).</div>';return;}
+  if(txt.length>4000){res.innerHTML='<div class="fb-msg err">Bericht te lang (max 4000 tekens).</div>';return;}
+  const btn=document.getElementById('fb-send');btn.disabled=true;btn.textContent='Versturen…';
+  const {error}=await sb.from('feedback').insert({
+    user_id:currentUser.id,
+    user_name:(currentProfile&&currentProfile.display_name)||currentUser.email,
+    user_email:currentUser.email,
+    message:txt
+  });
+  btn.disabled=false;btn.textContent='📨 Verstuur';
+  if(error){res.innerHTML='<div class="fb-msg err">Fout bij versturen: '+esc(error.message)+'</div>';return;}
+  document.getElementById('fb-input').value='';
+  res.innerHTML='<div class="fb-msg ok">✓ Bedankt! Frank krijgt dit te zien in zijn beheer-paneel.</div>';
+  await renderMyFeedback();
+  if(currentProfile&&currentProfile.role==='admin')await renderAdminFeedback();
+}
+async function renderMyFeedback(){
+  const wrap=document.getElementById('fb-mine');
+  const {data,error}=await sb.from('feedback').select('id,message,status,created_at,admin_notes').eq('user_id',currentUser.id).order('created_at',{ascending:false}).limit(5);
+  if(error||!data||!data.length){wrap.innerHTML='';return;}
+  let h='<h4>Mijn vorige berichten ('+data.length+')</h4>';
+  data.forEach(r=>{
+    const ic={nieuw:'🆕',gezien:'👁',opgelost:'✅'}[r.status]||'•';
+    h+='<div class="fb-mine-item">'
+      +'<span class="fb-st '+r.status+'">'+ic+' '+esc(r.status)+'</span>'
+      +'<div class="fb-tx">'+esc(r.message)
+      +(r.admin_notes?'<br><em style="color:#0ea5e9">↪ '+esc(r.admin_notes)+'</em>':'')
+      +'<small>'+fbDate(r.created_at)+'</small></div>'
+      +'</div>';
+  });
+  wrap.innerHTML=h;
+}
+
+// ===== Feedback (admin) =====
+let allFeedback=[],fbFilter='all';
+async function renderAdminFeedback(){
+  const wrap=document.getElementById('admin-feedback-list');
+  const {data,error}=await sb.from('feedback').select('id,user_name,user_email,message,status,created_at,admin_notes,resolved_at').order('created_at',{ascending:false});
+  if(error){wrap.innerHTML='<div class="fb-empty">Fout: '+esc(error.message)+'</div>';return;}
+  allFeedback=data||[];
+  const nieuwCount=allFeedback.filter(f=>f.status==='nieuw').length;
+  const total=allFeedback.length;
+  document.getElementById('fb-count-badge').textContent=nieuwCount>0
+    ?nieuwCount+' nieuw · '+total+' totaal'
+    :total+' totaal';
+  drawAdminFeedback();
+}
+function setFbFilter(f){
+  fbFilter=f;
+  document.querySelectorAll('.fb-filter button').forEach(b=>b.classList.toggle('active',b.dataset.fbFilter===f));
+  drawAdminFeedback();
+}
+function drawAdminFeedback(){
+  const wrap=document.getElementById('admin-feedback-list');
+  const list=fbFilter==='all'?allFeedback:allFeedback.filter(f=>f.status===fbFilter);
+  if(!list.length){
+    wrap.innerHTML='<div class="fb-empty">'+(fbFilter==='all'?'Nog geen feedback ontvangen.':'Geen items met status \"'+fbFilter+'\".')+'</div>';
+    return;
+  }
+  let h='';
+  list.forEach(r=>{
+    const ic={nieuw:'🆕',gezien:'👁',opgelost:'✅'}[r.status]||'•';
+    h+='<div class="admin-fb-card '+r.status+'">'
+      +'<div class="admin-fb-head">'
+        +'<span class="fb-user">'+esc(r.user_name||'(onbekend)')+'</span>'
+        +'<span class="fb-email">'+esc(r.user_email||'')+'</span>'
+        +'<span class="fb-date">'+fbDate(r.created_at)+'</span>'
+      +'</div>'
+      +'<div class="admin-fb-body">'+esc(r.message)+'</div>'
+      +'<div class="admin-fb-actions">'
+        +'<button class="fb-status-btn '+r.status+'" onclick="cycleFbStatus(\''+r.id+'\')" title="Klik om status te wisselen">'+ic+' '+esc(r.status)+'</button>'
+        +'<button class="fb-status-btn" style="border-color:#0ea5e9;color:#0369a1" onclick="addFbNote(\''+r.id+'\')">📝 '+(r.admin_notes?'Notitie bewerken':'Notitie toevoegen')+'</button>'
+        +'<button class="fb-del-btn" onclick="deleteFb(\''+r.id+'\')">🗑 Verwijder</button>'
+      +'</div>'
+      +(r.admin_notes?'<div style="margin-top:8px;padding:8px 12px;background:#e0f2fe;border-left:3px solid #0ea5e9;border-radius:6px;font-size:12px;color:#075985"><b>Notitie:</b> '+esc(r.admin_notes)+'</div>':'')
+    +'</div>';
+  });
+  wrap.innerHTML=h;
+}
+async function cycleFbStatus(id){
+  const cur=allFeedback.find(f=>f.id===id);if(!cur)return;
+  const next={nieuw:'gezien',gezien:'opgelost',opgelost:'nieuw'}[cur.status]||'nieuw';
+  const updates={status:next};
+  if(next==='opgelost')updates.resolved_at=new Date().toISOString();
+  else if(cur.status==='opgelost')updates.resolved_at=null;
+  const {error}=await sb.from('feedback').update(updates).eq('id',id);
+  if(error){alert('Fout: '+error.message);return;}
+  await renderAdminFeedback();
+}
+async function addFbNote(id){
+  const cur=allFeedback.find(f=>f.id===id);if(!cur)return;
+  const note=prompt('Notitie voor deze feedback (zichtbaar voor de gebruiker):',cur.admin_notes||'');
+  if(note===null)return;
+  const {error}=await sb.from('feedback').update({admin_notes:note||null}).eq('id',id);
+  if(error){alert('Fout: '+error.message);return;}
+  await renderAdminFeedback();
+}
+async function deleteFb(id){
+  if(!confirm('Deze feedback verwijderen?'))return;
+  const {error}=await sb.from('feedback').delete().eq('id',id);
+  if(error){alert('Fout: '+error.message);return;}
+  await renderAdminFeedback();
 }
 
 async function renderMyTools(){
