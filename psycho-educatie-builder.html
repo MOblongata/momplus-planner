@@ -138,6 +138,30 @@
   .accent{color:#b08d5a;}
   .force-break{page-break-before:always;}
 
+  /* ---------- BRONNEN / WETENSCHAPPELIJKE ONDERBOUWING ---------- */
+  .bronnen{margin:5mm 0 0;padding:4mm 6mm;background:#f7f5f1;border-radius:4pt;border-left:2pt solid #d8cfc0;}
+  .bronnen .bron-label{font-size:7pt;letter-spacing:.16em;text-transform:uppercase;color:#9a8f7d;font-weight:600;margin-bottom:2mm;}
+  .bronnen .bron-niveau{font-size:8.4pt;color:#6a655d;line-height:1.5;margin:0 0 2.5mm;}
+  .bronnen .bron-niveau strong{color:#4a463f;}
+  .bronnen ol{margin:0;padding:0 0 0 5mm;}
+  .bronnen li{font-size:8pt;color:#7a756c;line-height:1.5;margin-bottom:1.5mm;}
+  .bronnen a{color:#9a8458;text-decoration:none;}
+  .bronnen a:hover{text-decoration:underline;}
+  .niveau-pill{display:inline-block;font-size:6.8pt;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:1.5pt 6pt;border-radius:10pt;vertical-align:middle;margin-left:2pt;}
+  .niveau-pill.sterk{background:#e3efe6;color:#3f7355;}
+  .niveau-pill.matig{background:#f4edda;color:#9a7d35;}
+  .niveau-pill.beperkt{background:#f3e7df;color:#9a6b4f;}
+
+  /* ---------- AANKOOPLIJST (apotheek) ---------- */
+  .shop-item{margin:3mm 0;padding:4mm 6mm;background:#fbf9f6;border:.5pt solid #e8e2d8;border-left:3pt solid #c4a882;border-radius:4pt;}
+  .shop-item h4{font-family:'Lora',serif;font-size:11pt;font-weight:400;color:#1a1814;margin-bottom:1.5mm;}
+  .shop-item .meta{font-size:9.2pt;color:#5a5650;line-height:1.6;}
+  .shop-item .meta strong{color:#3e3b36;}
+  .shop-tag{display:inline-block;font-size:6.8pt;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:#fff;background:#b08d5a;padding:1.5pt 6pt;border-radius:10pt;margin-left:3pt;vertical-align:middle;}
+
+  /* psycho-educatie categorie-tag */
+  .group-title .tag.psy{background:#6f9e8a;}
+
   @media (max-width:1100px){.sidebar{min-width:380px;width:50%;}}
 
   /* ===== Auth gate ===== */
@@ -250,9 +274,15 @@
 /* ============================================================
    BLOKKEN-BIBLIOTHEEK
    Nieuw blok toevoegen? Kopieer een object hieronder.
-   - cat: 'supplement' | 'literatuur' | 'leefstijl' | 'therapie'
+   - cat: 'psychoeducatie' | 'supplement' | 'literatuur' | 'leefstijl' | 'therapie'
    - supplement-blokken gebruiken: watdoet / advies / controle / deficientie / opties
+       * geenTekort:true  -> blok is een advies (bv. omega-3), géén bloed-tekort;
+         verschijnt dan niet in de "tekorten vastgesteld"-opsomming.
    - andere blokken gebruiken: content (vrije HTML in huisstijl)
+   - bronnen (optioneel, op elk blok of subtopic):
+       bron: ['sleutel', ...]   -> verwijst naar BIB-object onderaan
+       bronNiveau: 'sterk' | 'matig' | 'beperkt' + korte toelichting
+     Render: kleine "Wetenschappelijke bronnen"-kader onder het blok.
    ============================================================ */
 const BLOCKS = [
   /* ---------- SUPPLEMENTEN / TEKORTEN ---------- */
@@ -262,31 +292,40 @@ const BLOCKS = [
     watdoet:'IJzer speelt een rol bij je energiepeil, concentratie en een rustig gevoel in de benen. Bij aandacht- en concentratieklachten is een goede ijzervoorraad (ferritine) extra belangrijk.',
     advies:'<p>Start met een ijzersupplement. Voor een goede opname:</p><ul><li>neem het nuchter of samen met vitamine C (bv. een glas sinaasappelsap);</li><li>niet samen met koffie, thee, melk of calcium — die remmen de opname;</li><li>inname <strong>om de dag</strong> wordt vaak beter opgenomen én geeft minder maagklachten dan dagelijks.</li></ul>',
     controle:'labo over ± 4 maanden (ijzer en ferritine)',
-    opties:[{id:'ijzer_menstr', label:'Vermelding hevige menstruatie', tekst:'Bij hevige menstruatie: bespreek dit ook met je gynaecoloog — dat is vaak de onderliggende oorzaak.'}]
+    opties:[{id:'ijzer_menstr', label:'Vermelding hevige menstruatie', tekst:'Bij hevige menstruatie: bespreek dit ook met je gynaecoloog — dat is vaak de onderliggende oorzaak.'}],
+    product:{ naam:'Losferron 80 mg óf Tardyferon 80 mg', via:'apotheek', dosering:'1 (bruis)tablet per dag = 80 mg elementair ijzer; bij diep tekort eventueel 2/dag', inname:'nuchter of met vitamine C (bv. fruitsap); niet met koffie, thee, melk of calcium', let_op:'± 2u afstand houden van schildkliermedicatie, levodopa, bisfosfonaten en bepaalde antibiotica' },
+    bron:['tseng2018','faraone2021'],
+    bronNiveau:'matig — een meta-analyse vond lagere ferritinewaarden bij kinderen met ADHD en een verband tussen ijzertekort en de ernst van de klachten. Aanvullen is vooral zinvol bij een aangetoond (laag-normaal) ferritine.'
   },
   {
     id:'vitd', cat:'supplement', ic:'☀️', naam:'Vitamine D', deficientie:'vitamine D',
     ds:'Slaap, weerstand, botten, stemming',
     watdoet:'Vitamine D ondersteunt vooral je slaap, je weerstand, je botten en je stemming.',
-    advies:'<p>Vitamine D3, te starten aan een hogere dosis van <strong>3200 IE per dag</strong>. Eens dit op is, overschakelen naar een onderhoudsdosis van <strong>2000 IE per dag</strong>. Dit mag je gerust levenslang innemen. Neem het bij voorkeur in bij een maaltijd met wat vet — dat verbetert de opname.</p>',
+    advies:'<p>Vitamine D3 (colecalciferol), <strong>dagelijks</strong> in te nemen — dagelijkse inname is beter onderbouwd dan stoot- of weekschema\'s. Dosering:</p><ul><li><strong>volwassenen:</strong> 2000 IE per dag als basis; bij een diep tekort tijdelijk 3200 IE per dag;</li><li><strong>kinderen:</strong> 600 à 800 IE per dag.</li></ul><p>Neem het bij voorkeur in bij een maaltijd met wat vet — dat verbetert de opname. Dit mag je gerust langdurig innemen.</p>',
     controle:'labo over ± 1 jaar (vitamine D)',
-    opties:[]
+    opties:[],
+    product:{ naam:'Vitamine D3 (colecalciferol), dagelijks', via:'apotheek', dosering:'volwassenen 2000 IE/dag (3200 IE bij diep tekort); kinderen 600–800 IE/dag', inname:'dagelijks, bij een maaltijd met wat vet' },
+    bron:['khoshbakht2018'],
+    bronNiveau:'matig — observationele studies tonen vaker lagere vitamine-D-waarden bij ADHD, maar de resultaten zijn niet eenduidig. Aanvullen gebeurt hier in de eerste plaats om een aangetoond tekort te corrigeren (slaap, weerstand, botten), niet als ADHD-behandeling op zich.'
   },
   {
     id:'folium', cat:'supplement', ic:'🌿', naam:'Foliumzuur', deficientie:'foliumzuur',
     ds:'Energie, concentratie, rode bloedcellen',
     watdoet:'Net als ijzer is foliumzuur belangrijk voor je energie en concentratie, en daarnaast voor de aanmaak van rode bloedcellen en een gezond zenuwstelsel.',
-    advies:'<p>Een foliumzuursupplement aanvullen.</p>',
+    advies:'<p><strong>Folavit 4 mg</strong>, 1 tablet per dag gedurende minstens <strong>± 4 maanden</strong> (tot het tekort hersteld is). Daarna evalueren we of verdere aanvulling nodig is; een onderhoudsdosis van <strong>0,4 mg per dag</strong> kan dan volstaan.</p>',
     controle:'labo over ± 4 maanden (foliumzuur)',
-    opties:[{id:'folium_b12', label:'Vermelding B12-controle vooraf', tekst:'Belangrijk: vooraf controleren we ook je vitamine B12 — een foliumzuursupplement kan een B12-tekort namelijk verbergen.'}]
+    opties:[{id:'folium_b12', label:'Vermelding B12-controle vooraf', tekst:'Belangrijk: vooraf controleren we ook je vitamine B12 — een foliumzuursupplement kan een B12-tekort namelijk verbergen.'}],
+    product:{ naam:'Folavit 4 mg', via:'apotheek', dosering:'1 tablet (4 mg) per dag gedurende ± 4 maanden; daarna eventueel 0,4 mg/dag onderhoud', inname:'dagelijks' },
+    bronNiveau:'standaardbehandeling — een foliumzuurtekort wordt klassiek gedurende minstens ± 4 maanden gesupplementeerd (1–5 mg/dag), telkens ná het uitsluiten van een vitamine B12-tekort.'
   },
   {
     id:'selenium', cat:'supplement', ic:'✨', naam:'Selenium', deficientie:'selenium',
     ds:'Schildklier, afweer, antioxidant',
     watdoet:'Selenium ondersteunt je schildklier, je afweer en werkt als antioxidant.',
-    advies:'<p>Dit is vaak al via voeding bij te sturen — <strong>paranoten</strong> zijn een zeer rijke bron (1 à 2 per dag volstaat meestal). Een supplement kan ook, maar overdoseer niet: de marge tussen te weinig en te veel is bij selenium klein.</p>',
+    advies:'<p>Dit is vaak al via voeding bij te sturen — <strong>paranoten</strong> zijn een zeer rijke bron (1 à 2 per dag volstaat meestal). Verkies je een supplement, dan is een combinatie selenium + zink een goede keuze (zoals <strong>Pharma Nord Selenium+Zinc</strong>). Overdoseer niet: de marge tussen te weinig en te veel is bij selenium klein.</p>',
     controle:'labo over ± 4 maanden (selenium)',
-    opties:[]
+    opties:[],
+    product:{ naam:'Pharma Nord Selenium+Zinc', via:'Pharmaline', dosering:'1 tablet per dag (100 µg selenium + 15 mg zink)', inname:'bij of na een warme maaltijd', let_op:'dekt ook je zink — een apart zinksupplement is dan niet nodig' }
   },
   {
     id:'koper', cat:'supplement', ic:'🔶', naam:'Koper', deficientie:'koper',
@@ -302,7 +341,42 @@ const BLOCKS = [
     watdoet:'Zink is belangrijk voor je afweer, wondheling, huid en je smaak en reuk.',
     advies:'<p>Een zinksupplement aanvullen. Aandachtspunten:</p><ul><li>niet gelijktijdig met ijzer of koper innemen (ze concurreren om dezelfde opname);</li><li>niet op een nuchtere maag, dat geeft snel misselijkheid;</li><li>niet eindeloos hoog doseren — langdurig veel zink kan op zijn beurt een kopertekort uitlokken.</li></ul>',
     controle:'labo over ± 4 maanden (zink)',
-    opties:[]
+    opties:[],
+    product:{ naam:'Pharma Nord Selenium+Zinc', via:'Pharmaline', dosering:'1 tablet per dag (15 mg zink + 100 µg selenium)', inname:'bij of na een warme maaltijd', let_op:'combipreparaat — dekt zowel zink als selenium' },
+    bron:['zink2021','granero2021'],
+    bronNiveau:'matig — studies vinden gemiddeld iets lagere zinkwaarden bij ADHD, maar niet altijd significant. Zink-supplementen tonen in onderzoek bescheiden effecten; we vullen vooral aan bij een aangetoond tekort.'
+  },
+  {
+    id:'omega3', cat:'supplement', ic:'🐟', naam:'Omega-3 (visolie)', deficientie:'omega-3-vetzuren', geenTekort:true,
+    ds:'Aandacht, concentratie — beste evidentie',
+    watdoet:'Omega-3-vetzuren (EPA en DHA, uit vette vis of visolie) zijn bouwstenen van je hersenen en spelen een rol bij aandacht en concentratie. Mensen met ADHD hebben gemiddeld iets lagere bloedwaarden van omega-3, en net wie laag zit lijkt het meeste baat te hebben.',
+    advies:'<p>Een visolie-supplement met een <strong>hoog gehalte EPA</strong> (de werkzaamheid hangt vooral samen met de EPA-dosis). Aandachtspunten:</p><ul><li>richt op <strong>± 1000 à 2000 mg EPA+DHA per dag</strong>, EPA-rijk (ongeveer 2× zoveel EPA als DHA) en met minstens <strong>> 500 mg EPA</strong>; kies een product met zowel EPA als DHA, geen van beide alleen;</li><li>kies een vloeibaar of capsulepreparaat (geen gummies — die bevatten te weinig EPA/DHA) en neem het bij een maaltijd;</li><li>geef het tijd — effecten zijn doorgaans pas na <strong>2 à 3 maanden</strong> merkbaar;</li><li>het is een <em>aanvulling</em>, geen vervanging van andere behandeling; het effect is reëel maar bescheiden.</li></ul>',
+    controle:'evaluatie op basis van de klachten na ± 3 maanden (geen routine-labo nodig)',
+    opties:[],
+    product:{ naam:'Visolie met hoog EPA (bv. Minami, Nordic Naturals, Metagenics Eskimo-3 of Pure Omega 3/Epax)', via:'Pharmaline', dosering:'± 1000–2000 mg EPA+DHA per dag (EPA:DHA ≈ 2:1; > 500 mg EPA)', inname:'bij een maaltijd', let_op:'kies vloeibaar of capsules, geen gummies' },
+    bron:['bloch2011','hawkey2014','sonugabarke2013'],
+    bronNiveau:'sterk (voor een voedingssupplement) — meerdere meta-analyses van gerandomiseerde studies tonen een klein maar significant gunstig effect op ADHD-symptomen, met de EPA-dosis als belangrijkste factor.'
+  },
+  {
+    id:'magnesium', cat:'supplement', ic:'🧲', naam:'Magnesium', deficientie:'magnesium', geenTekort:true,
+    ds:'Rust, spierontspanning, slaap',
+    watdoet:'Magnesium speelt een rol bij de werking van zenuwen en spieren, en heeft een eerder kalmerend effect. Een tekort kan samengaan met onrust, spierkrampen en slechter slapen.',
+    advies:'<p>Aan te vullen via voeding (noten, zaden, volkoren, peulvruchten, bladgroente, pure chocolade) of een supplement. Voor het supplement is vooral het <strong>juiste type</strong> belangrijk:</p><ul><li>kies magnesium<strong>citraat</strong> of -<strong>bisglycinaat</strong> (goede opname, mild voor de maag); magnesiumoxide wordt slecht opgenomen;</li><li>neem het bij voorkeur \'s avonds, bij of na een maaltijd;</li><li>te veel kan zachte stoelgang of diarree geven — bouw rustig op.</li></ul><p>Ik test magnesium <strong>niet standaard in het bloed</strong>: de bloedwaarde weerspiegelt de voorraad in je lichaam slecht, en er is geen sterke evidentie om standaard te supplementeren. Ik adviseer het dus gericht, bij klachten van onrust of slaap.</p>',
+    controle:'geen routine-bloedcontrole; evaluatie op basis van je klachten',
+    opties:[],
+    product:{ naam:'Solgar Magnesium Citraat 200 mg', via:'Pharmaline', dosering:'1 tablet (200 mg) per dag', inname:'\'s avonds, bij of na een maaltijd' },
+    bronNiveau:'beperkt — de rol van magnesium bij zenuw- en spierfunctie is goed gekend, maar kwalitatief hoogwaardig bewijs voor een effect op ADHD-symptomen zélf is beperkt. Daarom enkel gericht inzetten, niet standaard.'
+  },
+  {
+    id:'psyllium', cat:'supplement', ic:'🌾', naam:'Psylliumvezels', deficientie:'psyllium', geenTekort:true,
+    ds:'Oplosbare vezels bij PDS/IBS',
+    watdoet:'Psylliumvezels (uit de zaadhuls van de Plantago-plant) zijn oplosbare vezels die in de darm een zachte gel vormen. Ze maken de stoelgang soepeler en regelmatiger en verminderen de klachten van het prikkelbaredarmsyndroom (PDS/IBS).',
+    advies:'<p>Een psylliumvezel-supplement. Belangrijk bij de inname:</p><ul><li>neem het met <strong>veel water</strong> (een groot glas per inname) — dat is essentieel voor de werking én de veiligheid;</li><li>begin laag en bouw rustig op om opblazen of gasvorming te beperken;</li><li>houd ongeveer 1 à 2 uur afstand van andere medicatie: vezels kunnen de opname daarvan beïnvloeden.</li></ul>',
+    controle:'evaluatie op basis van je darmklachten',
+    opties:[],
+    product:{ naam:'Solgar Psyllium Husks Fibre 500 mg', via:'Pharmaline', dosering:'2 capsules per dag', inname:'\'s ochtends, met een groot glas water', let_op:'voldoende blijven drinken; houd ± 1–2u afstand van andere medicatie' },
+    bron:['bijkerk2009','ford2008'],
+    bronNiveau:'matig tot sterk — een gerandomiseerde studie (BMJ) en meta-analyses tonen dat oplosbare vezels (psyllium/ispaghula) de globale klachten bij het prikkelbaredarmsyndroom verminderen; onoplosbare vezels (tarwezemelen) doen dat niet.'
   },
 
   /* ---------- THERAPIE-UITLEG ---------- */
@@ -345,6 +419,142 @@ const BLOCKS = [
       </div>`
   },
 
+  /* ---------- PSYCHO-EDUCATIE (uitleg, vrije content) ---------- */
+  {
+    id:'wat_adhd', cat:'psychoeducatie', ic:'🧠', naam:'Wat is ADHD?', soloTitle:'Wat is ADHD eigenlijk?',
+    ds:'Het brein, niet de wil',
+    bron:['faraone2021','willcutt2005'],
+    bronNiveau:'sterk — gebaseerd op de internationale consensusverklaring (80 experts, 27 landen) en een meta-analyse van executieve functies bij ADHD.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Het basisidee</div><h2>ADHD zit in de <span class="accent">afstelling van je brein</span>, niet in je wil</h2></div>
+        <p class="body-text">ADHD is een <strong>neurobiologische ontwikkelingsconditie</strong>. De systemen in je brein die aandacht richten, prikkels afremmen en jezelf aansturen, werken net iets anders. Het gaat dus niet over te weinig willen, lui zijn of niet je best doen — het gaat over hoe je brein van nature is afgesteld.</p>
+        <p class="body-text">ADHD komt voor bij ongeveer <strong>6% van de jongeren en 2,5% van de volwassenen</strong>, en is in sterke mate erfelijk bepaald. Meestal werken vele kleine genetische en omgevingsfactoren samen — er is dus zelden één enkele oorzaak.</p>
+        <div class="before-after">
+          <div class="ba-side before"><div class="ba-label">Wat ADHD níet is</div><h3>Een kwestie van willen</h3><p>"Gewoon wat meer discipline" lost het niet op. De moeite met starten, focussen of stilzitten is geen onwil, maar hangt samen met hoe het brein prikkels en beloning verwerkt.</p></div>
+          <div class="ba-side after"><div class="ba-label">Wat ADHD wél is</div><h3>Een andere manier van aansturen</h3><p>Aandacht, rem en planning verlopen anders. Dat geeft moeilijkheden, maar vaak ook sterktes: creativiteit, snel schakelen, energie en hyperfocus op wat je echt boeit.</p></div>
+        </div>
+      </div>
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">De drie kernen</div><h2>Waar je het vooral aan <span class="accent">merkt</span></h2></div>
+        <div class="cards">
+          <div class="card"><div class="ci">🎯</div><h4>Aandacht richten</h4><p>Moeite om de aandacht vast te houden bij wat moet — en soms net heel diep wegzakken in wat boeit (hyperfocus).</p></div>
+          <div class="card"><div class="ci">⚡</div><h4>Impulsiviteit & drukte</h4><p>Sneller reageren dan bedoeld, moeilijk wachten, innerlijke of zichtbare rusteloosheid.</p></div>
+          <div class="card"><div class="ci">🗂️</div><h4>Zelfsturing</h4><p>Plannen, starten, overzicht houden en op tijd komen vragen meer moeite — de zogenaamde executieve functies.</p></div>
+        </div>
+        <p class="body-text">Niet iedereen met ADHD heeft alle drie even sterk. Bij sommigen valt vooral de aandacht op, bij anderen de impulsiviteit. Dat is normaal: ADHD is een spectrum.</p>
+        <div class="pull-quote"><p class="qt">"ADHD verklaart veel, maar het <em>bepaalt</em> je niet. Het is één stuk van wie je bent — met lasten én met kwaliteiten."</p><p class="qs">Begrijpen hoe jouw brein werkt, is de eerste stap om er slimmer mee om te gaan in plaats van ertegen te vechten.</p></div>
+      </div>`
+  },
+  {
+    id:'emotie_rsd', cat:'psychoeducatie', ic:'❤️‍🔥', naam:'Emoties & afwijzing', soloTitle:'Emoties, gevoeligheid & afwijzing bij ADHD',
+    ds:'Emotieregulatie & RSD',
+    bron:['shaw2014','beheshti2020'],
+    bronNiveau:'sterk (emotieregulatie) — meerdere reviews en meta-analyses tonen dat moeite met emotieregulatie een kernkenmerk van ADHD is. "RSD" zelf is een klinische term, geen aparte gevalideerde diagnose.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Vaak onderschat</div><h2>Bij ADHD komen emoties <span class="accent">harder en sneller</span> binnen</h2></div>
+        <p class="body-text">ADHD gaat lang niet alleen over aandacht. Voor heel wat mensen is het moeilijkste deel net de <strong>emoties</strong>: ze komen sneller op, voelen intenser en zijn moeilijker terug tot rust te brengen. Dit heet emotieregulatie, en onderzoek beschouwt het als een kernkenmerk van ADHD — niet als een los probleem.</p>
+        <p class="body-text">Het is ook vaak voorkomend: moeite met emotieregulatie wordt gezien bij ongeveer <strong>een kwart tot de helft van de kinderen</strong> en bij <strong>een nog groter deel van de volwassenen</strong> met ADHD. Bij volwassenen noemen velen dit zelfs het meest belastende aspect.</p>
+        <div class="before-after">
+          <div class="ba-side before"><div class="ba-label">Hoe het voelt</div><h3>Van 0 naar 100</h3><p>Een opmerking, een tegenslag of een blik kan meteen een sterke golf van frustratie, schaamte of verdriet oproepen — heviger dan de situatie lijkt te vragen.</p></div>
+          <div class="ba-side after"><div class="ba-label">Wat er gebeurt</div><h3>De rem reageert trager</h3><p>Het brein richt de aandacht sterk op de emotie en het afremmen ervan verloopt moeizamer. De emotie klopt; alleen het <em>volume</em> staat hoog.</p></div>
+        </div>
+      </div>
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Gevoeligheid voor afwijzing</div><h2>Wat men <span class="accent">"RSD"</span> noemt</h2></div>
+        <p class="body-text">Sommige mensen herkennen een heel sterke pijn bij (vermeende) afwijzing of kritiek — alsof een kleine opmerking diep raakt. In de ADHD-wereld wordt dit vaak <strong>RSD</strong> genoemd (rejection sensitive dysphoria, "gevoeligheid voor afwijzing").</p>
+        <div class="highlight-box"><div class="adv-label">Eerlijk gekaderd</div><p>RSD is een <strong>klinische term</strong>, geen officiële, apart bewezen diagnose. Het is een herkenbare manier om iets te benoemen dat wél goed onderzocht is: de sterke emotionele gevoeligheid die bij ADHD hoort. Het is dus een nuttig woord — zolang we het niet als een vaststaand ziektebeeld behandelen.</p></div>
+        <p class="body-text">Voor veel volwassenen is net dít een opluchting om te begrijpen: die heftige reactie op afwijzing of kritiek is <strong>geen karakterfout en geen aanstellerij</strong> die je jezelf moet verwijten, maar hangt samen met hoe het ADHD-brein emoties verwerkt. Dat besef alleen al haalt vaak een laag schaamte en zelfkritiek weg — en maakt ruimte om er anders mee om te gaan.</p>
+        <div class="pull-quote"><p class="qt">"Je voelt niet <em>verkeerd</em> — je voelt sterk. Begrijpen waar die intensiteit vandaan komt, haalt er al een stuk schaamte af."</p><p class="qs">Herkennen dat dit bij ADHD hoort, helpt om milder voor jezelf te zijn en samen naar strategieën te zoeken (rust nemen voor je reageert, het gesprek later hervatten, en waar nodig behandeling).</p></div>
+      </div>`
+  },
+  {
+    id:'tijdsblindheid', cat:'psychoeducatie', ic:'⏳', naam:'Tijdsblindheid', soloTitle:'Tijdsblindheid: waarom tijd zo glipt',
+    ds:'Tijdsbeleving bij ADHD',
+    bron:['noreika2013','faraone2021'],
+    bronNiveau:'matig — een uitgebreide review van neurocognitieve en hersenbeeldvormingsstudies toont consistente verschillen in tijdsverwerking bij ADHD.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Een onzichtbaar zintuig</div><h2>Bij ADHD werkt het <span class="accent">gevoel voor tijd</span> anders</h2></div>
+        <p class="body-text">De meeste mensen "voelen" tijd voorbijgaan zonder erbij na te denken. Bij ADHD is dat innerlijke uurwerk minder betrouwbaar. Onderzoek vindt consistente verschillen in hoe het brein tijd inschat, aanvoelt en vooruitkijkt.</p>
+        <p class="body-text">Het gevolg is wat vaak <strong>"tijdsblindheid"</strong> wordt genoemd: tijd is er ofwel <em>nu</em>, ofwel <em>niet nu</em>. Iets wat over twee weken moet, voelt onwerkelijk ver — tot het plots heel dichtbij is.</p>
+        <div class="cards">
+          <div class="card"><div class="ci">⏱️</div><h4>Inschatten</h4><p>"Dit duurt vijf minuten" wordt een half uur. Hoe lang iets kost, is moeilijk te voorspellen.</p></div>
+          <div class="card"><div class="ci">🔮</div><h4>Vooruitkijken</h4><p>Toekomstige gevolgen voelen abstract. Daardoor wint "straks" het vaak van "nu beginnen".</p></div>
+          <div class="card"><div class="ci">🎢</div><h4>Wachten & uitstellen</h4><p>Wachten voelt ongemakkelijk; een latere beloning weegt minder zwaar dan een directe.</p></div>
+        </div>
+        <p class="body-text">Dit verklaart waarom uitstel, te laat komen of "ik was de tijd vergeten" zo hardnekkig zijn — en waarom externe hulpmiddelen (zichtbare timers, alarmen, een agenda die je tijd <em>toont</em>) zo goed werken: ze maken tijd weer zichtbaar.</p>
+      </div>`
+  },
+  {
+    id:'executief', cat:'psychoeducatie', ic:'🎛️', naam:'Executieve functies', soloTitle:'Executieve functies: de dirigent in je hoofd',
+    ds:'Plannen, remmen, overzicht',
+    bron:['willcutt2005','faraone2021'],
+    bronNiveau:'sterk — een meta-analyse van 83 studies bevestigt dat executieve functies bij ADHD gemiddeld zwakker zijn, al verklaren ze niet álles en geldt het niet voor iedereen even sterk.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">De dirigent</div><h2>Executieve functies sturen je <span class="accent">van plan naar daad</span></h2></div>
+        <p class="body-text">Stel je een dirigent voor die alle instrumenten op het juiste moment laat spelen. Dat is wat <strong>executieve functies</strong> doen: ze zorgen dat je een doel voor ogen houdt, stappen plant, begint, jezelf afremt en bijstuurt. Bij ADHD werkt die dirigent grilliger — niet afwezig, maar minder voorspelbaar.</p>
+        <p class="body-text">Onderzoek bevestigt dat deze functies bij ADHD gemiddeld zwakker zijn. Belangrijk om te weten: het verklaart niet álles, en niet iedereen met ADHD heeft hier even veel last van. Het is een belangrijk stuk van de puzzel, geen volledige verklaring.</p>
+        <div class="cards">
+          <div class="card"><div class="ci">🧮</div><h4>Werkgeheugen</h4><p>Even iets "vasthouden" in je hoofd terwijl je iets anders doet — een boodschap, een instructie, waar je was gebleven.</p></div>
+          <div class="card"><div class="ci">🛑</div><h4>Inhibitie</h4><p>De rem: niet meteen reageren, een impuls of afleiding kunnen tegenhouden.</p></div>
+          <div class="card"><div class="ci">🗺️</div><h4>Plannen</h4><p>Een taak opdelen in stappen, een volgorde kiezen en weten waar te beginnen.</p></div>
+          <div class="card"><div class="ci">🔄</div><h4>Flexibel schakelen</h4><p>Vlot wisselen tussen taken of je aanpassen als er iets verandert.</p></div>
+        </div>
+        <div class="pull-quote"><p class="qt">"Je weet vaak perfect <em>wat</em> je moet doen. De moeite zit in het <em>doen</em> op het juiste moment."</p><p class="qs">Daarom helpt het zo om de dirigent van buitenaf te ondersteunen: lijstjes, vaste routines, herinneringen en de grote taak in kleine, zichtbare stappen knippen.</p></div>
+      </div>`
+  },
+  {
+    id:'wat_ass', cat:'psychoeducatie', ic:'🧩', naam:'Wat is autisme (ASS)?', soloTitle:'Wat is autisme (ASS)?',
+    ds:'Prikkels, communicatie, context',
+    bron:['lai2014'],
+    bronNiveau:'sterk — gebaseerd op een toonaangevend overzichtsartikel (Seminar) in The Lancet.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Het basisidee</div><h2>Autisme is een <span class="accent">andere manier van waarnemen</span> en verwerken</h2></div>
+        <p class="body-text">Autismespectrumstoornis (ASS) is een neurobiologische ontwikkelingsconditie. Ze toont zich vooral in twee dingen: <strong>de sociale communicatie</strong> verloopt anders, en er is een voorkeur voor <strong>voorspelbaarheid, patronen en specifieke interesses</strong>. Daarbij verwerken veel mensen met autisme prikkels (geluid, licht, drukte) intenser.</p>
+        <p class="body-text">Autisme komt voor bij ongeveer <strong>1% van de mensen</strong>. Het is een echt <em>spectrum</em>: geen twee mensen met autisme zijn hetzelfde. Bijkomende kenmerken zoals ADHD, angst of slaapproblemen komen vaak samen voor — bij meer dan zeven op de tien.</p>
+        <div class="cards">
+          <div class="card"><div class="ci">🔊</div><h4>Prikkelverwerking</h4><p>Geluiden, licht of drukte komen vaak harder binnen. Overprikkeling vraagt daarna rust en herstel.</p></div>
+          <div class="card"><div class="ci">💬</div><h4>Sociale communicatie</h4><p>Onuitgesproken signalen, dubbele bodems of "tussen de lijnen lezen" kosten meer moeite — niet uit onwil, maar omdat het anders verwerkt wordt.</p></div>
+          <div class="card"><div class="ci">📐</div><h4>Nood aan context</h4><p>Betekenis hangt voor iedereen af van de context; bij autisme gebeurt dat "automatisch invullen" minder vanzelf. Voorspelbaarheid geeft houvast.</p></div>
+        </div>
+        <div class="pull-quote"><p class="qt">"Autisme is geen tekort aan iets, maar een <em>andere</em> manier waarop de wereld binnenkomt."</p><p class="qs">Wie die manier begrijpt — bij zichzelf of bij een naaste — kan de omgeving zo afstemmen dat sterktes ruimte krijgen en overprikkeling vermindert.</p></div>
+      </div>`
+  },
+  {
+    id:'slaap_adhd', cat:'psychoeducatie', ic:'🌙', naam:'Slaap & ADHD', soloTitle:'Slaap & ADHD: waarom rust zo moeilijk is',
+    ds:'Waarom slapen vaak moeilijk gaat',
+    bron:['cortese2009','faraone2021'],
+    bronNiveau:'matig tot sterk — een meta-analyse van subjectieve én objectieve (slaapmeting) studies toont meer slaapproblemen bij kinderen met ADHD.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Geen toeval</div><h2>Bij ADHD en slaap zit er vaak <span class="accent">zand in de machine</span></h2></div>
+        <p class="body-text">Moeilijk inslapen, een hoofd dat 's avonds net op gang komt, 's morgens niet uit bed raken: slaapproblemen komen bij ADHD vaker voor dan gemiddeld. Dat is geen inbeelding — het blijkt zowel uit wat mensen zelf rapporteren als uit objectieve slaapmetingen.</p>
+        <p class="body-text">Er spelen meerdere dingen samen: een innerlijk ritme dat van nature later ligt, een brein dat moeilijk "afschakelt", en de wisselwerking met prikkels en schermen. Het goede nieuws: slaap is een van de krachtigste hefbomen — beter slapen verbetert vaak meteen de concentratie en de stemming.</p>
+        <div class="highlight-box"><div class="adv-label">Goed om te weten</div><p>Slaap en ADHD versterken elkaar in beide richtingen: te weinig slaap doet aandacht- en emotieklachten lijken op (of verergert) ADHD. Daarom kijken we bij ADHD altijd ook naar je slaap.</p><p>Praktische tips vind je in het aparte luik <strong>"Slaap &amp; dagritme"</strong> — vaste opsta-tijd, ochtendlicht en prikkels afbouwen voor het slapengaan.</p></div>
+      </div>`
+  },
+  {
+    id:'medicatie', cat:'psychoeducatie', ic:'💊', naam:'ADHD & medicatie', soloTitle:'ADHD-medicatie: hoe & waarom',
+    ds:'Wat medicatie wel/niet doet',
+    bron:['cortese2018','faraone2021'],
+    bronNiveau:'sterk — gebaseerd op een netwerk-meta-analyse van 133 gerandomiseerde studies en de internationale consensusverklaring.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Wat het doet</div><h2>Medicatie zet de <span class="accent">juiste systemen even scherper</span></h2></div>
+        <p class="body-text">ADHD-medicatie verandert je niet als persoon. Ze ondersteunt tijdelijk de hersensystemen voor aandacht en zelfsturing, zodat focussen, afremmen en overzicht houden vlotter gaan. Veel mensen beschrijven het als "de ruis valt weg" of "ik kan eindelijk doen wat ik al wilde doen".</p>
+        <p class="body-text">Het effect is goed onderbouwd: een grote analyse van 133 gerandomiseerde studies toont dat ADHD-medicatie duidelijk beter werkt dan een placebo op de kernsymptomen. Bij kinderen en jongeren gaat de voorkeur vaak naar methylfenidaat, bij volwassenen naar middelen uit de amfetaminegroep — telkens afgewogen tegen verdraagbaarheid.</p>
+        <div class="before-after">
+          <div class="ba-side before"><div class="ba-label">Wat medicatie wél is</div><h3>Een hulpmiddel</h3><p>Het maakt ruimte zodat strategieën, structuur en gewoontes kunnen aanslaan. Het werkt zolang het in je lichaam zit, als een bril die je opzet.</p></div>
+          <div class="ba-side after"><div class="ba-label">Wat het níet is</div><h3>Een verplichting of wondermiddel</h3><p>Het is jouw keuze, en het lost niet alles op. We starten laag, evalueren samen het effect en de bijwerkingen, en sturen bij.</p></div>
+        </div>
+        <div class="highlight-box"><div class="adv-label">Belangrijk</div><p>Of en wat we opstarten, is altijd een persoonlijke afweging die we samen maken en goed opvolgen. Deze tekst is uitleg, geen voorschrift. Vragen of twijfels zijn altijd welkom op de afspraak.</p></div>
+      </div>`
+  },
+
   /* ---------- LITERATUUR / BRONNEN (met subtopics) ---------- */
   {
     id:'bronnen', cat:'literatuur', ic:'📚', naam:'Bronnen & leesadvies',
@@ -372,14 +582,28 @@ const BLOCKS = [
         <div class="highlight-box"><div class="adv-label">Podcast</div><p><strong>ADHD Chatter</strong> — praktische en herkenbare gesprekken rond ADHD.</p></div>` },
       { id:'ass', label:'ASS (autisme)', default:false, content:`
         <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · ASS</div><h2>Autisme — <span class="accent">betrouwbare bronnen</span></h2></div>
-        <p class="body-text" style="color:#8a8278;font-style:italic;">Nog aan te vullen — klik hier in het document om jouw vertrouwde ASS-bronnen toe te voegen (of laat het me weten, dan vul ik een curated lijst aan).</p>` },
+        <div class="highlight-box"><div class="adv-label">Beste startpunt (BE)</div><p><strong>Autisme Vlaanderen / Vlaamse Vereniging Autisme</strong> — autismevlaanderen.be</p><p>De Vlaamse referentie rond autisme: betrouwbare info, een autismetelefoon, vorming en activiteiten. Ideaal om je goed en correct te informeren, ook voor de omgeving.</p></div>
+        <div class="cards">
+          <div class="card"><div class="ci">🇧🇪</div><h4>Participate! (BE)</h4><p>participate-autisme.be — heldere, praktische gids met infofiches en filmpjes, vooral sterk voor gezinnen en de dagelijkse omgang.</p></div>
+          <div class="card"><div class="ci">🎓</div><h4>Autisme Centraal (BE)</h4><p>Vlaams expertisecentrum met vorming en publicaties; sterk in het "autismevriendelijk" leren denken en communiceren.</p></div>
+        </div>
+        <div class="cards">
+          <div class="card"><div class="ci">📗</div><h4>Autisme als contextblindheid</h4><p>Peter Vermeulen — toegankelijk Vlaams kader: waarom context "automatisch invullen" anders verloopt bij autisme. Erg verhelderend.</p></div>
+          <div class="card"><div class="ci">📘</div><h4>NeuroTribes</h4><p>Steve Silberman — breed, genuanceerd verhaal over de geschiedenis en het anders-zijn van autisme.</p></div>
+          <div class="card"><div class="ci">📙</div><h4>Thinking in Pictures</h4><p>Temple Grandin — autisme van binnenuit verteld, door iemand die er zelf mee leeft.</p></div>
+        </div>` },
       { id:'trauma', label:'Trauma & stress', default:true, content:`
         <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · Trauma & stress</div><h2>Stress, trauma & <span class="accent">het lichaam</span></h2></div>
         <div class="highlight-box"><div class="adv-label">Aanrader</div><p><strong>The Body Keeps the Score</strong> — Bessel van der Kolk (NL: <em>Traumasporen</em>)</p><p>Legt helder uit hoe stress en trauma zich in het lichaam vastzetten, hoe emoties en gedrag hieruit voortkomen, en hoe herstel mogelijk is. Vooral relevant bij overprikkeling, emotionele ontregeling en "onverklaarbare" lichamelijke klachten.</p></div>
         <div class="cards"><div class="card"><div class="ci">📙</div><h4>Scattered Minds</h4><p>Gabor Maté — link tussen ADHD, ontwikkeling en omgeving (meer psychodynamisch).</p></div></div>` },
       { id:'relaties', label:'Relaties', default:false, content:`
         <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · Relaties</div><h2>Relaties & <span class="accent">verbinding</span></h2></div>
-        <p class="body-text" style="color:#8a8278;font-style:italic;">Nog aan te vullen — klik hier in het document om jouw vertrouwde bronnen rond relaties toe te voegen (of laat het me weten, dan stel ik een curated lijst voor).</p>` },
+        <div class="highlight-box"><div class="adv-label">Aanrader</div><p><strong>The ADHD Effect on Marriage</strong> — Melissa Orlov</p><p>De bekendste gids over hoe ADHD een (liefdes)relatie beïnvloedt: terugkerende patronen (de "ouder-kind"-dynamiek, miscommunicatie) en concrete stappen om er samen uit te geraken. Ook bruikbaar als één partner ADHD heeft en de ander niet.</p></div>
+        <div class="cards">
+          <div class="card"><div class="ci">📕</div><h4>Is It You, Me, or Adult A.D.D.?</h4><p>Gina Pera — herkenbaar en praktisch over ADHD in koppels, met aandacht voor de partner zonder ADHD.</p></div>
+          <div class="card"><div class="ci">🌐</div><h4>ADDitude — relaties</h4><p>additudemag.com — korte, concrete artikels over communicatie, conflict en intimiteit bij ADHD in relaties.</p></div>
+        </div>
+        <p class="body-text">Veel relatiespanning bij ADHD komt niet voort uit onwil, maar uit emotieregulatie, vergeetachtigheid en tijdsbeleving. Die als koppel léren herkennen — in plaats van als verwijt te beleven — is vaak de grootste stap.</p>` },
       { id:'algemeen', label:'Breder & reflectief', default:true, content:`
         <div class="section-header" style="margin-top:7mm;"><div class="section-label">Bronnen · Breder & reflectief</div><h2>Breder kaderen & <span class="accent">reflectie</span></h2></div>
         <div class="cards">
@@ -401,17 +625,81 @@ const BLOCKS = [
         <div class="step"><div class="step-num">2</div><div class="step-content"><h3>Licht in de ochtend</h3><p>Daglicht binnen het eerste uur na het opstaan helpt je ritme op gang. Een korte wandeling werkt ideaal.</p></div></div>
         <div class="step"><div class="step-num">3</div><div class="step-content"><h3>Schermen afbouwen</h3><p>Bouw het laatste uur voor het slapen de prikkels af. Niet perfect hoeven zijn — kleine stappen tellen.</p></div></div>
       </div>`
+  },
+  {
+    id:'life_voeding', cat:'leefstijl', ic:'🍳', naam:'Voeding & bloedsuiker', soloTitle:'Voeding, bloedsuiker & concentratie',
+    ds:'Eiwit, stabiliteit, wat vermijden',
+    bron:['sonugabarke2013','nigg2012'],
+    bronNiveau:'matig — meta-analyses tonen kleine, reële effecten van voeding op ADHD-klachten (eliminatiediëten en het vermijden van kunstmatige kleurstoffen). Voeding is een aanvulling, geen vervanging van de behandeling.',
+    content:`
+      <div class="block-section">
+        <div class="section-header"><div class="section-label">Leefstijl</div><h2>Wat je eet, voedt je <span class="accent">concentratie</span></h2></div>
+        <p class="body-text">Voeding "geneest" ADHD niet, maar het beïnvloedt wel hoe stabiel je je voelt doorheen de dag. De rode draad is eenvoudig: zorg voor een <strong>stabiele bloedsuiker</strong>, zodat je energie en aandacht niet pieken en crashen.</p>
+        <div class="step"><div class="step-num">1</div><div class="step-content"><h3>Begin met eiwit</h3><p>Een ontbijt met eiwit (eieren, yoghurt, noten, kaas) houdt je bloedsuiker stabieler dan enkel suiker of wit brood. Dat helpt focus in de voormiddag.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-content"><h3>Vermijd suikerpieken</h3><p>Veel snelle suikers geven een piek én een dip. Combineer koolhydraten met eiwit of vezels, en kies vaker volkoren.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-content"><h3>Let op kunstmatige kleurstoffen</h3><p>Bij een deel van de kinderen hangen synthetische kleurstoffen samen met meer drukte. Het effect is klein en geldt niet voor iedereen, maar bij gevoeligheid loont het de moeite ze te beperken.</p></div></div>
+        <div class="highlight-box"><div class="adv-label">Nuance</div><p>De effecten van voeding zijn reëel maar bescheiden, en verschillen van persoon tot persoon. Zie het als een extra hefboom naast slaap, beweging en behandeling — niet als de oplossing op zich.</p></div>
+      </div>`
   }
 ];
 
 /* category metadata: volgorde bepaalt titelvolgorde */
-const CAT_ORDER = ['therapie','literatuur','leefstijl','supplement'];
+const CAT_ORDER = ['psychoeducatie','therapie','literatuur','leefstijl','supplement'];
 const CAT = {
+  psychoeducatie:{label:'Psycho-educatie', tag:'psy', term:'psycho-educatie', groupDesc:'Uitleg over ADHD, autisme en aanverwante thema\'s in de huisstijl — onderbouwd met wetenschappelijke bronnen.'},
   supplement:{label:'Supplementen',  tag:'',     term:'supplementenadvies', groupDesc:'Tekorten uit het bloedonderzoek. Verschijnen in de opening en in een controleschema.'},
   therapie:  {label:'Therapie-uitleg',tag:'ther', term:'therapie-uitleg',    groupDesc:'Uitleg over een therapievorm in de huisstijl.'},
   literatuur:{label:'Literatuur',    tag:'lit',  term:'literatuur',          groupDesc:'Lees- en bronadvies om mee te geven.'},
   leefstijl: {label:'Leefstijl',     tag:'life', term:'leefstijladvies',     groupDesc:'Praktische leefstijladviezen.'}
 };
+
+/* ============================================================
+   BIB — wetenschappelijke bronnen (A1 / peer-reviewed)
+   Elke sleutel: { t: volledige referentie, u: stabiele URL }
+   Gekoppeld aan blokken via het veld bron:['sleutel', ...]
+   Alle referenties zijn geverifieerd (titel/auteurs/jaar/journal).
+   ============================================================ */
+const BIB = {
+  bloch2011:   {t:'Bloch MH, Qawasmi A (2011). Omega-3 fatty acid supplementation for the treatment of children with ADHD symptomatology: a systematic review and meta-analysis. J Am Acad Child Adolesc Psychiatry, 50(10), 991–1000.', u:'https://pubmed.ncbi.nlm.nih.gov/21961774/'},
+  hawkey2014:  {t:'Hawkey E, Nigg JT (2014). Omega-3 fatty acid and ADHD: blood level analysis and meta-analytic extension of supplementation trials. Clin Psychol Rev, 34(6), 496–505.', u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC4321799/'},
+  tseng2018:   {t:'Tseng PT, et al. (2018). Peripheral iron levels in children with ADHD: a systematic review and meta-analysis. Scientific Reports, 8, 788.', u:'https://www.nature.com/articles/s41598-017-19096-x'},
+  zink2021:    {t:'Zinc status in attention-deficit/hyperactivity disorder: a systematic review and meta-analysis of observational studies (2021). Scientific Reports, 11, 14612.', u:'https://www.nature.com/articles/s41598-021-94124-5'},
+  granero2021: {t:'Granero R, et al. (2021). The role of iron and zinc in the treatment of ADHD among children and adolescents: a systematic review of randomized clinical trials. Nutrients, 13(11), 4059.', u:'https://www.mdpi.com/2072-6643/13/11/4059'},
+  khoshbakht2018:{t:'Khoshbakht Y, Bidaki R, Salehi-Abargouei A (2018). Vitamin D status and attention deficit hyperactivity disorder: a systematic review and meta-analysis of observational studies. Adv Nutr, 9(1), 9–20.', u:'https://pubmed.ncbi.nlm.nih.gov/29438455/'},
+  sonugabarke2013:{t:'Sonuga-Barke EJS, et al.; European ADHD Guidelines Group (2013). Nonpharmacological interventions for ADHD: systematic review and meta-analyses of randomized controlled trials of dietary and psychological treatments. Am J Psychiatry, 170(3), 275–289.', u:'https://psychiatryonline.org/doi/10.1176/appi.ajp.2012.12070991'},
+  nigg2012:    {t:'Nigg JT, et al. (2012). Meta-analysis of ADHD or ADHD symptoms, restriction diet, and synthetic food color additives. J Am Acad Child Adolesc Psychiatry, 51(1), 86–97.', u:'https://pubmed.ncbi.nlm.nih.gov/22176942/'},
+  faraone2021: {t:'Faraone SV, et al. (2021). The World Federation of ADHD International Consensus Statement: 208 evidence-based conclusions about the disorder. Neurosci Biobehav Rev, 128, 789–818.', u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC8328933/'},
+  cortese2018: {t:'Cortese S, et al. (2018). Comparative efficacy and tolerability of medications for ADHD in children, adolescents, and adults: a systematic review and network meta-analysis. Lancet Psychiatry, 5(9), 727–738.', u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC6109107/'},
+  shaw2014:    {t:'Shaw P, Stringaris A, Nigg J, Leibenluft E (2014). Emotion dysregulation in attention deficit hyperactivity disorder. Am J Psychiatry, 171(3), 276–293.', u:'https://doi.org/10.1176/appi.ajp.2013.13070966'},
+  beheshti2020:{t:'Beheshti A, Chavanon ML, Christiansen H (2020). Emotion dysregulation in adults with attention deficit hyperactivity disorder: a meta-analysis. BMC Psychiatry, 20, 120.', u:'https://doi.org/10.1186/s12888-020-2442-7'},
+  willcutt2005:{t:'Willcutt EG, Doyle AE, Nigg JT, Faraone SV, Pennington BF (2005). Validity of the executive function theory of ADHD: a meta-analytic review. Biol Psychiatry, 57(11), 1336–1346.', u:'https://pubmed.ncbi.nlm.nih.gov/15950006/'},
+  noreika2013: {t:'Noreika V, Falter CM, Rubia K (2013). Timing deficits in attention-deficit/hyperactivity disorder (ADHD): evidence from neurocognitive and neuroimaging studies. Neuropsychologia, 51(2), 235–266.', u:'https://pubmed.ncbi.nlm.nih.gov/23022430/'},
+  cortese2009: {t:'Cortese S, Faraone SV, Konofal E, Lecendreux M (2009). Sleep in children with attention-deficit/hyperactivity disorder: meta-analysis of subjective and objective studies. J Am Acad Child Adolesc Psychiatry, 48(9), 894–908.', u:'https://pubmed.ncbi.nlm.nih.gov/19625983/'},
+  lai2014:     {t:'Lai MC, Lombardo MV, Baron-Cohen S (2014). Autism. The Lancet, 383(9920), 896–910.', u:'https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(13)61539-1/abstract'},
+  bijkerk2009: {t:'Bijkerk CJ, et al. (2009). Soluble or insoluble fibre in irritable bowel syndrome in primary care? Randomised placebo controlled trial. BMJ, 339, b3154.', u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC3272664/'},
+  ford2008:    {t:'Ford AC, et al. (2008). Effect of fibre, antispasmodics, and peppermint oil in the treatment of irritable bowel syndrome: systematic review and meta-analysis. BMJ, 337, a2313.', u:'https://pmc.ncbi.nlm.nih.gov/articles/PMC3060574/'}
+};
+
+/* render een klein "Wetenschappelijke bronnen"-kader onder een blok */
+function bronnenHTML(b){
+  const keys = (b && b.bron) || [];
+  const niveau = b && b.bronNiveau;
+  if(!keys.length && !niveau) return '';
+  let items = keys.map(k=>{
+    const r = BIB[k];
+    if(!r) return '';
+    return '<li>'+r.t+(r.u?' <a href="'+r.u+'" target="_blank" rel="noopener">bekijk bron ↗</a>':'')+'</li>';
+  }).join('');
+  let pill = '';
+  if(niveau){
+    const w = niveau.toLowerCase();
+    const cls = w.indexOf('sterk')===0 ? 'sterk' : (w.indexOf('beperkt')===0 ? 'beperkt' : 'matig');
+    pill = '<span class="niveau-pill '+cls+'">'+cls+'</span>';
+  }
+  const nivLine = niveau ? '<p class="bron-niveau"><strong>Niveau van bewijs '+pill+':</strong> '+niveau+'</p>' : '';
+  const list = items ? '<ol>'+items+'</ol>' : '';
+  return '<div class="bronnen"><div class="bron-label">Wetenschappelijke bronnen</div>'+nivLine+list+'</div>';
+}
 
 const state = { on:new Set(), opts:new Set(), subs:new Set() };
 
@@ -546,11 +834,22 @@ function render(){
   /* OPENING */
   h += `<div class="block-section">`;
   h += `<p class="body-text">Beste ${naam},</p>`;
-  const introExtra = document.getElementById('opt-intro').checked ? ', met enkele aandachtspunten' : '';
-  h += `<p class="body-text">Je bloedwaarden zijn gekend. Het algemene beeld is geruststellend${introExtra}.</p>`;
   if(supp.length){
-    const lijst = listToText(supp.map(b=>b.deficientie));
-    h += `<p class="body-text">Er zijn wel enkele tekorten vastgesteld: <strong>${lijst}</strong>. Deze hangen samen met de klachten waarmee je je aanmeldde, en er is goede wetenschappelijke onderbouwing om ze via supplementen aan te vullen. Hieronder lees je per tekort wat het betekent en wat ik je adviseer.</p>`;
+    const introExtra = document.getElementById('opt-intro').checked ? ', met enkele aandachtspunten' : '';
+    h += `<p class="body-text">Je bloedwaarden zijn gekend. Het algemene beeld is geruststellend${introExtra}.</p>`;
+    const tekorten = supp.filter(b=>!b.geenTekort);
+    const adviesOnly = supp.filter(b=>b.geenTekort);
+    if(tekorten.length){
+      const lijst = listToText(tekorten.map(b=>b.deficientie));
+      h += `<p class="body-text">Er zijn wel enkele tekorten vastgesteld: <strong>${lijst}</strong>. Deze hangen samen met de klachten waarmee je je aanmeldde, en er is goede wetenschappelijke onderbouwing om ze via supplementen aan te vullen. Hieronder lees je per tekort wat het betekent en wat ik je adviseer.</p>`;
+    }
+    if(adviesOnly.length){
+      h += tekorten.length
+        ? `<p class="body-text">Daarnaast adviseer ik nog een aanvulling op basis van je klachten — ook daarover lees je hieronder meer.</p>`
+        : `<p class="body-text">Op basis van je klachten licht ik hieronder een aanvulling toe die ik je adviseer.</p>`;
+    }
+  } else {
+    h += `<p class="body-text">Zoals besproken geef ik je hierbij wat meer uitleg en achtergrond mee — bedoeld als houvast om rustig na te lezen.</p>`;
   }
   h += `</div>`;
 
@@ -561,7 +860,9 @@ function render(){
       <p class="body-text"><strong>Wat doet ${b.naam.toLowerCase()}?</strong> ${b.watdoet}</p>
       <div class="highlight-box"><div class="adv-label">Advies</div>${b.advies}`;
     (b.opties||[]).forEach(o=>{ if(state.opts.has(o.id)) h+=`<p class="opt-note">${o.tekst}</p>`; });
-    h += `</div><p class="controle-line"><span class="accent">Controle:</span> ${b.controle}.</p></div>`;
+    h += `</div><p class="controle-line"><span class="accent">Controle:</span> ${b.controle}.</p>`;
+    h += bronnenHTML(b);
+    h += `</div>`;
   });
 
   /* CONTROLESCHEMA overview */
@@ -576,11 +877,12 @@ function render(){
     let inner;
     if(b.subtopics){
       inner = (b.intro||'');
-      b.subtopics.forEach(st=>{ if(state.subs.has(b.id+':'+st.id)) inner += st.content; });
+      b.subtopics.forEach(st=>{ if(state.subs.has(b.id+':'+st.id)){ inner += st.content; inner += bronnenHTML(st); } });
       inner += (b.outro||'');
     } else {
       inner = b.content || '';
     }
+    inner += bronnenHTML(b);
     const brk = (supp.length>0 || i>0) ? 'force-break ' : '';
     h += `<div class="${brk}block-section">${inner}</div>`;
   });
@@ -592,6 +894,25 @@ function render(){
   if(supp.length) h += `<p class="body-text">Ik plan een controle van je labo in zoals hierboven aangegeven${afspraak}. Heb je in tussentijd vragen, laat het gerust weten.</p>`;
   else h += `<p class="body-text">Heb je na het lezen nog vragen, dan bespreken we die graag samen op de volgende afspraak.</p>`;
   h += `<p class="body-text" style="margin-bottom:1mm;">Vriendelijke groeten,</p><p class="sig">${onderteken}</p></div>`;
+
+  /* AANKOOPLIJST — helemaal onderaan, op een eigen pagina */
+  const producten = sel.filter(b=>b.product);
+  if(producten.length){
+    h += `<div class="force-break block-section"><div class="section-header"><div class="section-label">Voor bij de apotheek</div><h2>Je aankooplijst</h2></div>`;
+    h += `<p class="body-text">Dit overzicht kan je meenemen naar de apotheek. Het bundelt in één lijst wat ik je adviseerde, met telkens hoeveel je neemt en wanneer.</p>`;
+    const _seen=new Set();
+    producten.forEach(b=>{
+      const p=b.product;
+      if(_seen.has(p.naam)) return;   // combipreparaten (bv. selenium+zink) maar één keer tonen
+      _seen.add(p.naam);
+      h += `<div class="shop-item"><h4>${b.ic} ${p.naam}` + (p.via?` <span class="shop-tag">${p.via}</span>`:``) + `</h4><p class="meta">`;
+      if(p.dosering) h += `<strong>Hoeveel:</strong> ${p.dosering}<br>`;
+      if(p.inname)   h += `<strong>Wanneer:</strong> ${p.inname}`;
+      if(p.let_op)   h += `<br><strong>Let op:</strong> ${p.let_op}`;
+      h += `</p></div>`;
+    });
+    h += `<p class="body-text" style="font-size:9pt;color:#8a8278;font-style:italic;margin-top:4mm;">Twijfel je over een product of dosis? Je apotheker kan je hierbij verder helpen.</p></div>`;
+  }
 
   prev.innerHTML = h;
 }
