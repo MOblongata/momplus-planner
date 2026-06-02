@@ -898,7 +898,7 @@ function render(){
   const afspraak = document.getElementById('opt-afspraak').checked
     ? '; je krijgt hiervoor nog een afspraak' : '';
   h += `<div class="closing">`;
-  if(supp.length) h += `<p class="body-text">Ik plan een controle van je labo in zoals hierboven aangegeven${afspraak}. Heb je in tussentijd vragen, laat het gerust weten.</p>`;
+  if(supp.length) h += `<p class="body-text">Een controlelabo kan later op de consultatie besproken worden${afspraak}. Heb je in tussentijd vragen, laat het gerust weten.</p>`;
   else h += `<p class="body-text">Heb je na het lezen nog vragen, dan bespreken we die graag samen op de volgende afspraak.</p>`;
   h += `<p class="body-text" style="margin-bottom:1mm;">Vriendelijke groeten,</p><p class="sig">${onderteken}</p></div>`;
 
