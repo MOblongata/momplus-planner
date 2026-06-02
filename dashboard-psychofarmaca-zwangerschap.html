@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Psychofarmaca bij zwangerschap & borstvoeding — neonataal beleid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff; --text:#2c2a26; --muted:#5a5650; --light:#7a7368;
+  --border:#e0d8ce; --surface:#faf8f5; --surface2:#fdf6f0; --surface3:#f0f6fb;
+  --accent:#c4a882; --accent-dk:#d4956a; --accent2:#7eb3c8; --accent3:#a89fc4;
+  --ink:#1a1814;
+  --ok:#5f7d57;    --ok-bg:#eef2ea;   --ok-bd:#cdd9c4;
+  --warn:#b07d35;  --warn-bg:#f7efe0; --warn-bd:#ecd9b4;
+  --alert:#b3544c; --alert-bg:#f6e8e6;--alert-bd:#e8c9c4;
+  --serif:'Lora','DejaVu Serif',Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);color:var(--text);background:var(--surface);line-height:1.6;font-size:15px;}
+
+/* ---- top bar ---- */
+.topbar{background:var(--bg);border-bottom:1px solid var(--border);position:relative;}
+.topbar .rule{height:4px;background:linear-gradient(90deg,var(--accent),var(--accent2),var(--accent3));}
+.topwrap{max-width:1180px;margin:0 auto;padding:26px 26px 22px;}
+.eyebrow{font-family:var(--serif);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.topbar h1{font-family:var(--serif);font-weight:500;font-size:30px;line-height:1.15;color:var(--ink);}
+.topbar h1 em{font-style:italic;color:var(--accent);}
+.subtitle{color:var(--muted);font-size:14.5px;margin-top:8px;max-width:760px;}
+.source-chip{display:inline-flex;align-items:center;gap:8px;margin-top:14px;font-size:12.5px;color:var(--light);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;}
+.source-chip strong{color:var(--muted);font-weight:600;}
+
+/* ---- layout ---- */
+.wrap{max-width:1180px;margin:0 auto;padding:24px 26px 60px;}
+
+/* ---- controls ---- */
+.controls{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:22px;}
+.search-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.search{flex:1;min-width:240px;position:relative;}
+.search input{width:100%;padding:11px 14px 11px 38px;border:1px solid var(--border);border-radius:9px;font-size:14.5px;font-family:var(--sans);color:var(--text);background:var(--surface);}
+.search input:focus{outline:none;border-color:var(--accent);background:#fff;}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--light);}
+.btn{font-family:var(--sans);font-size:13.5px;border:1px solid var(--border);background:#fff;color:var(--muted);border-radius:9px;padding:10px 16px;cursor:pointer;transition:.15s;white-space:nowrap;}
+.btn:hover{border-color:var(--accent);color:var(--ink);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:#b89968;border-color:#b89968;color:#fff;}
+.filter-block{margin-top:16px;}
+.filter-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--light);margin-bottom:8px;}
+.chips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{font-size:13px;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:18px;padding:6px 14px;cursor:pointer;transition:.15s;}
+.chip:hover{border-color:var(--accent);}
+.chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+.filter-grid{display:flex;gap:28px;flex-wrap:wrap;margin-top:16px;}
+
+/* ---- legend ---- */
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin:0 2px 18px;font-size:12.5px;color:var(--muted);align-items:center;}
+.legend .lg{display:inline-flex;align-items:center;gap:7px;}
+.dot{width:11px;height:11px;border-radius:50%;display:inline-block;}
+.dot.ok{background:var(--ok);} .dot.warn{background:var(--warn);} .dot.alert{background:var(--alert);}
+
+.count{font-size:13px;color:var(--light);margin:0 2px 14px;}
+
+/* ---- cards grid ---- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;}
+.card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px 17px;cursor:pointer;transition:.16s;position:relative;overflow:hidden;}
+.card:hover{border-color:var(--accent);box-shadow:0 6px 20px rgba(120,100,60,.08);transform:translateY(-2px);}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--klr,var(--accent));}
+.card h3{font-family:var(--serif);font-weight:500;font-size:18px;color:var(--ink);margin-bottom:2px;}
+.card .klasse{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;}
+.card .merk{font-size:12px;color:var(--light);font-style:italic;margin-bottom:12px;}
+.badges{display:flex;flex-direction:column;gap:6px;}
+.badge{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 10px;border-radius:7px;border:1px solid transparent;width:fit-content;max-width:100%;}
+.badge.ok{background:var(--ok-bg);border-color:var(--ok-bd);color:#3f5538;}
+.badge.warn{background:var(--warn-bg);border-color:var(--warn-bd);color:#7d551c;}
+.badge.alert{background:var(--alert-bg);border-color:var(--alert-bd);color:#8a3c34;}
+.badge b{font-weight:600;}
+.empty{grid-column:1/-1;text-align:center;color:var(--light);padding:50px 20px;font-style:italic;}
+
+/* ---- modal ---- */
+.overlay{position:fixed;inset:0;background:rgba(40,36,30,.45);display:none;align-items:flex-start;justify-content:center;padding:34px 18px;z-index:50;overflow-y:auto;}
+.overlay.open{display:flex;}
+.modal{background:var(--bg);border-radius:14px;max-width:720px;width:100%;box-shadow:0 24px 60px rgba(40,30,10,.25);overflow:hidden;}
+.modal-head{padding:24px 28px 20px;border-bottom:1px solid var(--border);position:relative;}
+.modal-head .kl-strip{position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--klr,var(--accent));}
+.modal-head .klasse{font-size:12px;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;}
+.modal-head h2{font-family:var(--serif);font-weight:500;font-size:26px;color:var(--ink);line-height:1.1;}
+.modal-head .merk{font-size:13px;color:var(--light);font-style:italic;margin-top:5px;}
+.close{position:absolute;top:18px;right:20px;width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:#fff;font-size:18px;color:var(--muted);cursor:pointer;line-height:1;}
+.close:hover{border-color:var(--accent);color:var(--ink);}
+.modal-body{padding:8px 28px 24px;}
+.mbadges{display:flex;gap:10px;flex-wrap:wrap;padding:18px 0 6px;}
+.sec{padding:16px 0;border-top:1px solid var(--border);}
+.sec:first-of-type{border-top:none;}
+.sec h4{font-family:var(--serif);font-weight:500;font-size:14px;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px;display:flex;align-items:center;gap:8px;}
+.sec h4 .ic{color:var(--accent);font-size:15px;}
+.sec ul{list-style:none;}
+.sec li{position:relative;padding-left:18px;margin-bottom:6px;font-size:14px;color:var(--muted);line-height:1.55;}
+.sec li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--accent);}
+.sec p.none{font-size:14px;color:var(--light);font-style:italic;}
+.transpl{display:inline-block;background:var(--surface3);border:1px solid #d4e4ee;color:#3a6c82;font-size:13px;padding:5px 12px;border-radius:7px;}
+.advies-box{background:var(--surface2);border-left:3px solid var(--accent);border-radius:6px;padding:14px 16px;}
+.advies-box ul{list-style:none;}
+.advies-box li{padding-left:18px;}
+.meer{margin-top:10px;font-size:13px;}
+.meer a{color:var(--accent2);text-decoration:none;border-bottom:1px solid #cfe2eb;}
+.meer a:hover{color:#3a6c82;}
+.srctag{font-family:var(--sans);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:2px 7px;border-radius:10px;margin-left:8px;vertical-align:middle;}
+.srctag.uz{background:var(--surface2);border:1px solid var(--accent);color:#9a7d4a;}
+.srctag.lb{background:var(--surface3);border:1px solid var(--accent2);color:#3a6c82;}
+.lareb-sec h4 .ic2{color:var(--accent2);font-size:15px;}
+.lareb-risico{background:var(--surface3);border-left:3px solid var(--accent2);padding:9px 13px;border-radius:6px;font-size:13.5px;color:#37657c;margin-bottom:11px;}
+.lareb-sec li::before{background:var(--accent2);}
+.lareb-bron{font-size:11.5px;color:var(--light);margin-top:9px;font-style:italic;}
+.lareb-bron a{color:var(--accent2);}
+.lareb-tag{margin-top:10px;font-size:11.5px;color:#3a6c82;display:inline-flex;align-items:center;gap:6px;}
+.lareb-tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent2);}
+.bron-line{font-size:12px;color:var(--light);margin-top:6px;}
+.modal-foot{padding:16px 28px;border-top:1px solid var(--border);background:var(--surface);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.modal-foot .note{font-size:11.5px;color:var(--light);max-width:420px;}
+
+/* ---- class overview / footer ---- */
+.section-title{font-family:var(--serif);font-weight:500;font-size:21px;color:var(--ink);margin:38px 2px 6px;}
+.section-sub{font-size:13.5px;color:var(--muted);margin:0 2px 16px;max-width:820px;}
+.klassen{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+.kbox{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:16px 18px;}
+.kbox h4{font-family:var(--serif);font-weight:500;font-size:16px;color:var(--ink);margin-bottom:9px;}
+.kbox ul{list-style:none;}
+.kbox li{position:relative;padding-left:16px;font-size:13px;color:var(--muted);margin-bottom:5px;line-height:1.5;}
+.kbox li::before{content:"";position:absolute;left:1px;top:8px;width:4px;height:4px;border-radius:50%;background:var(--accent);}
+
+details.refs{margin-top:30px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:4px 20px;}
+details.refs summary{cursor:pointer;font-family:var(--serif);font-size:16px;color:var(--ink);padding:14px 0;list-style:none;}
+details.refs summary::-webkit-details-marker{display:none;}
+details.refs summary::before{content:"▸ ";color:var(--accent);}
+details.refs[open] summary::before{content:"▾ ";}
+details.refs ol{margin:6px 0 18px 20px;}
+details.refs li{font-size:12px;color:var(--muted);margin-bottom:5px;line-height:1.5;}
+details.refs a{color:var(--accent2);}
+
+.disclaimer{margin-top:30px;background:var(--surface2);border:1px solid var(--border);border-left:4px solid var(--accent-dk);border-radius:10px;padding:18px 22px;}
+.disclaimer h4{font-family:var(--serif);font-weight:500;font-size:15px;color:var(--ink);margin-bottom:8px;}
+.disclaimer p{font-size:12.5px;color:var(--muted);line-height:1.65;margin-bottom:8px;}
+.disclaimer p:last-child{margin-bottom:0;}
+
+.footer{margin-top:30px;padding-top:18px;border-top:1px solid var(--border);font-size:12px;color:var(--light);text-align:center;line-height:1.7;}
+
+/* ---- print ---- */
+#printroot{display:none;}
+@media print{
+  @page{size:A4;margin:16mm 16mm 16mm 16mm;}
+  body{background:#fff;font-size:11pt;}
+  body.printing .topbar,body.printing .wrap{display:none!important;}
+  body.printing #printroot{display:block;}
+  .p-sheet{page-break-after:always;}
+  .p-sheet:last-child{page-break-after:auto;}
+  .p-rule{height:3pt;background:linear-gradient(90deg,#c4a882,#7eb3c8,#a89fc4);margin-bottom:8mm;}
+  .p-eyebrow{font-family:var(--serif);font-size:8pt;letter-spacing:.16em;text-transform:uppercase;color:#c4a882;margin-bottom:3mm;}
+  .p-title{font-family:var(--serif);font-size:22pt;font-weight:500;color:#1a1814;line-height:1.1;}
+  .p-klasse{font-family:var(--serif);font-size:10pt;color:#c4a882;text-transform:uppercase;letter-spacing:.06em;margin-top:1mm;}
+  .p-merk{font-size:9.5pt;color:#7a7368;font-style:italic;margin-top:1mm;}
+  .p-badges{margin:5mm 0;}
+  .p-badge{display:inline-block;font-size:9.5pt;padding:2mm 4mm;border-radius:4pt;margin-right:3mm;border:0.5pt solid #ccc;}
+  .p-badge.ok{background:#eef2ea;border-color:#cdd9c4;color:#3f5538;}
+  .p-badge.warn{background:#f7efe0;border-color:#ecd9b4;color:#7d551c;}
+  .p-badge.alert{background:#f6e8e6;border-color:#e8c9c4;color:#8a3c34;}
+  .p-sec{margin:4mm 0;page-break-inside:avoid;}
+  .p-sec h4{font-family:var(--serif);font-size:11pt;font-weight:500;color:#1a1814;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2mm;border-bottom:0.5pt solid #e0d8ce;padding-bottom:1mm;}
+  .p-sec ul{margin-left:5mm;}
+  .p-sec li{font-size:10pt;color:#3e3b36;margin-bottom:1mm;}
+  .p-advies{background:#fdf6f0;border-left:2.5pt solid #c4a882;padding:3mm 5mm;}
+  .p-bron{font-size:8.5pt;color:#9a9288;margin-top:5mm;border-top:0.5pt solid #e0d8ce;padding-top:2mm;font-style:italic;}
+  .p-overview h1{font-family:var(--serif);font-size:20pt;font-weight:500;color:#1a1814;margin-bottom:2mm;}
+  .p-overview .lead{font-size:9.5pt;color:#5a5650;margin-bottom:5mm;}
+  table.p-tbl{width:100%;border-collapse:collapse;font-size:8.5pt;}
+  table.p-tbl th{background:#faf8f5;text-align:left;padding:2mm;border:0.5pt solid #e0d8ce;font-family:var(--serif);font-weight:500;color:#1a1814;}
+  table.p-tbl td{padding:2mm;border:0.5pt solid #e0d8ce;color:#3e3b36;vertical-align:top;}
+}
+@media(max-width:560px){.topbar h1{font-size:24px;}.modal-foot{flex-direction:column;align-items:stretch;}}
+/* ===== Auth gate ===== */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0ea5e9,#06b6d4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;box-sizing:border-box;}
+.auth-card input:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.15);}
+.auth-card .btn-auth{width:100%;background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit;}
+.auth-card .btn-auth:hover{background:#0284c7;}
+.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+.auth-card .toggle a{color:#0ea5e9;cursor:pointer;text-decoration:underline;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.auth-user-pill{position:fixed;top:10px;right:10px;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;background:#cffafe;color:#0e7490;border-radius:16px;font-size:11.5px;font-weight:600;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.1);font-family:-apple-system,sans-serif;}
+.auth-user-pill a{color:#0e7490;text-decoration:none;border:1px solid #67e8f9;padding:2px 7px;border-radius:11px;font-size:10.5px;font-weight:600;}
+.auth-user-pill a:hover{background:#67e8f9;}
+.auth-user-pill button{margin-left:4px;background:none;border:1px solid #67e8f9;color:#0e7490;padding:2px 8px;border-radius:11px;font-size:10.5px;cursor:pointer;font-weight:600;font-family:inherit;}
+.auth-user-pill button:hover{background:#67e8f9;}
+</style>
+</head>
+<body>
+
+<!-- ===== Auth gate ===== -->
+<div class="auth-overlay" id="auth-overlay" style="display:flex">
+  <div class="auth-card">
+    <h1>🤰 Psychofarmaca &amp; zwangerschap</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="email" placeholder="naam@praktijk.be">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" autocomplete="current-password" placeholder="••••••••">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Naar <a href="praktijk.html">praktijk-hub</a></div>
+    </div>
+  </div>
+</div>
+<div class="auth-user-pill" id="user-pill" style="display:none">
+  <a href="praktijk.html" title="Terug naar praktijk-hub">←</a>
+  <span>👤</span><span id="user-name"></span>
+  <button onclick="doLogout()" title="Uitloggen">⏻</button>
+</div>
+
+<header class="topbar">
+  <div class="rule"></div>
+  <div class="topwrap">
+    <div class="eyebrow">Klinisch naslagdashboard</div>
+    <h1>Psychofarmaca bij <em>zwangerschap</em> &amp; borstvoeding</h1>
+    <p class="subtitle">Neonataal beleid bij maternale inname van psychofarmaca. Klik op een medicijn voor de volledige bevindingen, moedermelkgegevens en het beleidsadvies. Elk item kan als PDF worden opgeslagen.</p>
+    <span class="source-chip">📄 <span><strong>Bron:</strong> UZ Gent — richtlijn nr. 33641, versie 2, gepubliceerd 24-03-2025</span></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="controls">
+    <div class="search-row">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="q" type="text" placeholder="Zoek op medicijn of merknaam…" autocomplete="off">
+      </div>
+      <button class="btn" id="reset">Filters wissen</button>
+      <button class="btn btn-primary" id="pdfAll">⬇ Volledig overzicht (PDF)</button>
+    </div>
+
+    <div class="filter-grid">
+      <div class="filter-block">
+        <div class="filter-label">Klasse</div>
+        <div class="chips" id="fKlasse"></div>
+      </div>
+      <div class="filter-block">
+        <div class="filter-label">Beleid neonaat</div>
+        <div class="chips" id="fNeo"></div>
+      </div>
+      <div class="filter-block">
+        <div class="filter-label">Borstvoeding</div>
+        <div class="chips" id="fBv"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span class="lg"><b>Neonaat:</b></span>
+    <span class="lg"><span class="dot ok"></span> Geen bijzondere maatregelen</span>
+    <span class="lg"><span class="dot warn"></span> Geen ontslag &lt; 48u</span>
+    <span class="lg"><span class="dot alert"></span> Opname N*-functie</span>
+    <span class="lg" style="margin-left:14px;"><b>Borstvoeding:</b></span>
+    <span class="lg"><span class="dot ok"></span> Toegelaten</span>
+    <span class="lg"><span class="dot alert"></span> Niet toegelaten</span>
+  </div>
+
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"></div>
+
+  <h2 class="section-title">Bevindingen per therapeutische klasse</h2>
+  <p class="section-sub">Algemene neonatale effecten per klasse zoals beschreven in de richtlijn (sectie 5.1). De odds ratio's (OR) gelden voor antidepressiva als groep.</p>
+  <div class="klassen" id="klassen"></div>
+
+  <details class="refs">
+    <summary>Referenties (volledige bronnenlijst uit de richtlijn)</summary>
+    <ol id="refList"></ol>
+  </details>
+
+  <div class="disclaimer">
+    <h4>Belangrijke kanttekeningen</h4>
+    <p><strong>Scope.</strong> Deze richtlijn betreft <em>uitsluitend de postnatale periode met betrekking tot de pasgeborene</em>. De literatuur over psychofarmaca tijdens zwangerschap en borstvoeding kent een lage graad van wetenschappelijke evidentie; de adviezen laten daarom ruimte voor een geïndividualiseerde aanpak. Een relatieve dosis aan de zuigeling &lt; 10% wordt als veilig beschouwd.</p>
+    <p><strong>Verantwoordelijkheid.</strong> Het bepalen van de uiteindelijke geïndividualiseerde behandeling per casus is de verantwoordelijkheid van de behandelende arts. UZ Gent is niet verantwoordelijk voor de gevolgen van toepassing van deze adviezen buiten UZ Gent. Bij gebruik dient steeds verwezen te worden naar de correcte titel en naar UZ Gent als auteur.</p>
+    <p><strong>Twee bronnen, gescheiden gehouden.</strong> Voor SSRI's, SNRI's en trazodon is per medicijn een blok <em>Tijdens de zwangerschap</em> toegevoegd op basis van Bijwerkingencentrum Lareb / Moeders van Morgen (<a href="https://www.lareb.nl/mvm-kennis" target="_blank" rel="noopener" style="color:var(--accent2)">lareb.nl/mvm-kennis</a>), herkenbaar aan het blauwe <span style="background:var(--surface3);border:1px solid var(--accent2);color:#3a6c82;font-size:10px;font-weight:600;padding:1px 6px;border-radius:9px">Lareb</span>-label. <strong>Lareb beschrijft het risico tijdens de zwangerschap</strong> (aangeboren afwijkingen, miskraam, vroeggeboorte, laag geboortegewicht); <strong>UZ Gent beschrijft het neonatale/postnatale beleid.</strong> De Lareb-pagina's zijn laatst bijgewerkt op 26-02-2025 (SSRI) en 25-10-2022 (SNRI/trazodon).</p>
+  </div>
+
+  <div class="footer">
+    Gegenereerd als psycho-educatief naslagdashboard — Praktijk Dr. Van Steenkiste.<br>
+    Neonataal beleid: UZ Gent richtlijn nr. 33641 (v2, 24-03-2025). Zwangerschapsrisico (SSRI/SNRI/trazodon): Lareb / Moeders van Morgen. Inhoud letterlijk ontleend aan de bronnen; geen waarden toegevoegd of geïnterpoleerd.
+  </div>
+
+</div>
+
+<!-- ===== MODAL ===== -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- ===== PRINT ROOT ===== -->
+<div id="printroot"></div>
+
+<script>
+/* =========================================================================
+   DATA — letterlijk overgenomen uit UZ Gent richtlijn nr. 33641 (v2, 24-03-2025)
+   secties 5.1 (klassen), 5.2.1/5.2.2 (beleidslijsten), 5.3 (per medicijn), 8 (referenties)
+   Geen enkele waarde is toegevoegd, afgerond of geïnterpoleerd.
+   neoBeleid:  'geen' | 'ontslag48' | 'opname'      (uit 5.2.1, default 'geen')
+   bvBeleid:   'toegelaten' | 'niet'                 (uit 5.2.2)
+   ========================================================================= */
+const KLASSEN = {
+  ssri:{label:"SSRI", lareb:{label:"Lareb — SSRI's tijdens de zwangerschap", url:"https://www.lareb.nl/mvm-kennis-pagina/SSRIs+tijdens+de+zwangerschap"}},
+  snri:{label:"SNRI", lareb:{label:"Lareb — SNRI's tijdens de zwangerschap", url:"https://www.lareb.nl/mvm-kennis-pagina/SNRIs+bij+angst+en+depressieve+klachten+tijdens+de+zwangerschap"}},
+  ad:{label:"Antidepressivum (overig)"},
+  ap:{label:"Antipsychoticum"},
+  benzo:{label:"Benzodiazepine"}
+};
+const KLR = {ssri:"#7eb3c8", snri:"#6f9bb0", ad:"#a89fc4", ap:"#c4a882", benzo:"#cbb08a"};
+
+const MEDS = [
+  {n:"Alprazolam", merk:"benzodiazepine", klasse:"benzo", klasseTxt:"Benzodiazepine",
+   neoBeleid:"geen", bvBeleid:"toegelaten",
+   neonataal:["Geen bijzondere problemen te verwachten"],
+   moedermelk:["melk/plasma ratio = 0,36 ±0,11","relatieve dosis aan zuigeling = 2-9,3%"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten"]},
+
+  {n:"Amitriptyline", merk:"tricyclisch antidepressivum", klasse:"ad", klasseTxt:"Tricyclisch antidepressivum",
+   neoBeleid:"geen", bvBeleid:"toegelaten",
+   neonataal:["Hypotonie"],
+   moedermelk:["relatieve dosis aan zuigeling = 0.9-1.8%","plasmaconcentratie zuigeling = ondetecteerbaar","zeldzame sedatie"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten, moeder wijzen op sedatie"]},
+
+  {n:"Aripiprazol", merk:"atypisch antipsychoticum", klasse:"ap", klasseTxt:"Atypisch antipsychoticum",
+   neoBeleid:"geen", bvBeleid:"toegelaten",
+   neonataal:["Hoge neurale buis defecten"],
+   moedermelk:["melk/plasma ratio = 0.18-0.20","relatieve dosis aan zuigeling = 0.9-8.3%"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten (aripiprazol kan melkproductie sterk verminderen)"]},
+
+  {n:"Bupropion", merk:"noradrenaline- en dopamine-reuptake inhibitor", klasse:"ad", klasseTxt:"Noradrenaline- en dopamine-reuptake inhibitor",
+   neoBeleid:"geen", bvBeleid:"toegelaten",
+   neonataal:["Geen problemen"],
+   moedermelk:["relatieve dosis aan zuigeling = 2%","plasmaconcentratie 5-10 ng/ml","mogelijk convulsies"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten"]},
+
+  {n:"Citalopram", merk:"SSRI — Cipramil®", klasse:"ssri", klasseTxt:"SSRI",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["hypotonie","transiënte tachypnoe","neonataal abstinentiesyndroom"],
+   moedermelk:["melk/plasma ratio = 1.8-3","piekconcentratie moedermelk 3-9u na inname","relatieve dosis aan zuigeling = 3.2-6%","plasmaconcentratie ondetecteerbaar -2.3 ng/ml","slaperigheid, gewichtsverlies, slecht drinken"],
+   advies:["geen ontslag < 48u na geboorte","SpO2-meting per 4u gedurende 1ste 24u","borstvoeding: 'risk/benefit' voor moeder en kind afwegen, borstvoeding toelaten geniet de voorkeur, ouders informeren over aandachtspunten"]},
+
+  {n:"Clobazam", merk:"benzodiazepine — Frisium®", klasse:"benzo", klasseTxt:"Benzodiazepine",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["Neonataal abstinentiesyndroom"],
+   moedermelk:["bij kortdurende blootstelling: relatieve dosis aan zuigeling gemiddeld 4.6% (max 7.5%)","hogere concentraties in moedermelk bij langduriger gebruik?"],
+   advies:["geen ontslag < 48u na geboorte","borstvoeding toegelaten bij lage dosis en kortdurende blootstelling. Observeer zuigeling voor sedatie en slecht drinken"]},
+
+  {n:"Clonazepam", merk:"benzodiazepine — Rivotril®", klasse:"benzo", klasseTxt:"Benzodiazepine",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["Paralytische ileus"],
+   moedermelk:["melk/plasma ratio = 0,4","relatieve dosis aan zuigeling = 4,6%"],
+   advies:["geen ontslag < 48u na geboorte","borstvoeding toegelaten"]},
+
+  {n:"Clozapine", merk:"2de generatie antipsychoticum — Leponex®", klasse:"ap", klasseTxt:"2de generatie antipsychoticum",
+   neoBeleid:"geen", bvBeleid:"niet",
+   neonataal:["Geen problemen te verwachten"],
+   moedermelk:["Slecht veiligheidsprofiel, invloed op de ontwikkeling"],
+   advies:["neonataal: geen bijzondere maatregelen","geen borstvoeding"]},
+
+  {n:"Duloxetine", merk:"SNRI — Cymbalta®", klasse:"snri", klasseTxt:"Serotonine-noradrenaline reuptake inhibitor",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["neonataal abstinentiesyndroom","hypotonie"],
+   moedermelk:["relatieve dosis aan zuigeling <1%"],
+   advies:["geen ontslag < 48u na geboorte","borstvoeding toegelaten"]},
+
+  {n:"Escitalopram", merk:"SSRI — Escidivule®, Sipralexa®", klasse:"ssri", klasseTxt:"SSRI",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["Geen data over gebruik tijdens de zwangerschap"],
+   moedermelk:["escitalopram wordt in geringe hoeveelheden uitgescheiden in moedermelk","relatieve dosis aan zuigeling = ± 5%","plasmaconcentratie < detectielimiet tot zeer laag","slecht slapen, sufheid, prikkelbaar, veel huilen, krampen, slecht drinken, slecht groeien"],
+   advies:["geen ontslag < 48u na geboorte","SpO2-meting per 4u gedurende 1ste 24u","borstvoeding: 'risk/benefit' voor moeder en kind afwegen, borstvoeding toelaten geniet de voorkeur, ouders informeren over aandachtspunten"]},
+
+  {n:"Fluoxetine", merk:"SSRI — Fluoxone®, Fontex®, Prozac®", klasse:"ssri", klasseTxt:"SSRI",
+   neoBeleid:"opname", bvBeleid:"niet",
+   neonataal:["atriale en ventriculaire ectopie","milde transiënte respiratoire distress","neonataal abstinentie/adaptatie syndroom","convulsies","krampen"],
+   moedermelk:["melk/plasma ratio = 0.56-0.8","piekconcentratie moedermelk 8u na inname","relatieve dosis aan zuigeling = 2.15-13.9%","plasmaconcentratie = 17-340 ng/ml","verminderde postnatale gewichtstoename, krampen, prikkelbaarheid, voedingsproblemen, slaapstoornissen, hyperglycemie met glycosurie, meer braken, waterige stoelgang"],
+   advies:["opname N* functie","geen borstvoeding"]},
+
+  {n:"Fluvoxamine", merk:"SSRI", klasse:"ssri", klasseTxt:"SSRI",
+   neoBeleid:"geen", bvBeleid:"toegelaten",
+   neonataal:["Geen problemen te verwachten"],
+   moedermelk:["melk/plasma ratio = 0,95-1,34","relatieve dosis aan zuigeling = 0,8-1,4%","plasmaconcentratie < detectielimiet"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten"]},
+
+  {n:"Haloperidol", merk:"antipsychoticum", klasse:"ap", klasseTxt:"Antipsychoticum",
+   neoBeleid:"geen", bvBeleid:"toegelaten", transpl:"66%",
+   neonataal:["Geen problemen te verwachten"],
+   moedermelk:["Geen gevaar voor ontwikkeling van de zuigeling"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegestaan"]},
+
+  {n:"Imipramine", merk:"antidepressivum — Tofranil®", klasse:"ad", klasseTxt:"Antidepressivum",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["Hypotonie"],
+   moedermelk:["relatieve dosis aan zuigeling = 2,9%","plasmaconcentratie zuigeling = 0-7,4 microg/L"],
+   advies:["geen ontslag < 48u na geboorte","borstvoeding toegelaten"]},
+
+  {n:"Lithiumcarbonaat", merk:"antidepressivum — Camcolit®", klasse:"ad", klasseTxt:"Antidepressivum",
+   neoBeleid:"opname", bvBeleid:"niet", transpl:"100%",
+   neonataal:["kropgezwel met hypothyroïdie","lethargie","zuig-slik coördinatiestoornis","nefrogene diabetes insipidus","gastro-intestinale bloeding","shock","oppervlakkige ademhaling","apnoe","cyanose","brady/tachycardie","cardiale aritmie (flutter)","abnormaal ECG","convulsies","coma","hypotonie","zwakke zuig-/grijp-/Mororeflexen"],
+   moedermelk:["melk/plasma ratio = 1.8-3","relatieve dosis aan zuigeling = 56%","plasmaconcentratie 1/3 tot 1/2 van therapeutische waarde","ernstige sedatie"],
+   advies:["opname N* functie","geen borstvoeding"]},
+
+  {n:"Mirtazapine", merk:"noradrenerg en specifiek serotoninerg antidepressivum", klasse:"ad", klasseTxt:"Noradrenerg en specifiek serotoninerg antidepressivum",
+   neoBeleid:"geen", bvBeleid:"toegelaten",
+   neonataal:["Geen problemen"],
+   moedermelk:["concentratie: 7-34 ng/mL","plasmaconcentratie < 0,2 ng/mL"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten"]},
+
+  {n:"Olanzapine", merk:"antipsychoticum", klasse:"ap", klasseTxt:"Antipsychoticum",
+   neoBeleid:"geen", bvBeleid:"toegelaten", transpl:"72%",
+   neonataal:["Geen problemen"],
+   moedermelk:["Goed veiligheidsprofiel"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten"]},
+
+  {n:"Paroxetine", merk:"SSRI — Seroxat®", klasse:"ssri", klasseTxt:"SSRI",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["respiratoire distress","hypoglycemie","icterus","neonataal abstinentiesyndroom: frekwent","lethargie, hyper/hypotonie, opisthotonus"],
+   moedermelk:["concentratie = 2-101 ng/ml","melk/plasma ratio = 0.22-3.33","relatieve dosis aan zuigeling = 0.34-3.4%","plasmaconcentratie < detectielimiet of niet kwantificeerbaar (< 4 microg/L)"],
+   advies:["geen ontslag < 48u na geboorte","SpO2-meting per 4u gedurende 1ste 24u","dextrostix per 6u gedurende 1ste 24u","borstvoeding toegelaten"]},
+
+  {n:"Quetiapine", merk:"atypisch antipsychoticum", klasse:"ap", klasseTxt:"Atypisch antipsychoticum",
+   neoBeleid:"geen", bvBeleid:"toegelaten", transpl:"24%",
+   neonataal:["Geen problemen"],
+   moedermelk:["Veilig"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten"]},
+
+  {n:"Reboxetine", merk:"selectieve noradrenerge reuptake inhibitor — Edronax®", klasse:"ad", klasseTxt:"Selectieve noradrenerge reuptake inhibitor",
+   neoBeleid:"opname", bvBeleid:"niet",
+   neonataal:["Geen data over gebruik tijdens de zwangerschap en borstvoeding"],
+   moedermelk:["Geen data over gebruik tijdens de zwangerschap en borstvoeding"],
+   advies:["opname N* functie","geen borstvoeding"]},
+
+  {n:"Risperidon", merk:"atypisch antipsychoticum", klasse:"ap", klasseTxt:"Atypisch antipsychoticum",
+   neoBeleid:"geen", bvBeleid:"toegelaten", transpl:"49%",
+   neonataal:["Geen problemen"],
+   moedermelk:["Veilig"],
+   advies:["neonaat: geen bijzondere maatregelen","borstvoeding toegelaten"]},
+
+  {n:"Sertraline", merk:"SSRI — Serlain®", klasse:"ssri", klasseTxt:"SSRI",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["Neonataal abstinentiesyndroom: prikkelbaarheid"],
+   moedermelk:["melk/plasma ratio = 0.42-4.81","piekconcentratie moedermelk 1-9u na inname","relatieve dosis aan zuigeling = 0.2-5%","plasmaconcentratie < detectielimiet - 67,5 ng/ml"],
+   advies:["geen ontslag < 48u na geboorte","borstvoeding toegelaten"]},
+
+  {n:"Trazodon", merk:"antidepressivum — Nestrolan®", klasse:"ad", klasseTxt:"Antidepressivum",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["Ademhalingsproblemen?"],
+   moedermelk:["melk/plasma ratio = 0,142 ± 0,045","relatieve dosis aan zuigeling = 0,65%"],
+   advies:["geen ontslag < 48u na geboorte","borstvoeding toegelaten"]},
+
+  {n:"Venlafaxine", merk:"SNRI — Efoxor®", klasse:"snri", klasseTxt:"Serotonine-noradrenaline reuptake inhibitor",
+   neoBeleid:"ontslag48", bvBeleid:"toegelaten",
+   neonataal:["Neonataal abstinentiesyndroom: hypotonie"],
+   moedermelk:["melk/plasma ratio = 2-4.8","piekconcentratie moedermelk = 362-1734 microg/L","relatieve dosis aan zuigeling = 5.5-7.6%","plasmaconcentratie 3-38 microg/L"],
+   advies:["geen ontslag < 48u na geboorte","borstvoeding toegelaten"]}
+];
+
+/* ---- Lareb / Moeders van Morgen — zwangerschapsrisico (apart van UZ Gent) ----
+   Letterlijk ontleend aan lareb.nl:
+   SSRI-pagina  (laatst bijgewerkt 26-02-2025)
+   SNRI-pagina  (laatst bijgewerkt 25-10-2022, incl. trazodon)
+   Lareb beschrijft het risico TIJDENS de zwangerschap; UZ Gent het NEONATALE beleid. */
+const LAREB_URL = {
+  ssri:"https://www.lareb.nl/mvm-kennis-pagina/SSRIs+tijdens+de+zwangerschap",
+  snri:"https://www.lareb.nl/mvm-kennis-pagina/SNRIs+bij+angst+en+depressieve+klachten+tijdens+de+zwangerschap"
+};
+const SSRI_PUNTEN = [
+  "Er is veel onderzoek naar SSRI's tijdens de zwangerschap; er is geen sterk verhoogd risico op aangeboren afwijkingen aangetoond. Een licht verhoogd risico op specifieke (hart)afwijkingen bij gebruik in het eerste trimester is niet uit te sluiten.",
+  "Van de SSRI's lijken citalopram en sertraline de minste risico's te geven; paroxetine en fluoxetine hebben mogelijk het minst gunstige veiligheidsprofiel.",
+  "Door dalende plasmaspiegels in het tweede en vooral derde trimester kan een dosisverhoging nodig zijn.",
+  "PPHN (persisterende pulmonale hypertensie) bij de neonaat is in sommige studies gezien — observeer minstens de eerste 12u na de geboorte op blauwe verkleuring en ademhalingsproblemen.",
+  "Onthoudings-/toxische verschijnselen kunnen in de eerste dagen optreden (prikkelbaarheid, hypertonie, tremoren, onregelmatige ademhaling, slecht drinken, hard huilen); doorgaans mild, voorbijgaand en dosisafhankelijk.",
+  "Stop of wissel niet plots tijdens de zwangerschap; een onbehandelde depressie heeft eigen risico's (vroeggeboorte, laag geboortegewicht)."
+];
+const SNRI_PUNTEN = [
+  "Duloxetine en venlafaxine kunnen op indicatie tijdens de zwangerschap gebruikt worden.",
+  "Een meta-analyse zag geen verhoogd risico op aangeboren afwijkingen in het algemeen; wel een licht verhoogd risico op hartafwijkingen vergeleken met gezonde controles (RR 1.33 [1.15–1.53]), maar niet-significant vergeleken met SSRI-gebruiksters (RR 1.1 [0.85–1.43]).",
+  "Onthoudings-/toxische verschijnselen kunnen optreden in de eerste dagen na de geboorte (prikkelbaarheid, hypertonie, tremoren, onregelmatige ademhaling, slecht drinken, hard huilen); doorgaans mild en voorbijgaand.",
+  "Stop of wissel niet plots tijdens de zwangerschap."
+];
+const SSRI_RISICO = "Waarschijnlijk veilig (1e–2e trimester) · Mogelijk risico (3e trimester)";
+const LAREB = {
+  "Citalopram":{risico:SSRI_RISICO, punten:SSRI_PUNTEN, datum:"26-02-2025", bron:"Lareb / Moeders van Morgen — SSRI's tijdens de zwangerschap", url:LAREB_URL.ssri},
+  "Escitalopram":{risico:SSRI_RISICO, punten:SSRI_PUNTEN, datum:"26-02-2025", bron:"Lareb / Moeders van Morgen — SSRI's tijdens de zwangerschap", url:LAREB_URL.ssri},
+  "Fluoxetine":{risico:SSRI_RISICO, punten:SSRI_PUNTEN, datum:"26-02-2025", bron:"Lareb / Moeders van Morgen — SSRI's tijdens de zwangerschap", url:LAREB_URL.ssri},
+  "Fluvoxamine":{risico:SSRI_RISICO, punten:SSRI_PUNTEN, datum:"26-02-2025", bron:"Lareb / Moeders van Morgen — SSRI's tijdens de zwangerschap", url:LAREB_URL.ssri},
+  "Paroxetine":{risico:SSRI_RISICO, punten:SSRI_PUNTEN, datum:"26-02-2025", bron:"Lareb / Moeders van Morgen — SSRI's tijdens de zwangerschap", url:LAREB_URL.ssri},
+  "Sertraline":{risico:SSRI_RISICO, punten:SSRI_PUNTEN, datum:"26-02-2025", bron:"Lareb / Moeders van Morgen — SSRI's tijdens de zwangerschap", url:LAREB_URL.ssri},
+  "Venlafaxine":{risico:SSRI_RISICO, punten:SNRI_PUNTEN.concat(["Meer dan 5000 zwangerschappen met blootstelling in het eerste trimester: geen duidelijke aanwijzingen voor een verhoogd risico op aangeboren afwijkingen."]), datum:"25-10-2022", bron:"Lareb / Moeders van Morgen — SNRI's tijdens de zwangerschap", url:LAREB_URL.snri},
+  "Duloxetine":{risico:SSRI_RISICO, punten:SNRI_PUNTEN.concat(["Ruim 4500 zwangerschappen met blootstelling in het eerste trimester wijzen niet op een verhoogd risico op aangeboren afwijkingen. Eén databasestudie zag een signaal van vroeggeboorte (bij late blootstelling) en postpartum bloeding."]), datum:"25-10-2022", bron:"Lareb / Moeders van Morgen — SNRI's tijdens de zwangerschap", url:LAREB_URL.snri},
+  "Trazodon":{risico:"Risico onbekend (1e–2e trimester) · Mogelijk risico (3e trimester)", punten:[
+    "Het is onbekend of trazodon tijdens de zwangerschap gebruikt kan worden; zet gebruik bij voorkeur vóór de zwangerschap om naar een antidepressivum waarmee meer ervaring is.",
+    "Een Europese cohortstudie (221 zwangerschappen, blootstelling in het eerste trimester) zag geen verhoogd risico op aangeboren afwijkingen, miskramen of doodgeboortes; er is meer onderzoek nodig.",
+    "Onthoudings-/toxische verschijnselen kunnen optreden in de eerste dagen na de geboorte; doorgaans mild en voorbijgaand."
+  ], datum:"25-10-2022", bron:"Lareb / Moeders van Morgen — SNRI's tijdens de zwangerschap", url:LAREB_URL.snri}
+};
+MEDS.forEach(m=>{ if(LAREB[m.n]) m.lareb=LAREB[m.n]; });
+
+const KLASSE_INFO = [
+  {h:"Antipsychotica", items:[
+    "Neonataal abstinentie/adaptatiesyndroom: dyskinesie, abnormale spiertonus, motorische rusteloosheid, hyperreflexie, agitatie, hyperactiviteit, tremor, sedatie, irritabiliteit, huilen, tachycardie, hypotensie, ademhalingsmoeilijkheden, voedingsproblemen, gastro-intestinale problematiek (functionele obstructie)",
+    "Extrapyramidaal syndroom (soms maanden): instabiele lichaamstemperatuur, convulsies",
+    "2de generatie veilig tijdens de zwangerschap (vooral olanzapine, risperidon, quetiapine)"]},
+  {h:"Antidepressiva", items:[
+    "Verhoogde kans op convulsies (OR=3.25), hypoglycemie (OR=1.65), ademhalingsproblemen (OR=1.96), temperatuurdysregulatie (OR=1.75), voedingsmoeilijkheden (OR=2.25)",
+    "Neonataal abstinentie/adaptatiesyndroom: rusteloosheid, hyperreflexie, lethargie, tremor, hypo/hypertonie, irritabiliteit, braken, diarree",
+    "Tachycardie (SSRI), slaapproblemen (SSRI)",
+    "Symptomen kunnen persisteren tot 3 maand"]}
+];
+
+const REFS = [
+"American Academy of Pediatrics: Transfer of drugs and other chemicals into human milk. Pediatrics 1989; 84: 924-936",
+"Bar-Oz et al: Anticonvulsants and breast feeding, a critical review. Paediatr Drugs 2000; 2: 113-126",
+"EJ Begg et al: Paroxetine in human milk. Br J Clin Pharmacol 1999; 48: 142-147",
+"C Bellantuono et al: The safety of serotonin-noradrenaline reuptake inhibitors (SNRIs) in pregnancy and breastfeeding: a comprehensive review. Hum Psychopharmacol Clin Exp 2015; 30: 143-151",
+"P Desaunay et al: Neonatal hypotonia following in utero exposure to antidepressant drugs. J Pediatr 2022; 245: 222-226",
+"Drugs and Lactation Database (LactMed) (Internet); https://www.ncbi.nlm.nih.gov/books/",
+"A Einarson & R Boskovic: Use and safety of antipsychotic drugs during pregnancy. J Psych Pract 2009; 15: 183-192",
+"S Gentile: The safety of newer antidepressants in pregnancy and breastfeeding. Drug Safety 2005; 28: 137-152",
+"T Heikkinen et al: Citalopram in pregnancy and lactation. Clin Pharmacol Ther 2002; 72: 184-191",
+"M Humpel et al: Pharmacokinetics and biotransformation of the new benzodiazepine, lormetazepam. Eur J Clin Pharmacol 1982; 21: 421-425",
+"KF Huybrechts et al: Maternal and fetal outcomes following exposure to duloxetine in pregnancy: cohort study. BMJ 2020; 368: m237",
+"KF Ilet et al: Distribution of venlafaxine and its O-desmethyl metabolite in human milk and their effects in breastfed infants. Br J Clin Pharmacol 2002; 53: 17-22",
+"S Jaiswal et al: Paroxetine withdrawal in a neonate with historical and laboratory confirmation. Eur J Pediatr 2003; 162: 723-724",
+"A Kautzky et al: Neonatal outcome and adaptation after in utero exposure to antidepressants: A systematic review and meta-analysis. Acta Psychiatr Scand 2022; 145: 6-28",
+"JH Kristensen et al: Distribution and excretion of fluoxetine and norfluoxetine in human milk. Br J Clin Pharmacol 1999; 48: 521-527",
+"A Lee et al: Frequency of infant adverse events that are associated with citalopram use during breastfeeding. Am J Obstet Gynecol 2004; 190: 218-221",
+"H Lee et al: Pregnancy and neonatal outcomes after exposure to alprazolam in pregnancy. Front Pharmacol 2022 (doi 10.3389/fpharm.2022.854562)",
+"K McCauley et al: Antipsychotics in pregnancy. J Psych Ment Health Nurs 2010; 17: 97-104",
+"PJ McNamara et al: Neonatal exposure to drugs in breast milk. Pharm Res 2004; 21: 555-566",
+"DN Mendhekar et al: Aripiprazole use in a pregnant schizoaffective woman. Bipolar Disorders 2006; 8: 299-300",
+"B Mervak et al: Case report of aripiprazole usage during pregnancy. Arch Womens Ment Health 2008; 11: 249-250",
+"CG Mohan & JJ Moore: Fluoxetine toxicity in a preterm infant. J Perinatol 2000; 20: 445-446",
+"A Nishimura et al: Benzodiazepine concentrations in the breast milk and plasma of nursing mothers: estimation of relative infant dose. Breastfeeding medicine 2021; 16: 424-431",
+"H Nordeng et al: Transfer of aripiprazole to breast milk: a case report. J Clin Psychopharmacol 2014; 34: 272-275",
+"EM Ostrea et al: Drugs that affect the fetus and newborn infant via the placenta or breast milk. Pediatr Clin N Am 2004; 51: 539-579",
+"T Parikh et al: Antipsychotic drugs and safety concerns for breast-feeding infants. South Med J 2014; 107: 686-688",
+"J Rampono et al: Citalopram and demethylcitalopram in human milk; distribution, excretion and effects in breast fed infants. Br J Clin Pharmacol 2000; 50: 263-268",
+"J Saito et al: Trazodone levels in maternal serum, cord blood, breast milk, and neonatal serum. Breastfeeding Med 2021; 16: 922-925",
+"AL Salisbury et al: The roles of maternal depression, serotonin reuptake inhibitor treatment, and concomitant benzodiazepine use on infant neurobehavioral functioning over the first postnatal month. Am J Psychiatry 2016; 173: 147-157",
+"RP Santos en JJ Pergolizzi: Transient neonatal jitteriness due to maternal use of sertraline. J Perinatol 2004; 24: 392-394",
+"P Schlotterbeck: Aripiprazole in human milk. Int J Neuropsychopharmacol 2007; 10: 433",
+"D Smigalovic et al: Creative person-centered psychopharmacotherapy in the context of prenatal psychiatry – dilemmas and challenges. Psychiatria Danubina 2021; 33, Suppl 4: 1160-1170",
+"JP Spencer et al: Medications in the breast-feeding mother. Am Fam Phys 2001; 64: 119-126",
+"F Uguz: A new safety scoring system for the use of psychotropic drugs during lactation. Am J Ther 2021; 28: e118-e126",
+"RK Verbeeck et al: Excretion of trazodone in breast milk. Br J Clin Pharmacol 1986; 22: 367-370",
+"B Zegers en P Andriessen: Maternal lithium therapy and neonatal morbidity. Eur J Pediatr 2003; 162: 348-349"
+];
+
+/* ---- labels & helpers ---- */
+const NEO = {
+  geen:{txt:"Geen bijzondere maatregelen", cls:"ok"},
+  ontslag48:{txt:"Geen ontslag < 48u", cls:"warn"},
+  opname:{txt:"Opname N*-functie", cls:"alert"}
+};
+const BV = {
+  toegelaten:{txt:"Borstvoeding toegelaten", cls:"ok"},
+  niet:{txt:"Geen borstvoeding", cls:"alert"}
+};
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+/* ---- state ---- */
+let state={q:"", klasse:"alle", neo:"alle", bv:"alle"};
+
+/* ---- build filter chips ---- */
+function chip(txt,val,active){return `<span class="chip${active?' active':''}" data-val="${val}">${txt}</span>`;}
+document.getElementById('fKlasse').innerHTML =
+  chip("Alle","alle",true)+Object.keys(KLASSEN).map(k=>chip(KLASSEN[k].label,k,false)).join('');
+document.getElementById('fNeo').innerHTML =
+  chip("Alle","alle",true)+chip("Geen bijzondere maatregelen","geen",false)+chip("Geen ontslag < 48u","ontslag48",false)+chip("Opname N*","opname",false);
+document.getElementById('fBv').innerHTML =
+  chip("Alle","alle",true)+chip("Toegelaten","toegelaten",false)+chip("Niet toegelaten","niet",false);
+
+function bindChips(id,key){
+  document.getElementById(id).addEventListener('click',e=>{
+    const c=e.target.closest('.chip'); if(!c)return;
+    state[key]=c.dataset.val;
+    [...document.getElementById(id).children].forEach(x=>x.classList.toggle('active',x===c));
+    render();
+  });
+}
+bindChips('fKlasse','klasse'); bindChips('fNeo','neo'); bindChips('fBv','bv');
+
+document.getElementById('q').addEventListener('input',e=>{state.q=e.target.value.toLowerCase().trim();render();});
+document.getElementById('reset').addEventListener('click',()=>{
+  state={q:"",klasse:"alle",neo:"alle",bv:"alle"};
+  document.getElementById('q').value="";
+  ['fKlasse','fNeo','fBv'].forEach(id=>[...document.getElementById(id).children].forEach((x,i)=>x.classList.toggle('active',i===0)));
+  render();
+});
+
+/* ---- render grid ---- */
+function matches(m){
+  if(state.klasse!=="alle"&&m.klasse!==state.klasse)return false;
+  if(state.neo!=="alle"&&m.neoBeleid!==state.neo)return false;
+  if(state.bv!=="alle"&&m.bvBeleid!==state.bv)return false;
+  if(state.q&&!(m.n.toLowerCase().includes(state.q)||m.merk.toLowerCase().includes(state.q)||m.klasseTxt.toLowerCase().includes(state.q)))return false;
+  return true;
+}
+function render(){
+  const list=MEDS.filter(matches).sort((a,b)=>a.n.localeCompare(b.n,'nl'));
+  const grid=document.getElementById('grid');
+  document.getElementById('count').textContent=`${list.length} van ${MEDS.length} medicijnen`;
+  if(!list.length){grid.innerHTML='<div class="empty">Geen medicijnen gevonden met deze filters.</div>';return;}
+  grid.innerHTML=list.map((m,idx)=>{
+    const i=MEDS.indexOf(m);
+    const neo=NEO[m.neoBeleid], bv=BV[m.bvBeleid];
+    return `<div class="card" data-i="${i}" style="--klr:${KLR[m.klasse]}">
+      <h3>${esc(m.n)}</h3>
+      <div class="klasse">${esc(m.klasseTxt)}</div>
+      <div class="badges">
+        <span class="badge ${neo.cls}"><b>Neonaat:</b> ${esc(neo.txt)}</span>
+        <span class="badge ${bv.cls}">${esc(bv.txt)}</span>
+      </div>
+      ${m.lareb?'<div class="lareb-tag">incl. Lareb-zwangerschapsdata</div>':''}
+    </div>`;
+  }).join('');
+}
+document.getElementById('grid').addEventListener('click',e=>{
+  const c=e.target.closest('.card'); if(!c)return; openModal(+c.dataset.i);
+});
+
+/* ---- class info & refs ---- */
+document.getElementById('klassen').innerHTML=KLASSE_INFO.map(k=>
+  `<div class="kbox"><h4>${k.h}</h4><ul>${k.items.map(it=>`<li>${esc(it)}</li>`).join('')}</ul></div>`).join('');
+document.getElementById('refList').innerHTML=REFS.map(r=>`<li>${esc(r)}</li>`).join('');
+
+/* ---- modal ---- */
+function secList(title,icon,arr){
+  if(!arr||!arr.length)return'';
+  return `<div class="sec"><h4><span class="ic">${icon}</span>${title}</h4><ul>${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+}
+function openModal(i){
+  const m=MEDS[i], neo=NEO[m.neoBeleid], bv=BV[m.bvBeleid];
+  let html=`<div class="modal-head" style="--klr:${KLR[m.klasse]}">
+      <div class="kl-strip"></div>
+      <button class="close" id="closeM" aria-label="Sluiten">×</button>
+      <div class="klasse">${esc(m.klasseTxt)}</div>
+      <h2>${esc(m.n)}</h2>
+      <div class="merk">${esc(m.merk)}</div>
+    </div>
+    <div class="modal-body">
+      <div class="mbadges">
+        <span class="badge ${neo.cls}"><b>Neonaat:</b> ${esc(neo.txt)}</span>
+        <span class="badge ${bv.cls}">${esc(bv.txt)}</span>
+      </div>`;
+  if(m.transpl) html+=`<div class="sec"><h4><span class="ic">⇄</span>Transplacentaire passage</h4><span class="transpl">${esc(m.transpl)}</span></div>`;
+  html+=secList("Neonatale bevindingen","◐",m.neonataal);
+  html+=secList("Moedermelk","◓",m.moedermelk);
+  html+=`<div class="sec"><h4><span class="ic">✓</span>Advies neonaat <span class="srctag uz">UZ Gent</span></h4><div class="advies-box"><ul>${m.advies.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;
+  html+=`<div class="bron-line">Bron: UZ Gent richtlijn nr. 33641, v2, 24-03-2025 (sectie 5.3) — neonataal/postnataal beleid.</div></div>`;
+  if(m.lareb){
+    const L=m.lareb;
+    html+=`<div class="sec lareb-sec">
+      <h4><span class="ic2">🔬</span>Tijdens de zwangerschap <span class="srctag lb">Lareb</span></h4>
+      <div class="lareb-risico"><b>Risico-indeling:</b> ${esc(L.risico)}</div>
+      <ul>${L.punten.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>
+      <div class="lareb-bron">Bron: ${esc(L.bron)} · laatst bijgewerkt ${esc(L.datum)} · <a href="${L.url}" target="_blank" rel="noopener">lareb.nl ↗</a></div>
+    </div>`;
+  }
+  html+=`</div>
+    <div class="modal-foot">
+      <span class="note">Adviezen laten ruimte voor een geïndividualiseerde aanpak; eindbeslissing per casus berust bij de behandelende arts.</span>
+      <button class="btn btn-primary" id="pdfOne">⬇ Dit medicijn als PDF</button>
+    </div>`;
+  document.getElementById('modal').innerHTML=html;
+  document.getElementById('overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+  document.getElementById('closeM').onclick=closeModal;
+  document.getElementById('pdfOne').onclick=()=>printOne(i);
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');document.body.style.overflow='';}
+document.getElementById('overlay').addEventListener('click',e=>{if(e.target.id==='overlay')closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+/* ---- PDF (print) ---- */
+function pBadges(m){
+  const neo=NEO[m.neoBeleid], bv=BV[m.bvBeleid];
+  return `<div class="p-badges">
+    <span class="p-badge ${neo.cls}">Neonaat: ${esc(neo.txt)}</span>
+    <span class="p-badge ${bv.cls}">${esc(bv.txt)}</span></div>`;
+}
+function pSec(title,arr){if(!arr||!arr.length)return'';return `<div class="p-sec"><h4>${title}</h4><ul>${arr.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`;}
+function sheetOne(m){
+  let h=`<div class="p-sheet"><div class="p-rule"></div>
+    <div class="p-eyebrow">Psychofarmaca bij zwangerschap &amp; borstvoeding — neonataal beleid</div>
+    <div class="p-title">${esc(m.n)}</div>
+    <div class="p-klasse">${esc(m.klasseTxt)}</div>
+    <div class="p-merk">${esc(m.merk)}</div>
+    ${pBadges(m)}`;
+  if(m.transpl) h+=`<div class="p-sec"><h4>Transplacentaire passage</h4><ul><li>${esc(m.transpl)}</li></ul></div>`;
+  h+=pSec("Neonatale bevindingen",m.neonataal);
+  h+=pSec("Moedermelk",m.moedermelk);
+  h+=`<div class="p-sec"><h4>Advies neonaat — UZ Gent</h4><div class="p-advies"><ul>${m.advies.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div></div>`;
+  if(m.lareb){
+    h+=`<div class="p-sec"><h4>Tijdens de zwangerschap — Lareb (Moeders van Morgen)</h4><div class="p-advies" style="background:#f0f6fb;border-left-color:#7eb3c8"><div style="font-size:10pt;margin-bottom:2mm"><b>Risico-indeling:</b> ${esc(m.lareb.risico)}</div><ul>${m.lareb.punten.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div><div style="font-size:8pt;color:#9a9288;margin-top:1mm;font-style:italic">Bron: ${esc(m.lareb.bron)} · laatst bijgewerkt ${esc(m.lareb.datum)}</div></div>`;
+  }
+  h+=`<div class="p-bron">Bronnen: UZ Gent — Materniteit: Neonataal beleid bij maternale inname van psychofarmaca, richtlijn nr. 33641, versie 2, 24-03-2025 (neonataal beleid).${m.lareb?' Lareb / Moeders van Morgen (zwangerschapsrisico).':''} Adviezen laten ruimte voor een geïndividualiseerde aanpak; eindbeslissing per casus berust bij de behandelende arts.</div></div>`;
+  return h;
+}
+function doPrint(html){
+  document.getElementById('printroot').innerHTML=html;
+  document.body.classList.add('printing');
+  window.print();
+}
+window.addEventListener('afterprint',()=>{document.body.classList.remove('printing');document.getElementById('printroot').innerHTML='';});
+function printOne(i){doPrint(sheetOne(MEDS[i]));}
+function printAll(){
+  const rows=[...MEDS].sort((a,b)=>a.n.localeCompare(b.n,'nl')).map(m=>{
+    const neo=NEO[m.neoBeleid], bv=BV[m.bvBeleid];
+    return `<tr><td><b>${esc(m.n)}</b></td><td>${esc(m.klasseTxt)}</td><td>${esc(neo.txt)}</td><td>${esc(bv.txt)}</td></tr>`;
+  }).join('');
+  const overview=`<div class="p-sheet p-overview"><div class="p-rule"></div>
+    <div class="p-eyebrow">Klinisch naslagdashboard</div>
+    <h1>Psychofarmaca bij zwangerschap &amp; borstvoeding</h1>
+    <p class="lead">Neonataal beleid — overzicht van alle ${MEDS.length} medicijnen. Bron: UZ Gent richtlijn nr. 33641, v2, 24-03-2025. Detailbladen volgen per medicijn.</p>
+    <table class="p-tbl"><thead><tr><th>Medicijn</th><th>Klasse</th><th>Beleid neonaat</th><th>Borstvoeding</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  const sheets=[...MEDS].sort((a,b)=>a.n.localeCompare(b.n,'nl')).map(sheetOne).join('');
+  doPrint(overview+sheets);
+}
+document.getElementById('pdfAll').addEventListener('click',printAll);
+
+render();
+</script>
+
+<!-- ===== Auth script ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='dashboard-psychofarmaca-zwangerschap';
+let sb=null,currentUser=null;
+function showAuthMsg(t,k){const e=document.getElementById('auth-msg');if(!e)return;e.innerHTML=t?'<div class="msg '+(k||'err')+'">'+t+'</div>':'';}
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();currentUser=null;
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';
+}
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:access,error:accErr}=await sb.from('user_tool_access').select('tool_id').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+  if(accErr||!access){
+    showAuthMsg('Je account heeft (nog) geen toegang tot dit dashboard. Vraag een beheerder om toegang.','err');
+    await sb.auth.signOut();currentUser=null;return;
+  }
+  const {data:prof}=await sb.from('profiles').select('display_name,role').eq('id',currentUser.id).maybeSingle();
+  const dn=(prof&&prof.display_name)||currentUser.email;
+  document.getElementById('auth-overlay').style.display='none';
+  const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
+  document.getElementById('user-name').textContent=dn+((prof&&prof.role==='admin')?' ⭐':'');
+}
+(async function(){
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
+  catch(e){console.error('Supabase init mislukt',e);document.getElementById('auth-overlay').style.display='none';return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await afterLogin(session);}
+})();
+</script>
+
+</body>
+</html>
