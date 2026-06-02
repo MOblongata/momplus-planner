@@ -234,6 +234,11 @@
     </div>
 
     <div class="field full">
+      <label for="email">E-mail cliënt (voor de mailknop)</label>
+      <input type="text" id="email" placeholder="bv. jan@voorbeeld.be">
+    </div>
+
+    <div class="field full">
       <label for="titel">Titel PDF (leeg = automatisch)</label>
       <input type="text" id="titel" placeholder="automatisch op basis van inhoud" oninput="render()">
     </div>
@@ -254,6 +259,7 @@
     <div class="actionbar">
       <span class="count" id="count">0 blokken</span>
       <button class="btn btn-ghost" onclick="clearAll()">Wissen</button>
+      <button class="btn btn-ghost" id="mailbtn" onclick="emailDoc()" disabled title="Verstuurt het document rechtstreeks per e-mail naar de cliënt, met de PDF als bijlage.">✉︎ E-mail</button>
       <button class="btn btn-primary" id="genbtn" onclick="genPDF()" disabled>GENEREER PDF</button>
     </div>
   </aside>
@@ -809,6 +815,7 @@ function render(){
   const cnt = document.getElementById('count');
   cnt.textContent = sel.length + (sel.length===1?' blok':' blokken');
   document.getElementById('genbtn').disabled = sel.length===0;
+  const _mb = document.getElementById('mailbtn'); if(_mb) _mb.disabled = sel.length===0;
 
   const prev = document.getElementById('preview');
   if(!sel.length){ prev.innerHTML='<div class="empty">Selecteer blokken links<br>om het document op te bouwen</div>'; return; }
@@ -967,6 +974,73 @@ function genPDF(){
   html2pdf().set(opt).from(clone).save()
     .then(cleanup)
     .catch(err=>{ cleanup(); console.error(err); alert('Er liep iets mis bij het genereren. Probeer opnieuw.'); });
+}
+
+/* ---------- E-MAIL (rechtstreeks versturen) ----------
+   Genereert de PDF als base64 en POST't ze samen met een begeleidend
+   bericht naar de Supabase Edge Function 'send-mail', die de mail via
+   de Gmail-API verstuurt (serviceaccount, jouw Workspace-adres).
+   Geen mailprogramma openen, geen slepen. */
+async function emailDoc(){
+  const sel = selectedBlocks();
+  if(!sel.length) return;
+  const emEl = document.getElementById('email');
+  const to = emEl ? emEl.value.trim() : '';
+  if(!to){ alert('Vul eerst het e-mailadres van de cliënt in (veld in de zijbalk).'); return; }
+
+  const btn = document.getElementById('mailbtn');
+  const old = btn.textContent;
+  btn.textContent = 'Versturen…'; btn.disabled = true;
+  const fail = (m)=>{ console.error('mail:', m); alert('Versturen mislukt: ' + m); btn.textContent = old; btn.disabled = false; };
+
+  try{
+    if(typeof sb === 'undefined' || !sb) return fail('Niet ingelogd.');
+    const { data:{ session } } = await sb.auth.getSession();
+    if(!session) return fail('Je sessie is verlopen — log opnieuw in.');
+
+    const naam = document.getElementById('naam').value.trim();
+    const onderteken = document.getElementById('onderteken').value.trim();
+    const titel = currentTitle();
+    const aanhef = naam ? ('Beste ' + naam + ',') : 'Beste,';
+    const body = [
+      aanhef, '',
+      'Zoals besproken vind je in bijlage de toelichting: "' + titel + '".',
+      'Neem ze rustig door — al je vragen zijn welkom op de volgende afspraak.',
+      '', 'Met vriendelijke groeten,', onderteken
+    ].join('\n');
+    const fname = slug(titel) + (naam?('_'+slug(naam)):'') + '.pdf';
+
+    // PDF genereren als base64 (zelfde lay-out als de download)
+    const el = document.getElementById('preview');
+    const sandbox = document.createElement('div');
+    sandbox.style.cssText = 'position:fixed;left:-99999px;top:0;width:178mm;background:#ffffff;padding:0;margin:0;';
+    const clone = el.cloneNode(true);
+    clone.removeAttribute('contenteditable');
+    clone.style.width = '178mm'; clone.style.margin = '0'; clone.style.padding = '0';
+    sandbox.appendChild(clone); document.body.appendChild(sandbox);
+    const opt = {
+      margin:[16,16,18,16], filename:fname, image:{type:'jpeg',quality:0.98},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['css','legacy'],after:'.cover',avoid:['.block-section','.card','.step','.highlight-box','.before-after','.pull-quote','.closing']}
+    };
+    let dataUri;
+    try{ dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring'); }
+    finally{ try{ document.body.removeChild(sandbox); }catch(e){} }
+    const pdfBase64 = (dataUri.split(',')[1] || '');
+
+    const fnUrl = SUPABASE_URL + '/functions/v1/send-mail';
+    const resp = await fetch(fnUrl, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
+      body: JSON.stringify({ to: to, subject: titel, body: body, filename: fname, pdfBase64: pdfBase64 })
+    });
+    const out = await resp.json().catch(()=>({}));
+    if(!resp.ok || !out.ok) return fail(out.error || ('server gaf status ' + resp.status));
+
+    btn.textContent = '✓ Verzonden';
+    setTimeout(()=>{ btn.textContent = old; btn.disabled = false; }, 2500);
+  }catch(e){ fail((e && e.message) ? e.message : String(e)); }
 }
 
 /* init */
