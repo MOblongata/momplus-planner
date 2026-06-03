@@ -296,7 +296,7 @@ const BLOCKS = [
     id:'ijzer', cat:'supplement', ic:'🩸', naam:'IJzer', deficientie:'ijzer',
     ds:'Energie, concentratie, ferritine',
     watdoet:'IJzer speelt een rol bij je energiepeil, concentratie en een rustig gevoel in de benen. Bij aandacht- en concentratieklachten is een goede ijzervoorraad (ferritine) extra belangrijk.',
-    advies:'<p>Start met een ijzersupplement. Voor een goede opname:</p><ul><li>neem het nuchter of samen met vitamine C (bv. een glas sinaasappelsap);</li><li>niet samen met koffie, thee, melk of calcium — die remmen de opname;</li><li>inname <strong>om de dag</strong> wordt vaak beter opgenomen én geeft minder maagklachten dan dagelijks.</li></ul>',
+    advies:'<p>Start met een ijzersupplement. Voor een goede opname:</p><ul><li>neem het nuchter of samen met vitamine C (bv. een glas sinaasappelsap);</li><li>niet samen met koffie, thee, melk of calcium — die remmen de opname;</li><li>inname <strong>om de dag</strong> wordt vaak beter opgenomen én geeft minder maagklachten dan dagelijks;</li><li>je stoelgang kan tijdelijk donkerder kleuren — dat is onschuldig en normaal.</li></ul>',
     controle:'labo over ± 4 maanden (ijzer en ferritine)',
     opties:[{id:'ijzer_menstr', label:'Vermelding hevige menstruatie', tekst:'Bij hevige menstruatie: bespreek dit ook met je gynaecoloog — dat is vaak de onderliggende oorzaak.'}],
     product:{ naam:'Losferron 80 mg óf Tardyferon 80 mg', via:'apotheek', dosering:'1 (bruis)tablet per dag = 80 mg elementair ijzer; bij diep tekort eventueel 2/dag', inname:'nuchter of met vitamine C (bv. fruitsap); niet met koffie, thee, melk of calcium', let_op:'± 2u afstand houden van schildkliermedicatie, levodopa, bisfosfonaten en bepaalde antibiotica' },
@@ -320,9 +320,27 @@ const BLOCKS = [
     watdoet:'Net als ijzer is foliumzuur belangrijk voor je energie en concentratie, en daarnaast voor de aanmaak van rode bloedcellen en een gezond zenuwstelsel.',
     advies:'<p><strong>Folavit 4 mg</strong>, 1 tablet per dag gedurende minstens <strong>± 4 maanden</strong> (tot het tekort hersteld is). Daarna evalueren we of verdere aanvulling nodig is; een onderhoudsdosis van <strong>0,4 mg per dag</strong> kan dan volstaan.</p>',
     controle:'labo over ± 4 maanden (foliumzuur)',
-    opties:[{id:'folium_b12', label:'Vermelding B12-controle vooraf', tekst:'Belangrijk: vooraf controleren we ook je vitamine B12 — een foliumzuursupplement kan een B12-tekort namelijk verbergen.'}],
+    opties:[{id:'folium_b12', label:'Vermelding B12-controle vooraf', tekst:'Belangrijk: vooraf controleren we ook je vitamine B12 — een foliumzuursupplement kan een B12-tekort namelijk verbergen.'},{id:'folium_mthfr', label:'Vermelding MTHFR / methylfoliumzuur', tekst:'Bij een gekende MTHFR-variant of onvoldoende effect kan een actieve vorm — methylfoliumzuur (5-MTHF) — overwogen worden in plaats van gewoon foliumzuur.'}],
     product:{ naam:'Folavit 4 mg', via:'apotheek', dosering:'1 tablet (4 mg) per dag gedurende ± 4 maanden; daarna eventueel 0,4 mg/dag onderhoud', inname:'dagelijks' },
     bronNiveau:'standaardbehandeling — een foliumzuurtekort wordt klassiek gedurende minstens ± 4 maanden gesupplementeerd (1–5 mg/dag), telkens ná het uitsluiten van een vitamine B12-tekort.'
+  },
+  {
+    id:'b12', cat:'supplement', ic:'🧬', naam:'Vitamine B12', deficientie:'vitamine B12',
+    ds:'Zenuwstelsel, energie, methylatie',
+    watdoet:'Vitamine B12 is nodig voor de aanmaak van rode bloedcellen en voor een gezond zenuwstelsel (methylatie). Een tekort kan vermoeidheid, concentratie- en geheugenklachten, tintelingen of een sombere stemming geven.',
+    advies:'<p>Een vitamine B12-supplement aanvullen. Aandachtspunten:</p><ul><li>kies bij voorkeur <strong>methylcobalamine</strong> als smelt- of kauwtablet (betere opname dan gewoon slikken);</li><li>oraal in een hoge dosis (bv. 1000 µg) is doorgaans even doeltreffend als een inspuiting;</li><li>neem het bij voorkeur \'s morgens, nuchter;</li><li>vul je ook foliumzuur aan, neem ze dan samen — ze werken nauw samen.</li></ul>',
+    controle:'labo over ± 4 maanden (vitamine B12)',
+    opties:[],
+    bronNiveau:'standaardbehandeling — een aangetoond B12-tekort wordt aangevuld tot herstel; extra relevant bij neurologische klachten, ouderdom, maagzuurremmers of een plantaardig dieet.'
+  },
+  {
+    id:'b6', cat:'supplement', ic:'🟡', naam:'Vitamine B6', deficientie:'vitamine B6',
+    ds:'Neurotransmitters, eiwitstofwisseling',
+    watdoet:'Vitamine B6 is een cofactor bij de aanmaak van neurotransmitters (zoals serotonine en dopamine) en bij de eiwit- en homocysteïnestofwisseling.',
+    advies:'<p>Een vitamine B6-supplement aanvullen, met aandacht voor de <strong>juiste vorm en dosis</strong>:</p><ul><li>kies bij voorkeur <strong>pyridoxaal-5-fosfaat (P5P)</strong> — minder kans op bijwerkingen dan gewone pyridoxine;</li><li>overschrijd <strong>100 mg per dag niet</strong>: een langdurig te hoge dosis (pyridoxine) kan net zenuwklachten geven — tintelingen of een verdoofd gevoel in armen en benen;</li><li>neem het bij voorkeur \'s morgens.</li></ul>',
+    controle:'labo over ± 4 maanden (vitamine B6)',
+    opties:[],
+    bronNiveau:'standaardbehandeling — aanvullen bij een aangetoond tekort. Let op: hooggedoseerde pyridoxine kan zélf perifere neuropathie veroorzaken, vandaar de voorkeur voor P5P en een dosislimiet.'
   },
   {
     id:'selenium', cat:'supplement', ic:'✨', naam:'Selenium', deficientie:'selenium',
@@ -820,7 +838,7 @@ function render(){
   const prev = document.getElementById('preview');
   if(!sel.length){ prev.innerHTML='<div class="empty">Selecteer blokken links<br>om het document op te bouwen</div>'; return; }
 
-  const naam = document.getElementById('naam').value.trim() || '[naam]';
+  const naam = document.getElementById('naam').value.trim();
   const onderteken = document.getElementById('onderteken').value.trim() || '[naam]';
   const title = currentTitle();
 
@@ -840,7 +858,7 @@ function render(){
 
   /* OPENING */
   h += `<div class="block-section">`;
-  h += `<p class="body-text">Beste ${naam},</p>`;
+  h += `<p class="body-text">Beste${naam ? ' ' + naam : ''},</p>`;
   if(supp.length){
     const introExtra = document.getElementById('opt-intro').checked ? ', met enkele aandachtspunten' : '';
     h += `<p class="body-text">Je bloedwaarden zijn gekend. Het algemene beeld is geruststellend${introExtra}.</p>`;
@@ -942,6 +960,20 @@ function slug(t){
 }
 
 /* ---------- PDF download ---------- */
+/* paginanummering toevoegen aan de gegenereerde PDF (pagina 1 meegeteld) */
+function addPageNumbers(pdf){
+  try{
+    const total = pdf.internal.getNumberOfPages();
+    const w = pdf.internal.pageSize.getWidth();
+    const h = pdf.internal.pageSize.getHeight();
+    for(let i=1;i<=total;i++){
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(150,150,150);
+      pdf.text('Pagina ' + i + ' / ' + total, w/2, h-8, {align:'center'});
+    }
+  }catch(e){ console.error('paginanummering:', e); }
+}
 function genPDF(){
   const btn=document.getElementById('genbtn');
   const old=btn.textContent; btn.textContent='Bezig…'; btn.disabled=true;
@@ -968,10 +1000,10 @@ function genPDF(){
     image:{type:'jpeg',quality:0.98},
     html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-    pagebreak:{mode:['css','legacy'],after:'.cover',avoid:['.block-section','.card','.step','.highlight-box','.before-after','.pull-quote','.closing']}
+    pagebreak:{mode:['css','legacy'],before:'.force-break',after:'.cover',avoid:['.block-section','.card','.step','.highlight-box','.before-after','.pull-quote','.closing']}
   };
   const cleanup = ()=>{ try{document.body.removeChild(sandbox);}catch(e){} btn.textContent=old; btn.disabled=false; };
-  html2pdf().set(opt).from(clone).save()
+  html2pdf().set(opt).from(clone).toPdf().get('pdf').then(addPageNumbers).save()
     .then(cleanup)
     .catch(err=>{ cleanup(); console.error(err); alert('Er liep iets mis bij het genereren. Probeer opnieuw.'); });
 }
@@ -1002,9 +1034,13 @@ async function emailDoc(){
     const onderteken = document.getElementById('onderteken').value.trim();
     const titel = currentTitle();
     const aanhef = naam ? ('Beste ' + naam + ',') : 'Beste,';
+    const heeftLabo = sel.some(b=>b.cat==='supplement');
+    const inleiding = heeftLabo
+      ? 'In navolging van de laatste consultatie en jouw bloedafname vind je in bijlage de toelichting: "' + titel + '".'
+      : 'In navolging van de laatste consultatie vind je in bijlage de toelichting: "' + titel + '".';
     const body = [
       aanhef, '',
-      'Zoals besproken vind je in bijlage de toelichting: "' + titel + '".',
+      inleiding,
       'Neem ze rustig door — al je vragen zijn welkom op de volgende afspraak.',
       '', 'Met vriendelijke groeten,', onderteken
     ].join('\n');
@@ -1022,10 +1058,14 @@ async function emailDoc(){
       margin:[16,16,18,16], filename:fname, image:{type:'jpeg',quality:0.98},
       html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
       jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-      pagebreak:{mode:['css','legacy'],after:'.cover',avoid:['.block-section','.card','.step','.highlight-box','.before-after','.pull-quote','.closing']}
+      pagebreak:{mode:['css','legacy'],before:'.force-break',after:'.cover',avoid:['.block-section','.card','.step','.highlight-box','.before-after','.pull-quote','.closing']}
     };
     let dataUri;
-    try{ dataUri = await html2pdf().set(opt).from(clone).outputPdf('datauristring'); }
+    try{
+      const worker = html2pdf().set(opt).from(clone);
+      await worker.toPdf().get('pdf').then(addPageNumbers);
+      dataUri = await worker.outputPdf('datauristring');
+    }
     finally{ try{ document.body.removeChild(sandbox); }catch(e){} }
     const pdfBase64 = (dataUri.split(',')[1] || '');
 
@@ -1033,7 +1073,16 @@ async function emailDoc(){
     const resp = await fetch(fnUrl, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
-      body: JSON.stringify({ to: to, subject: titel, body: body, filename: fname, pdfBase64: pdfBase64 })
+      body: JSON.stringify({
+        to: to,
+        subject: titel,
+        body: body,
+        filename: fname,
+        pdfBase64: pdfBase64,
+        senderName: onderteken,    // gaat in X-Praktijk-Ondertekenaar header
+        clientName: naam,          // gaat in X-Praktijk-Client header
+        toolId: 'psycho-educatie-builder'
+      })
     });
     const out = await resp.json().catch(()=>({}));
     if(!resp.ok || !out.ok) return fail(out.error || ('server gaf status ' + resp.status));
