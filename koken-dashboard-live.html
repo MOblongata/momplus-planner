@@ -108,11 +108,12 @@ main{max-width:1080px;margin:0 auto;padding:18px 20px 80px}
 .btn-primary:hover{background:#9c6b3c}
 .btn-ok{background:var(--ok);border-color:var(--ok);color:#fff}
 
-#cook{position:fixed;inset:0;background:#221d17;color:#f5efe6;z-index:400;display:flex;flex-direction:column}
+#cook{position:fixed;inset:0;height:100dvh;background:#221d17;color:#f5efe6;z-index:400;display:flex;flex-direction:column}
 .cook-top{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid rgba(255,255,255,.1)}
 .cook-top h2{color:#f5efe6;font-size:20px}
 .cook-top button{background:none;border:1px solid rgba(255,255,255,.25);color:#f5efe6;border-radius:8px;padding:8px 14px;font-size:14px}
-.cook-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;gap:26px}
+.cook-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:22px}
+.cook-nav{flex:none}
 .cook-step-no{font-family:var(--serif);font-size:16px;color:#c9a87d;letter-spacing:.5px}
 .cook-step{font-size:clamp(22px,4.5vw,38px);line-height:1.35;max-width:760px;font-weight:400}
 .cook-ings{font-size:14px;color:#bcae9c;max-width:600px}
@@ -125,13 +126,15 @@ main{max-width:1080px;margin:0 auto;padding:18px 20px 80px}
 .cook-portions{display:flex;align-items:center;gap:10px;font-size:14px;color:#c9a87d}
 .cook-portions input{accent-color:#c9a87d}
 
-#drawer{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:92vw;background:var(--surface);border-left:1px solid var(--line);z-index:300;transform:translateX(100%);transition:transform .22s;display:flex;flex-direction:column}
+#drawer{position:fixed;top:0;right:0;bottom:0;height:100%;width:380px;max-width:92vw;background:var(--surface);border-left:1px solid var(--line);z-index:300;transform:translateX(100%);transition:transform .22s;display:flex;flex-direction:column;overscroll-behavior:contain}
 #drawer.open{transform:none}
+#drawer-content{flex:1;display:flex;flex-direction:column;min-height:0}
+body.locked{overflow:hidden}
 .drawer-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
 .drawer-head h2{font-size:19px}
 .drawer-head button{background:none;border:none;font-size:20px;color:var(--muted)}
 .drawer-sub{padding:10px 20px;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-.drawer-list{flex:1;overflow-y:auto;padding:8px 20px}
+.drawer-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;min-height:0;padding:8px 20px}
 .shop-cat{font-family:var(--serif);font-size:14px;color:var(--accent-ink);margin:14px 0 6px}
 .shop-item{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:14px;border-bottom:1px dashed var(--line)}
 .shop-item input{accent-color:var(--accent);width:17px;height:17px}
@@ -426,7 +429,8 @@ function openDetail(id){
     </div>
   </div>`;
   document.body.appendChild(ov);
-  const close=()=>ov.remove();
+  document.body.classList.add('locked');
+  const close=()=>{ov.remove();document.body.classList.remove('locked');};
   ov.onclick=e=>{if(e.target===ov)close();};
   ov.querySelector('.modal-close').onclick=close;
   ov.querySelector('#dp').oninput=e=>{n=+e.target.value;ov.querySelector('#dpv').textContent=n;ov.querySelector('#dings').innerHTML=ingHTML();};
@@ -459,12 +463,17 @@ function openCook(id){
     <div class="cook-body"><div class="cook-step-no" id="c-no"></div><div class="cook-step" id="c-step"></div><div class="cook-ings" id="c-ings"></div></div>
     <div class="cook-nav"><button id="c-prev">← Vorige</button><div class="step-dots">${r.stappen.map(()=>`<span class="dot"></span>`).join('')}</div><button id="c-next">Volgende →</button></div>`;
   document.body.appendChild(el);
+  document.body.classList.add('locked');
   draw();
   (async()=>{try{if('wakeLock'in navigator)wakeLock=await navigator.wakeLock.request('screen');}catch(e){}})();
-  el.querySelector('#c-prev').onclick=()=>{if(step>0){step--;draw();}};
-  el.querySelector('#c-next').onclick=()=>{if(step<r.stappen.length-1){step++;draw();}};
+  const go=d=>{const ns=step+d;if(ns>=0&&ns<r.stappen.length){step=ns;draw();}};
+  el.querySelector('#c-prev').onclick=()=>go(-1);
+  el.querySelector('#c-next').onclick=()=>go(1);
   el.querySelector('#c-port').oninput=e=>{n=+e.target.value;el.querySelector('#c-pv').textContent=n;draw();};
-  el.querySelector('#c-close').onclick=()=>{el.remove();if(wakeLock){wakeLock.release();wakeLock=null;}};
+  el.querySelector('#c-close').onclick=()=>{el.remove();document.body.classList.remove('locked');if(wakeLock){wakeLock.release();wakeLock=null;}};
+  let sx=null;
+  el.addEventListener('touchstart',e=>{sx=e.changedTouches[0].clientX;},{passive:true});
+  el.addEventListener('touchend',e=>{if(sx==null)return;const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(dx<0?1:-1);sx=null;},{passive:true});
   document.addEventListener('keydown',function nav(e){
     if(!document.body.contains(el)){document.removeEventListener('keydown',nav);return;}
     if(e.key==='ArrowRight')el.querySelector('#c-next').click();
@@ -543,8 +552,8 @@ function printList(){
   w.document.write(`<html><head><title>Boodschappenlijst</title><style>body{font-family:Georgia,serif;max-width:600px;margin:40px auto;color:#2f2a24}h1{font-size:24px}h3{color:#b07d4b;border-bottom:1px solid #eee;padding-bottom:4px}li{padding:3px 0}</style></head><body><h1>🛒 Boodschappenlijst</h1>${body}<p style="margin-top:30px;color:#999;font-size:12px">Voor: ${[...state.cart].map(([id])=>DATA.find(x=>x.id===id).titel).join(', ')}</p></body></html>`);
   w.document.close();w.print();
 }
-document.getElementById('open-cart').onclick=()=>{document.getElementById('drawer').classList.add('open');renderDrawer();};
-document.getElementById('close-cart').onclick=()=>document.getElementById('drawer').classList.remove('open');
+document.getElementById('open-cart').onclick=()=>{document.getElementById('drawer').classList.add('open');document.body.classList.add('locked');renderDrawer();};
+document.getElementById('close-cart').onclick=()=>{document.getElementById('drawer').classList.remove('open');document.body.classList.remove('locked');};
 let toastT;function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1600);}
 
 /* ============================================================
