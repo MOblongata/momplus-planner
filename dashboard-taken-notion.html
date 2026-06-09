@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Taken — Notion (MIND+)</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:light;}*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f0f2f5;min-height:100vh;}
+/* ===== Auth overlay ===== */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;}
+.auth-card input:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,.15);}
+.auth-card .btn-auth{width:100%;background:#4f46e5;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:#4338ca;}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+/* ===== Hub ===== */
+.wrap{max-width:980px;margin:0 auto;padding:22px;}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+.brand{font-size:20px;font-weight:700;color:#1f2937;letter-spacing:-.4px;}
+.brand .accent{color:#4f46e5;}
+.brand-sub{display:block;font-size:11.5px;color:#9ca3af;font-weight:500;margin-top:2px;}
+.top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.back-link{font-size:12.5px;color:#6b7280;text-decoration:none;padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;}
+.back-link:hover{background:#f9fafb;color:#4f46e5;border-color:#c7d2fe;}
+.user-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;background:#ede9fe;color:#6d28d9;border-radius:18px;font-size:12.5px;font-weight:600;}
+.user-pill .dot{width:8px;height:8px;border-radius:50%;background:#10b981;}
+.btn-logout{background:#fff;border:1px solid #e5e7eb;color:#6b7280;padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
+.btn-logout:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+/* ===== Toolbar ===== */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+.btn{padding:8px 14px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;}
+.btn-primary{background:#4f46e5;color:#fff;}.btn-primary:hover{background:#4338ca;}
+.btn-ghost{background:#fff;border:1px solid #e5e7eb;color:#374151;}.btn-ghost:hover{background:#f9fafb;}
+.btn:disabled{opacity:.55;cursor:wait;}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:#6b7280;cursor:pointer;user-select:none;margin-left:auto;}
+.switch input{display:none;}
+.switch .track{width:38px;height:21px;border-radius:11px;background:#e5e7eb;position:relative;transition:background .15s;}
+.switch .track::after{content:'';position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.switch input:checked + .track{background:#4f46e5;}
+.switch input:checked + .track::after{left:19px;}
+/* ===== Banner ===== */
+.banner{border-radius:9px;padding:11px 14px;font-size:12.5px;line-height:1.5;margin-bottom:14px;}
+.banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
+.banner.warn{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;}
+.banner.err{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+.banner.ok{background:#dcfce7;border:1px solid #86efac;color:#166534;}
+/* ===== New task form ===== */
+.newcard{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.05);border:1px solid #e0e7ff;margin-bottom:16px;display:none;}
+.newcard.open{display:block;}
+.newcard h3{font-size:14px;font-weight:700;color:#1f2937;margin-bottom:12px;}
+.fgrid{display:grid;grid-template-columns:1fr 150px 150px;gap:10px;margin-bottom:10px;}
+.fgrid .full{grid-column:1 / -1;}
+.newcard label{display:block;font-size:11px;font-weight:600;color:#6b7280;margin-bottom:4px;}
+.newcard input,.newcard select,.newcard textarea{width:100%;border:1px solid #e5e7eb;border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;background:#fafafa;}
+.newcard input:focus,.newcard select:focus,.newcard textarea:focus{outline:none;border-color:#4f46e5;background:#fff;}
+.newcard textarea{resize:vertical;min-height:54px;}
+/* ===== Task list ===== */
+.tasklist{display:flex;flex-direction:column;gap:9px;}
+.task{background:#fff;border-radius:11px;padding:13px 15px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid #f3f4f6;display:flex;align-items:flex-start;gap:12px;transition:opacity .2s;}
+.task.done{opacity:.6;}
+.chk{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:2px solid #d1d5db;background:#fff;cursor:pointer;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;transition:all .12s;}
+.chk:hover{border-color:#10b981;}
+.chk.on{background:#10b981;border-color:#10b981;}
+.task-main{flex:1;min-width:0;}
+.task-title{font-size:14px;font-weight:600;color:#1f2937;line-height:1.35;word-break:break-word;}
+.task-title a{color:inherit;text-decoration:none;}
+.task-title a:hover{color:#4f46e5;text-decoration:underline;}
+.task-meta{display:flex;align-items:center;gap:9px;margin-top:6px;flex-wrap:wrap;font-size:11.5px;color:#9ca3af;}
+.task-desc{font-size:12px;color:#6b7280;margin-top:5px;line-height:1.45;}
+.deadline{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;background:#f3f4f6;color:#6b7280;font-weight:600;}
+.deadline.soon{background:#fef3c7;color:#92400e;}
+.deadline.over{background:#fee2e2;color:#991b1b;}
+.assignee{padding:2px 8px;border-radius:10px;background:#ede9fe;color:#6d28d9;font-weight:600;}
+.st-sel{flex-shrink:0;border:1px solid #e5e7eb;border-radius:8px;padding:5px 8px;font-size:11.5px;font-weight:700;font-family:inherit;cursor:pointer;background:#f9fafb;}
+.st-sel:focus{outline:none;border-color:#4f46e5;}
+.st-notstarted{color:#6b7280;}
+.st-inprogress{color:#1d4ed8;}
+.st-inreview{color:#b45309;}
+.st-done{color:#15803d;}
+.st-archive{color:#92400e;}
+.empty{padding:40px 20px;text-align:center;color:#9ca3af;font-size:13px;background:#fff;border-radius:12px;border:1px dashed #e5e7eb;}
+.loading{padding:40px;text-align:center;color:#9ca3af;font-size:13px;}
+.footer{text-align:center;color:#9ca3af;font-size:11px;margin-top:34px;padding:18px;}
+@media(max-width:640px){.fgrid{grid-template-columns:1fr;}.task{flex-wrap:wrap;}.st-sel{margin-left:34px;}}
+</style>
+</head>
+<body>
+
+<!-- ===== Login overlay ===== -->
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h1>✅ Taken — MIND+</h1>
+    <p class="sub">Log in om je Notion-taken te beheren</p>
+    <div id="auth-msg"></div>
+    <label>Email</label>
+    <input type="email" id="auth-email" placeholder="naam@praktijk.be" autocomplete="email">
+    <label>Wachtwoord</label>
+    <input type="password" id="auth-pw" placeholder="••••••••" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
+    <button class="btn-auth" id="auth-btn" onclick="doLogin()">Inloggen</button>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <div class="top">
+    <div>
+      <span class="brand">the<span class="accent">fallacy</span>machine</span>
+      <span class="brand-sub">Taken — Notion · Project MIND+</span>
+    </div>
+    <div class="top-right">
+      <a class="back-link" href="index.html">← Alle tools</a>
+      <span class="user-pill"><span class="dot"></span><span id="user-name">…</span></span>
+      <button class="btn-logout" onclick="doLogout()">Uitloggen</button>
+    </div>
+  </div>
+
+  <div class="banner info">
+    Taken komen rechtstreeks uit je Notion-database <b>Taken</b> (Project MIND+). Wijzig je hier de status of vink je een taak af, dan wordt dat <b>meteen in Notion</b> bijgewerkt. Nieuwe taken die je hier aanmaakt verschijnen ook in Notion.
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-primary" id="btn-new" onclick="toggleNew()">+ Nieuwe taak</button>
+    <button class="btn btn-ghost" id="btn-refresh" onclick="loadTasks()">↻ Vernieuwen</button>
+    <label class="switch">
+      <input type="checkbox" id="show-done" onchange="loadTasks()">
+      <span class="track"></span> Toon afgewerkte
+    </label>
+  </div>
+
+  <div id="msg"></div>
+
+  <!-- Nieuwe taak -->
+  <div class="newcard" id="newcard">
+    <h3>Nieuwe taak naar Notion</h3>
+    <div class="fgrid">
+      <div class="full">
+        <label>Taak *</label>
+        <input type="text" id="nt-taak" placeholder="Wat moet er gebeuren?">
+      </div>
+      <div class="full">
+        <label>Beschrijving</label>
+        <textarea id="nt-besch" placeholder="Optionele details…"></textarea>
+      </div>
+      <div>
+        <label>Deadline</label>
+        <input type="date" id="nt-deadline">
+      </div>
+      <div>
+        <label>Status</label>
+        <select id="nt-status">
+          <option value="Not started" selected>Not started</option>
+          <option value="In progress">In progress</option>
+          <option value="In Review">In Review</option>
+          <option value="Done">Done</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;">
+        <button class="btn btn-primary" id="btn-create" onclick="createTask()" style="width:100%;">Aanmaken</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lijst -->
+  <div id="list"><div class="loading">Laden…</div></div>
+
+  <div class="footer">Beveiligd via Supabase · Notion-token blijft server-side · MIND+</div>
+</div>
+
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='dashboard-taken-notion';
+const STATUSES=['Not started','In progress','In Review','Done','Archive'];
+const ST_CLASS={'Not started':'st-notstarted','In progress':'st-inprogress','In Review':'st-inreview','Done':'st-done','Archive':'st-archive'};
+let sb=null,currentUser=null,tasks=[];
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function showMsg(t,cls){document.getElementById('msg').innerHTML=t?'<div class="banner '+cls+'">'+esc(t)+'</div>':'';}
+
+/* ===== Auth ===== */
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pw=document.getElementById('auth-pw').value;
+  const btn=document.getElementById('auth-btn'),msg=document.getElementById('auth-msg');
+  if(!email||!pw){msg.innerHTML='<div class="msg err">Vul email en wachtwoord in</div>';return;}
+  btn.disabled=true;btn.textContent='Bezig…';
+  const {error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){msg.innerHTML='<div class="msg err">'+esc(error.message)+'</div>';return;}
+  msg.innerHTML='';onLoggedIn();
+}
+async function doLogout(){await sb.auth.signOut();currentUser=null;document.getElementById('app').style.display='none';document.getElementById('auth-overlay').style.display='flex';}
+
+async function onLoggedIn(){
+  const {data:{user}}=await sb.auth.getUser();
+  currentUser=user;
+  document.getElementById('auth-overlay').style.display='none';
+  document.getElementById('app').style.display='block';
+  document.getElementById('user-name').textContent=user.email||'ingelogd';
+  loadTasks();
+}
+
+/* ===== Notion via Edge Function ===== */
+async function callFn(payload){
+  const {data,error}=await sb.functions.invoke('notion-taken',{body:payload});
+  if(error){
+    // Probeer de echte foutboodschap uit de response te halen
+    let detail='';try{detail=(await error.context.json()).error;}catch(_){}
+    throw new Error(detail||error.message||'Onbekende fout');
+  }
+  if(data&&data.error)throw new Error(data.error);
+  return data;
+}
+
+async function loadTasks(){
+  const list=document.getElementById('list');
+  list.innerHTML='<div class="loading">Laden…</div>';
+  showMsg('','');
+  const includeDone=document.getElementById('show-done').checked;
+  try{
+    const res=await callFn({action:'list',includeDone});
+    tasks=res.tasks||[];
+    render();
+  }catch(e){
+    list.innerHTML='';
+    showMsg('Kon taken niet laden: '+e.message,'err');
+  }
+}
+
+function deadlineClass(d){
+  if(!d)return'';
+  const today=new Date();today.setHours(0,0,0,0);
+  const dl=new Date(d);dl.setHours(0,0,0,0);
+  const diff=(dl-today)/86400000;
+  if(diff<0)return'over';if(diff<=3)return'soon';return'';
+}
+function fmtDate(d){if(!d)return'';const dt=new Date(d);return dt.toLocaleDateString('nl-BE',{day:'numeric',month:'short'});}
+
+function render(){
+  const list=document.getElementById('list');
+  if(!tasks.length){list.innerHTML='<div class="empty">Geen taken gevonden. Maak er één aan met “+ Nieuwe taak”.</div>';return;}
+  list.innerHTML='<div class="tasklist">'+tasks.map(t=>{
+    const done=t.status==='Done'||t.status==='Archive';
+    const dlCls=deadlineClass(t.deadline);
+    const stCls=ST_CLASS[t.status]||'st-notstarted';
+    const opts=STATUSES.map(s=>'<option value="'+esc(s)+'"'+(s===t.status?' selected':'')+'>'+esc(s)+'</option>').join('');
+    return '<div class="task'+(done?' done':'')+'" data-id="'+esc(t.id)+'">'
+      +'<div class="chk'+(done?' on':'')+'" title="Afvinken (zet op Done)" onclick="quickDone(\''+esc(t.id)+'\')">'+(done?'✓':'')+'</div>'
+      +'<div class="task-main">'
+        +'<div class="task-title">'+(t.url?'<a href="'+esc(t.url)+'" target="_blank" rel="noopener">'+esc(t.taak||'(zonder titel)')+'</a>':esc(t.taak||'(zonder titel)'))+'</div>'
+        +(t.beschrijving?'<div class="task-desc">'+esc(t.beschrijving)+'</div>':'')
+        +'<div class="task-meta">'
+          +(t.deadline?'<span class="deadline '+dlCls+'">📅 '+esc(fmtDate(t.deadline))+'</span>':'')
+          +(t.assign&&t.assign.length?t.assign.map(a=>'<span class="assignee">'+esc(a)+'</span>').join(''):'')
+        +'</div>'
+      +'</div>'
+      +'<select class="st-sel '+stCls+'" onchange="changeStatus(\''+esc(t.id)+'\',this.value)">'+opts+'</select>'
+    +'</div>';
+  }).join('')+'</div>';
+}
+
+async function quickDone(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const target=(t.status==='Done'||t.status==='Archive')?'Not started':'Done';
+  await changeStatus(id,target);
+}
+
+async function changeStatus(id,status){
+  showMsg('','');
+  const row=document.querySelector('.task[data-id="'+id+'"]');
+  if(row)row.style.opacity='.5';
+  try{
+    const res=await callFn({action:'update_status',pageId:id,status});
+    const idx=tasks.findIndex(x=>x.id===id);
+    if(idx>=0)tasks[idx]=res.task;
+    // Als "toon afgewerkte" uit staat en taak is nu Done/Archive → herlaad om te verbergen
+    const includeDone=document.getElementById('show-done').checked;
+    if(!includeDone&&(status==='Done'||status==='Archive')){loadTasks();}
+    else{render();}
+    showMsg('Status bijgewerkt in Notion ✓','ok');
+    setTimeout(()=>showMsg('',''),1800);
+  }catch(e){
+    if(row)row.style.opacity='1';
+    showMsg('Bijwerken mislukt: '+e.message,'err');
+  }
+}
+
+function toggleNew(){document.getElementById('newcard').classList.toggle('open');}
+
+async function createTask(){
+  const taak=document.getElementById('nt-taak').value.trim();
+  const beschrijving=document.getElementById('nt-besch').value.trim();
+  const deadline=document.getElementById('nt-deadline').value;
+  const status=document.getElementById('nt-status').value;
+  if(taak.length<2){showMsg('Geef de taak een naam','warn');return;}
+  const btn=document.getElementById('btn-create');btn.disabled=true;btn.textContent='Bezig…';
+  try{
+    await callFn({action:'create',taak,beschrijving,deadline,status});
+    document.getElementById('nt-taak').value='';
+    document.getElementById('nt-besch').value='';
+    document.getElementById('nt-deadline').value='';
+    document.getElementById('nt-status').value='Not started';
+    document.getElementById('newcard').classList.remove('open');
+    showMsg('Taak aangemaakt in Notion ✓','ok');
+    setTimeout(()=>showMsg('',''),2200);
+    loadTasks();
+  }catch(e){
+    showMsg('Aanmaken mislukt: '+e.message,'err');
+  }finally{btn.disabled=false;btn.textContent='Aanmaken';}
+}
+
+/* ===== Init ===== */
+(async function init(){
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){onLoggedIn();}
+  else{document.getElementById('auth-overlay').style.display='flex';}
+})();
+</script>
+</body>
+</html>
