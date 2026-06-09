@@ -45,6 +45,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .switch .track::after{content:'';position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .15s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
 .switch input:checked + .track{background:#4f46e5;}
 .switch input:checked + .track::after{left:19px;}
+.person-sel{border:1px solid #e5e7eb;border-radius:8px;padding:7px 10px;font-size:12.5px;font-family:inherit;background:#fff;color:#374151;cursor:pointer;max-width:200px;}
+.person-sel:focus{outline:none;border-color:#4f46e5;}
 /* ===== Banner ===== */
 .banner{border-radius:9px;padding:11px 14px;font-size:12.5px;line-height:1.5;margin-bottom:14px;}
 .banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
@@ -127,7 +129,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
   <div class="toolbar">
     <button class="btn btn-primary" id="btn-new" onclick="toggleNew()">+ Nieuwe taak</button>
     <button class="btn btn-ghost" id="btn-refresh" onclick="loadTasks()">↻ Vernieuwen</button>
-    <label class="switch">
+    <select id="person-sel" class="person-sel" onchange="onPersonChange()" style="margin-left:auto" title="Filter op toegewezen persoon">
+      <option value="__all__">Alle personen</option>
+    </select>
+    <label class="switch" style="margin-left:0">
       <input type="checkbox" id="show-done" onchange="loadTasks()">
       <span class="track"></span> Toon afgewerkte
     </label>
@@ -178,7 +183,7 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const TOOL_ID='dashboard-taken-notion';
 const STATUSES=['Not started','In progress','In Review','Done','Archive'];
 const ST_CLASS={'Not started':'st-notstarted','In progress':'st-inprogress','In Review':'st-inreview','Done':'st-done','Archive':'st-archive'};
-let sb=null,currentUser=null,tasks=[];
+let sb=null,currentUser=null,tasks=[],personFilter='__all__';
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function showMsg(t,cls){document.getElementById('msg').innerHTML=t?'<div class="banner '+cls+'">'+esc(t)+'</div>':'';}
@@ -242,10 +247,40 @@ function deadlineClass(d){
 }
 function fmtDate(d){if(!d)return'';const dt=new Date(d);return dt.toLocaleDateString('nl-BE',{day:'numeric',month:'short'});}
 
+function onPersonChange(){personFilter=document.getElementById('person-sel').value;render();}
+
+function populatePeople(){
+  const sel=document.getElementById('person-sel');
+  const names=new Set();let anyUnassigned=false;
+  tasks.forEach(t=>{
+    if(t.assign&&t.assign.length){t.assign.forEach(n=>names.add(n));}
+    else{anyUnassigned=true;}
+  });
+  const sorted=[...names].sort((a,b)=>a.localeCompare(b,'nl'));
+  // Reset selectie als de gekozen persoon niet meer bestaat
+  if(personFilter!=='__all__'&&personFilter!=='__none__'&&!names.has(personFilter))personFilter='__all__';
+  let html='<option value="__all__">Alle personen</option>';
+  sorted.forEach(n=>{html+='<option value="'+esc(n)+'"'+(n===personFilter?' selected':'')+'>'+esc(n)+'</option>';});
+  if(anyUnassigned)html+='<option value="__none__"'+(personFilter==='__none__'?' selected':'')+'>— Niet toegewezen —</option>';
+  sel.innerHTML=html;
+  if(personFilter==='__all__')sel.value='__all__';
+}
+
+function visibleTasks(){
+  if(personFilter==='__none__')return tasks.filter(t=>!t.assign||!t.assign.length);
+  if(personFilter!=='__all__')return tasks.filter(t=>t.assign&&t.assign.includes(personFilter));
+  return tasks;
+}
+
 function render(){
   const list=document.getElementById('list');
-  if(!tasks.length){list.innerHTML='<div class="empty">Geen taken gevonden. Maak er één aan met “+ Nieuwe taak”.</div>';return;}
-  list.innerHTML='<div class="tasklist">'+tasks.map(t=>{
+  populatePeople();
+  const shown=visibleTasks();
+  if(!shown.length){
+    const why=tasks.length?'Geen taken voor deze filter.':'Geen taken gevonden. Maak er één aan met “+ Nieuwe taak”.';
+    list.innerHTML='<div class="empty">'+why+'</div>';return;
+  }
+  list.innerHTML='<div class="tasklist">'+shown.map(t=>{
     const done=t.status==='Done'||t.status==='Archive';
     const dlCls=deadlineClass(t.deadline);
     const stCls=ST_CLASS[t.status]||'st-notstarted';
