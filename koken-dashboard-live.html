@@ -30,6 +30,11 @@ img{display:block;max-width:100%}
 .gbtn{width:100%;height:48px;border:1px solid var(--line2);border-radius:var(--radius-sm);background:#fff;color:var(--ink);font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:11px}
 .gbtn:hover{border-color:var(--accent);background:#fdfbf8}
 .gbtn svg{width:20px;height:20px}
+.gate-card input{width:100%;height:46px;border:1px solid var(--line2);border-radius:var(--radius-sm);padding:0 14px;font-family:inherit;font-size:15px;background:#fff}
+.gate-card input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.or-div{display:flex;align-items:center;gap:10px;color:var(--hint);font-size:12px;margin:18px 0 12px}
+.or-div::before,.or-div::after{content:"";flex:1;height:1px;background:var(--line)}
+.gate-ok{color:var(--ok);font-size:13.5px;min-height:18px;margin-top:14px;line-height:1.45}
 .gate-err{color:var(--danger);font-size:13.5px;min-height:20px;margin-top:16px;line-height:1.45}
 .gate-note{margin-top:22px;font-size:12px;color:var(--hint);line-height:1.5}
 .linklike{background:none;border:none;color:var(--accent-ink);text-decoration:underline;font-size:13px;margin-top:10px}
@@ -163,6 +168,12 @@ body.locked{overflow:hidden}
       <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
       Inloggen met Google
     </button>
+    <div class="or-div"><span>of met e-mail</span></div>
+    <div id="magic-wrap">
+      <input id="magic-email" type="email" placeholder="jouw e-mailadres" autocomplete="email">
+      <button class="gbtn" id="magic-btn" style="margin-top:8px">📧 Stuur inloglink</button>
+    </div>
+    <div class="gate-ok hidden" id="magic-ok"></div>
     <div class="gate-err" id="gate-err"></div>
     <button class="linklike hidden" id="logout-link">Uitloggen / ander account</button>
     <div class="gate-note">Alleen toegankelijk voor het gezin.<br>Toegang per Google-account, beheerd in de server-config.</div>
@@ -188,6 +199,7 @@ body.locked{overflow:hidden}
 
   <main>
     <div class="filters" id="cat-filters"></div>
+    <div class="filters" id="soort-filters"></div>
     <div class="filters" id="tag-filters"></div>
     <div class="filter-row">
       <div class="timeslider">
@@ -219,15 +231,16 @@ const CONFIG = {
   SUPABASE_URL: "https://zxkwkvihskufwahvonml.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes",
   EDGE_FN_URL: "https://zxkwkvihskufwahvonml.supabase.co/functions/v1/recepten-api",
-  ALLOWED_EMAILS: ["frank.vansteenkiste@gmail.com","anneliendepue@hotmail.com","neurologie@drvansteenkiste.be"]
+  ALLOWED_EMAILS: ["frank.vansteenkiste@gmail.com","anneliendepue@hotmail.com","neurologie@drvansteenkiste.be","seydou.devel@gmail.com","marie.vansteenkiste@hotmail.com"]
 };
 
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const ESC=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let DATA=[];
-const state={q:"",cat:null,tags:new Set(),maxTime:180,favOnly:false,cart:new Map(),checked:new Set()};
+const state={q:"",cat:null,soort:new Set(),tags:new Set(),maxTime:180,favOnly:false,cart:new Map(),checked:new Set()};
 const CATS=["Voorgerecht","Hoofdgerecht","Bijgerecht","Dessert","Ontbijt","Snack"];
+const SOORT=[["Vis","🐟"],["Schaal- & weekdieren","🦐"],["Vlees","🥩"],["Kip","🍗"]];
 const TAGS=["Vega","Veganistisch","Lactosevrij","Glutenvrij","Snel","Budget","Seizoen","Kindvriendelijk","Feestelijk"];
 const CAT_COLOR={Voorgerecht:["#fbeee2","#9a5a1e"],Hoofdgerecht:["#fcebeb","#a32d2d"],Bijgerecht:["#fbf6df","#897400"],Dessert:["#fbeaf0","#993556"],Ontbijt:["#e6f1fb","#185fa5"],Snack:["#eaf3de","#3b6d11"]};
 const THUMB={Hoofdgerecht:"#fcefef",Dessert:"#fcf0f5",Voorgerecht:"#fbf2e8",Bijgerecht:"#fbf8e6",Ontbijt:"#eef5fc",Snack:"#f0f6e7"};
@@ -241,6 +254,19 @@ document.getElementById('google-btn').onclick=async()=>{
   const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:window.location.href.split('#')[0]}});
   if(error)gateErr.textContent="Inloggen mislukt: "+error.message;
 };
+async function sendMagic(){
+  gateErr.textContent="";document.getElementById('magic-ok').classList.add('hidden');
+  const em=(document.getElementById('magic-email').value||"").trim().toLowerCase();
+  if(!em||!em.includes('@')){gateErr.textContent="Vul je e-mailadres in.";return;}
+  if(!CONFIG.ALLOWED_EMAILS.includes(em)){gateErr.textContent="Dit adres heeft geen toegang. Vraag Frank om het toe te voegen.";return;}
+  const btn=document.getElementById('magic-btn');btn.disabled=true;
+  const {error}=await sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:window.location.href.split('#')[0]}});
+  btn.disabled=false;
+  if(error){gateErr.textContent="Versturen mislukt: "+error.message;return;}
+  const ok=document.getElementById('magic-ok');ok.textContent="Inloglink verstuurd. Check je mailbox ("+em+") en klik op de link.";ok.classList.remove('hidden');
+}
+document.getElementById('magic-btn').onclick=sendMagic;
+document.getElementById('magic-email').addEventListener('keydown',e=>{if(e.key==='Enter')sendMagic();});
 document.getElementById('logout-link').onclick=()=>sb.auth.signOut().then(()=>location.reload());
 document.getElementById('logout-btn').onclick=()=>sb.auth.signOut().then(()=>location.reload());
 
@@ -251,6 +277,8 @@ async function handleSession(session){
     gateErr.textContent="Dit account ("+email+") heeft geen toegang. Vraag Frank om het toe te voegen.";
     document.getElementById('logout-link').classList.remove('hidden');
     document.getElementById('google-btn').classList.add('hidden');
+    document.getElementById('magic-wrap').classList.add('hidden');
+    document.querySelector('.or-div').classList.add('hidden');
     document.getElementById('gate').classList.remove('hidden');
     document.getElementById('app').classList.add('hidden');
     return;
@@ -264,6 +292,8 @@ async function handleSession(session){
 function showGate(){
   document.getElementById('gate').classList.remove('hidden');
   document.getElementById('google-btn').classList.remove('hidden');
+  document.getElementById('magic-wrap').classList.remove('hidden');
+  document.querySelector('.or-div').classList.remove('hidden');
   document.getElementById('logout-link').classList.add('hidden');
   document.getElementById('app').classList.add('hidden');
 }
@@ -308,6 +338,12 @@ function buildFilters(){
     cf.querySelectorAll('button').forEach(x=>x.classList.toggle('cat-on',x.dataset.cat===state.cat));
     render();
   });
+  const sf=document.getElementById('soort-filters');
+  sf.innerHTML=SOORT.map(([s,e])=>`<button class="chip" data-soort="${s}">${e} ${s}</button>`).join('');
+  sf.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const s=b.dataset.soort;state.soort.has(s)?state.soort.delete(s):state.soort.add(s);
+    b.classList.toggle('on',state.soort.has(s));render();
+  });
   const tf=document.getElementById('tag-filters');
   tf.innerHTML=TAGS.map(t=>`<button class="chip" data-tag="${t}">${t}</button>`).join('');
   tf.querySelectorAll('button').forEach(b=>b.onclick=()=>{
@@ -319,7 +355,7 @@ document.getElementById('q').oninput=e=>{state.q=e.target.value.toLowerCase();re
 document.getElementById('time').oninput=e=>{state.maxTime=+e.target.value;document.getElementById('time-val').textContent=(+e.target.value>=180?'alle':e.target.value);render();};
 document.getElementById('fav-filter').onclick=function(){state.favOnly=!state.favOnly;this.classList.toggle('on',state.favOnly);render();};
 document.getElementById('clear').onclick=()=>{
-  state.q="";state.cat=null;state.tags.clear();state.maxTime=180;state.favOnly=false;
+  state.q="";state.cat=null;state.soort.clear();state.tags.clear();state.maxTime=180;state.favOnly=false;
   document.getElementById('q').value="";document.getElementById('time').value=180;document.getElementById('time-val').textContent='alle';
   buildFilters();document.getElementById('fav-filter').classList.remove('on');render();
 };
@@ -331,6 +367,7 @@ function matches(r){
   if(state.cat&&r.categorie!==state.cat)return false;
   if(state.favOnly&&!r.favoriet)return false;
   if((r.totaal||0)>state.maxTime)return false;
+  if(state.soort.size&&![...state.soort].some(s=>(r.tags||[]).includes(s)))return false;
   for(const t of state.tags)if(!(r.tags||[]).includes(t))return false;
   if(state.q){
     const hay=(r.titel+" "+(r.keuken||"")+" "+(r.ingredienten||[]).map(i=>i.product).join(" ")).toLowerCase();
@@ -342,7 +379,7 @@ function render(){
   const list=DATA.filter(matches);
   const grid=document.getElementById('grid');
   document.getElementById('count').textContent=DATA.length?`${list.length} van ${DATA.length}`:"";
-  const active=state.cat||state.tags.size||state.q||state.favOnly||state.maxTime<180;
+  const active=state.cat||state.soort.size||state.tags.size||state.q||state.favOnly||state.maxTime<180;
   document.getElementById('clear').classList.toggle('hidden',!active);
   document.getElementById('empty').classList.toggle('hidden',list.length>0||!DATA.length);
   grid.innerHTML=list.map(r=>{
