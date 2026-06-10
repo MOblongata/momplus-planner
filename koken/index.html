@@ -65,7 +65,8 @@ main{max-width:1080px;margin:0 auto;padding:18px 20px 80px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;display:flex;flex-direction:column;transition:transform .12s,box-shadow .12s;cursor:pointer}
 .card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(80,60,30,.08)}
-.thumb{height:130px;position:relative;display:flex;align-items:center;justify-content:center;font-size:30px;background-size:cover;background-position:center}
+.thumb{height:130px;position:relative;display:flex;align-items:center;justify-content:center;font-size:30px;background-size:cover;background-position:center;overflow:hidden}
+.thumb-img,.hero-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .thumb .fav{position:absolute;top:9px;right:9px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);border:none;display:flex;align-items:center;justify-content:center}
 .thumb .catbadge{position:absolute;top:9px;left:9px;font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500}
 .card-body{padding:11px 14px 13px;display:flex;flex-direction:column;gap:7px;flex:1}
@@ -329,6 +330,11 @@ async function loadFavorites(){
   }catch(e){ DATA.forEach(r=>{r.favoriet=false;}); }
 }
 
+/* Foto per gerecht: Notion-Foto-URL indien aanwezig, anders vaste naamconventie
+   fotos/<titel-slug>.jpg in de repo. Emoji blijft de terugval als de foto ontbreekt. */
+function slug(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");}
+function photoUrl(r){return (r.foto&&r.foto.length)?r.foto:`fotos/${slug(r.titel)}.jpg`;}
+
 function qtyFor(ing,n,base){
   if(ing.pp&&Object.keys(ing.pp).length){
     if(ing.pp[n]!=null)return ing.pp[n];
@@ -398,10 +404,10 @@ function render(){
   grid.innerHTML=list.map(r=>{
     const[bg,ink]=CAT_COLOR[r.categorie]||["#eee","#555"];
     const inCart=state.cart.has(r.id);
-    const thumbStyle=r.foto?`background-image:url('${ESC(r.foto)}')`:`background:${THUMB[r.categorie]||'#f3f0ea'}`;
     return `<div class="card" data-id="${r.id}">
-      <div class="thumb" style="${thumbStyle}">
-        ${r.foto?'':`<span>${r.emoji||'🍽️'}</span>`}
+      <div class="thumb" style="background:${THUMB[r.categorie]||'#f3f0ea'}">
+        <span>${r.emoji||'🍽️'}</span>
+        <img class="thumb-img" src="${ESC(photoUrl(r))}" alt="" loading="lazy" onerror="this.remove()">
         <span class="catbadge" style="background:${bg};color:${ink}">${ESC(r.categorie)}</span>
         <button class="fav" data-fav="${r.id}" title="Favoriet">${r.favoriet?'❤️':'🤍'}</button>
       </div>
@@ -463,8 +469,9 @@ function openDetail(id){
     }).join('');
   }
   ov.innerHTML=`<div class="modal">
-    <div class="modal-hero" style="${r.foto?`background-image:url('${ESC(r.foto)}')`:`background:${THUMB[r.categorie]||'#f3f0ea'}`}">
-      ${r.foto?'':`<span>${r.emoji||'🍽️'}</span>`}
+    <div class="modal-hero" style="background:${THUMB[r.categorie]||'#f3f0ea'}">
+      <span>${r.emoji||'🍽️'}</span>
+      <img class="hero-img" src="${ESC(photoUrl(r))}" alt="" onerror="this.remove()">
       <button class="modal-close">✕</button>
     </div>
     <div class="modal-pad">
