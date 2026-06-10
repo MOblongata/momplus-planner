@@ -238,6 +238,7 @@ const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
 
 const ESC=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let DATA=[];
+let currentUserId=null;
 const state={q:"",cat:null,soort:new Set(),tags:new Set(),maxTime:180,favOnly:false,cart:new Map(),checked:new Set()};
 const CATS=["Voorgerecht","Hoofdgerecht","Bijgerecht","Dessert","Ontbijt","Snack"];
 const SOORT=[["Vis","🐟"],["Schaal- & weekdieren","🦐"],["Vlees","🥩"],["Kip","🍗"]];
@@ -283,6 +284,7 @@ async function handleSession(session){
     document.getElementById('app').classList.add('hidden');
     return;
   }
+  currentUserId=session.user.id;
   document.getElementById('who-email').textContent=email;
   document.getElementById('gate').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
@@ -311,9 +313,20 @@ async function loadData(token){
     const j=await r.json();
     if(!r.ok||!j.ok){loading.textContent="Kon recepten niet laden: "+(j.error||r.status);return;}
     DATA=j.recepten||[];
+    await loadFavorites();
     loading.classList.add('hidden');
     render();updateCartCount();
   }catch(e){loading.textContent="Netwerkfout bij laden: "+e.message;}
+}
+
+/* Favorieten zijn per ingelogde gebruiker (Supabase-tabel koken_favorieten, met RLS). */
+async function loadFavorites(){
+  try{
+    const {data,error}=await sb.from('koken_favorieten').select('recept_id');
+    if(error)throw error;
+    const set=new Set((data||[]).map(x=>x.recept_id));
+    DATA.forEach(r=>{r.favoriet=set.has(r.id);});
+  }catch(e){ DATA.forEach(r=>{r.favoriet=false;}); }
 }
 
 function qtyFor(ing,n,base){
@@ -417,7 +430,23 @@ function render(){
     openDetail(c.dataset.id);
   });
 }
-function toggleFav(id){const r=DATA.find(x=>x.id===id);r.favoriet=!r.favoriet;render();toast(r.favoriet?"Favoriet (lokaal)":"Favoriet uit");}
+async function toggleFav(id){
+  const r=DATA.find(x=>x.id===id);
+  const willFav=!r.favoriet;
+  r.favoriet=willFav;render();
+  try{
+    if(willFav){
+      const {error}=await sb.from('koken_favorieten').upsert({user_id:currentUserId,recept_id:id});
+      if(error)throw error;
+    }else{
+      const {error}=await sb.from('koken_favorieten').delete().eq('user_id',currentUserId).eq('recept_id',id);
+      if(error)throw error;
+    }
+    toast(willFav?"❤️ Bij jouw favorieten":"Uit favorieten");
+  }catch(e){
+    r.favoriet=!willFav;render();toast("Kon favoriet niet opslaan");
+  }
+}
 
 /* ============================================================
    DETAIL
