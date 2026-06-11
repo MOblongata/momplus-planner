@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attest medicatie buitenland — MIND+</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{color-scheme:light;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;background:#f0f2f5;color:#1e293b;}
+
+/* ===== Auth overlay (site-conventie) ===== */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0ea5e9,#06b6d4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;}
+.auth-card input:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.15);}
+.auth-card .btn-auth{width:100%;background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;font-family:inherit;}
+.auth-card .btn-auth:hover{background:#0284c7;}
+.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .toggle{text-align:center;margin-top:14px;font-size:12px;color:#6b7280;}
+.auth-card .toggle a{color:#0ea5e9;cursor:pointer;text-decoration:underline;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.auth-card .msg.ok{background:#dcfce7;color:#166534;border:1px solid #86efac;}
+.auth-user-pill{position:fixed;top:10px;right:10px;display:inline-flex;align-items:center;gap:7px;padding:6px 11px;background:#cffafe;color:#0e7490;border-radius:16px;font-size:11.5px;font-weight:600;z-index:9000;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.auth-user-pill a{color:#0e7490;text-decoration:none;border:1px solid #67e8f9;padding:2px 7px;border-radius:11px;font-size:10.5px;font-weight:600;}
+.auth-user-pill a:hover{background:#67e8f9;}
+.auth-user-pill button{margin-left:4px;background:none;border:1px solid #67e8f9;color:#0e7490;padding:2px 8px;border-radius:11px;font-size:10.5px;cursor:pointer;font-weight:600;font-family:inherit;}
+.auth-user-pill button:hover{background:#67e8f9;}
+
+/* ===== App layout ===== */
+.app{display:grid;grid-template-columns:360px 1fr;gap:20px;max-width:1320px;margin:0 auto;padding:24px;align-items:start;}
+@media(max-width:920px){.app{grid-template-columns:1fr;}}
+.sidebar{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;}
+.sidebar h1{font-size:18px;font-weight:800;color:#1a4d6b;margin-bottom:2px;}
+.sidebar .sub{font-size:11.5px;color:#64748b;margin-bottom:14px;display:block;}
+.sb-section{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;}
+.sb-section:last-child{border-bottom:none;}
+.sb-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:9px;}
+.sidebar label{display:block;font-size:11px;font-weight:600;color:#374151;margin:8px 0 3px;}
+.sidebar input,.sidebar select{width:100%;border:1px solid #e5e7eb;border-radius:7px;padding:7px 9px;font-size:12.5px;font-family:inherit;background:#fff;}
+.sidebar input:focus,.sidebar select:focus{outline:none;border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.12);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.med-row{display:grid;grid-template-columns:1fr 86px 24px;gap:6px;margin-bottom:6px;align-items:center;}
+.med-row input{padding:6px 8px;font-size:12px;}
+.med-row .del{background:none;border:none;color:#cbd5e1;font-size:15px;cursor:pointer;line-height:1;}
+.med-row .del:hover{color:#dc2626;}
+.btn{background:#1a4d6b;color:#fff;border:none;padding:9px 14px;font-size:12.5px;font-weight:600;border-radius:7px;cursor:pointer;font-family:inherit;}
+.btn:hover{background:#143d57;}
+.btn:disabled{opacity:.55;cursor:not-allowed;}
+.btn.ghost{background:#fff;color:#1a4d6b;border:1px solid #cdd9e3;}
+.btn.ghost:hover{background:#f4f8fb;}
+.btn.small{padding:6px 10px;font-size:11.5px;}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.hint{font-size:10.5px;color:#94a3b8;line-height:1.45;margin-top:6px;}
+.infobox{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:9px 11px;font-size:11px;color:#92400e;line-height:1.5;margin-top:10px;}
+
+/* ===== A4 preview ===== */
+.preview-wrap{min-width:0;}
+.a4{background:#fff;width:210mm;max-width:100%;min-height:296mm;margin:0 auto;box-shadow:0 4px 24px rgba(0,0,0,.10);padding:20mm 18mm;font-family:Georgia,'Times New Roman',serif;font-size:11.5pt;color:#111;line-height:1.55;}
+.a4 .briefhoofd{display:flex;justify-content:space-between;gap:16px;border-bottom:2px solid #1a4d6b;padding-bottom:10px;margin-bottom:14px;}
+.a4 .briefhoofd .arts{font-size:10.5pt;line-height:1.45;}
+.a4 .briefhoofd .arts b{font-size:12pt;color:#1a4d6b;}
+.a4 .briefhoofd .aan{font-size:10pt;text-align:right;color:#333;font-style:italic;line-height:1.5;align-self:flex-end;}
+.a4 h2.titel{font-size:13pt;text-align:center;margin:16px 0 4px;color:#1a4d6b;}
+.a4 .titel-sub{text-align:center;font-size:10.5pt;font-style:italic;color:#444;margin-bottom:16px;}
+.a4 .blok{margin-bottom:12px;}
+.a4 .lbl{color:#555;font-size:9.5pt;font-style:italic;}
+.a4 .veld{border-bottom:1px dotted #999;min-height:1.3em;display:inline-block;min-width:60%;padding:0 2px;}
+.a4 table{width:100%;border-collapse:collapse;margin:8px 0 14px;}
+.a4 th{background:#eef4f8;border:1px solid #8aa6b8;padding:5px 8px;font-size:9.5pt;text-align:left;font-weight:700;color:#1a4d6b;}
+.a4 td{border:1px solid #8aa6b8;padding:6px 8px;font-size:10.5pt;min-height:1.4em;}
+.a4 td.dose{width:34%;}
+.a4 .drietalig{font-size:10.5pt;margin:10px 0;}
+.a4 .drietalig .en,.a4 .drietalig .fr{font-style:italic;color:#333;}
+.a4 .onderaan{display:flex;justify-content:space-between;gap:20px;margin-top:26px;}
+.a4 .onderaan .links{font-size:10.5pt;line-height:1.7;}
+.a4 .stempel{border:1.5px dashed #8aa6b8;border-radius:6px;width:62mm;min-height:34mm;padding:6px 8px;font-size:8.5pt;color:#777;font-style:italic;text-align:center;display:flex;align-items:flex-start;justify-content:center;}
+.a4 .handtekening{margin-top:14px;font-size:10.5pt;}
+.a4 .handtekening .lijn{display:inline-block;border-bottom:1px dotted #999;min-width:55mm;height:1.2em;}
+
+@media print{
+  body{background:#fff;}
+  .sidebar,.auth-user-pill,.auth-overlay,.no-print{display:none !important;}
+  .app{display:block;padding:0;max-width:none;}
+  .a4{box-shadow:none;width:auto;min-height:0;padding:0;margin:0;}
+  @page{size:A4;margin:18mm;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== Auth gate ===== -->
+<div class="auth-overlay" id="auth-overlay" style="display:flex">
+  <div class="auth-card">
+    <h1>✈️ Attest medicatie buitenland</h1>
+    <p class="sub" id="auth-sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <div id="auth-form-login">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="email" placeholder="naam@praktijk.be">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-pw" autocomplete="current-password" placeholder="••••••••" onkeypress="if(event.key==='Enter')doLogin()">
+      <button class="btn-auth" id="auth-btn-login" onclick="doLogin()">Inloggen</button>
+      <div class="toggle">Naar <a href="praktijk.html">praktijk-hub</a></div>
+    </div>
+  </div>
+</div>
+<div class="auth-user-pill" id="user-pill" style="display:none">
+  <a href="praktijk.html" title="Terug naar praktijk-hub">←</a>
+  <span>👤</span><span id="user-name"></span>
+  <button onclick="doLogout()" title="Uitloggen">⏻</button>
+</div>
+
+<div class="app">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar no-print">
+    <h1>✈️ Attest medicatie buitenland</h1>
+    <span class="sub">drietalig attest NL · EN · FR — invullen, printen, mailen</span>
+
+    <div class="sb-section">
+      <div class="sb-title">Arts</div>
+      <label for="arts">Voorschrijvende arts</label>
+      <select id="arts" onchange="loadArts();render()"></select>
+      <label for="arts-riziv">RIZIV-nummer</label>
+      <input id="arts-riziv" placeholder="1-23456-78-901" oninput="saveArts();render()">
+      <label for="arts-adres">Praktijkadres</label>
+      <input id="arts-adres" placeholder="Straat nr, postcode gemeente" oninput="saveArts();render()">
+      <label for="arts-tel">Telefoon praktijk</label>
+      <input id="arts-tel" placeholder="+32 …" oninput="saveArts();render()">
+      <div class="hint">Deze gegevens worden per arts onthouden op dit toestel.</div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Patiënt</div>
+      <label for="pt-naam">Naam patiënt</label>
+      <input id="pt-naam" placeholder="Voornaam Naam" oninput="render()">
+      <label for="pt-adres">Adres</label>
+      <input id="pt-adres" placeholder="Straat nr, postcode gemeente" oninput="render()">
+      <div class="row2">
+        <div>
+          <label for="pt-geb">Geboortedatum</label>
+          <input id="pt-geb" type="date" oninput="render()">
+        </div>
+        <div>
+          <label for="pt-tel">Telefoon</label>
+          <input id="pt-tel" placeholder="+32 4…" oninput="render()">
+        </div>
+      </div>
+      <label for="pt-email">E-mail patiënt <span style="font-weight:400;color:#94a3b8">(voor de mailknop)</span></label>
+      <input id="pt-email" type="text" placeholder="bv. jan@voorbeeld.be">
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Verblijf in het buitenland</div>
+      <div class="row2">
+        <div>
+          <label for="van">Van</label>
+          <input id="van" type="date" oninput="render()">
+        </div>
+        <div>
+          <label for="tot">Tot en met</label>
+          <input id="tot" type="date" oninput="render()">
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Medicatie</div>
+      <label for="preset">Snel toevoegen</label>
+      <select id="preset" onchange="addPreset()">
+        <option value="">— kies een geneesmiddel —</option>
+      </select>
+      <div id="med-rows" style="margin-top:10px"></div>
+      <button class="btn ghost small" onclick="addMedRow('','')">＋ lege rij</button>
+      <div class="infobox">⚠️ Stimulantia (methylfenidaat, lisdexamfetamine, dexamfetamine) vallen onder de verdovingswetgeving. Voor reizen <b>binnen Schengen</b> is vaak een aparte <b>Schengenverklaring</b> nodig (aan te vragen via de apotheker/FOD); daarbuiten gelden landspecifieke regels. Dit attest is een medische verantwoording, geen vervoersvergunning.</div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Opmaak</div>
+      <div class="row2">
+        <div>
+          <label for="plaats">Opgemaakt te</label>
+          <input id="plaats" placeholder="Gent" oninput="render()">
+        </div>
+        <div>
+          <label for="datum">Op</label>
+          <input id="datum" type="date" oninput="render()">
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-title">Acties</div>
+      <div class="actions">
+        <button class="btn" onclick="window.print()">🖨 Print</button>
+        <button class="btn ghost" onclick="downloadPdf()">⬇ PDF</button>
+        <button class="btn ghost" id="mailbtn" onclick="emailDoc()" title="Verstuurt het attest rechtstreeks per e-mail naar de patiënt, met de PDF als bijlage.">✉︎ E-mail</button>
+      </div>
+      <div class="hint">Handtekening en identificatiestempel plaats je fysiek op de afdruk, of je mailt en de patiënt drukt zelf af voor ondertekening op consultatie.</div>
+    </div>
+  </aside>
+
+  <!-- ================= A4 PREVIEW ================= -->
+  <main class="preview-wrap">
+    <div class="a4" id="preview"></div>
+  </main>
+</div>
+
+<script>
+/* ---------- artsen (voeg hier toe om de lijst uit te breiden) ---------- */
+const ARTSEN = [
+  { id:'frank',  naam:'Dr. Van Steenkiste Frank', titel:'Neuroloog' },
+  { id:'jeroen', naam:'Dr. Vervaet Jeroen',      titel:'Psychiater' }
+];
+const LS_KEY = 'attest-medicatie-buitenland-v1';
+
+/* ---------- medicatie-presets (merknaam + werkzame stof) ---------- */
+const PRESETS = [
+  'Rilatine (methylfenidaathydrochloride 10 mg/compr.)',
+  'Rilatine MR (methylfenidaathydrochloride, verlengde afgifte)',
+  'Concerta (methylfenidaathydrochloride, verlengde afgifte)',
+  'Medikinet Retard (methylfenidaathydrochloride, verlengde afgifte)',
+  'Equasym XR (methylfenidaathydrochloride, verlengde afgifte)',
+  'Elvanse (lisdexamfetamine)',
+  'Amfexa (dexamfetaminesulfaat)',
+  'Strattera (atomoxetine)',
+  'Intuniv (guanfacine, verlengde afgifte)',
+  'Wellbutrin XR (bupropion, verlengde afgifte)',
+  'Brintellix (vortioxetine)',
+  'Sertraline (sertraline)',
+  'Sipralexa (escitalopram)',
+  'Melatonine (melatonine)',
+  'Quetiapine (quetiapine)',
+  'Abilify (aripiprazol)'
+];
+
+/* ---------- helpers ---------- */
+// Veiligheidsfilter: maakt verborgen code in tekst onschadelijk vóór het op het scherm komt (XSS-bescherming)
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function v(id){const e=document.getElementById(id);return e?e.value.trim():'';}
+function dots(s,fallbackWidth){return s?esc(s):'<span class="veld" style="min-width:'+(fallbackWidth||'60%')+'"></span>';}
+function fmtDate(iso){
+  if(!iso)return '';
+  const p=iso.split('-');if(p.length!==3)return esc(iso);
+  return p[2]+'/'+p[1]+'/'+p[0];
+}
+function slug(s){return String(s||'attest').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'')||'attest';}
+
+/* ---------- artsgegevens (localStorage per arts) ---------- */
+function lsData(){try{return JSON.parse(localStorage.getItem(LS_KEY)||'{}');}catch(e){return {};}}
+function currentArts(){const id=v('arts');return ARTSEN.find(a=>a.id===id)||ARTSEN[0];}
+function populateArtsen(){
+  const sel=document.getElementById('arts');
+  sel.innerHTML=ARTSEN.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.naam+' — '+a.titel)+'</option>').join('');
+}
+function loadArts(){
+  const d=lsData()[currentArts().id]||{};
+  document.getElementById('arts-riziv').value=d.riziv||'';
+  document.getElementById('arts-adres').value=d.adres||'';
+  document.getElementById('arts-tel').value=d.tel||'';
+}
+function saveArts(){
+  const all=lsData();
+  all[currentArts().id]={riziv:v('arts-riziv'),adres:v('arts-adres'),tel:v('arts-tel')};
+  try{localStorage.setItem(LS_KEY,JSON.stringify(all));}catch(e){}
+}
+
+/* ---------- medicatierijen ---------- */
+function populatePresets(){
+  const sel=document.getElementById('preset');
+  sel.innerHTML='<option value="">— kies een geneesmiddel —</option>'+
+    PRESETS.map((p,i)=>'<option value="'+i+'">'+esc(p)+'</option>').join('');
+}
+function addPreset(){
+  const sel=document.getElementById('preset');
+  if(sel.value==='')return;
+  addMedRow(PRESETS[Number(sel.value)]||'','');
+  sel.value='';
+}
+function addMedRow(naam,dosis){
+  const wrap=document.getElementById('med-rows');
+  const row=document.createElement('div');
+  row.className='med-row';
+  const inNaam=document.createElement('input');
+  inNaam.placeholder='Naam + werkzame stof';inNaam.value=naam||'';inNaam.oninput=render;
+  const inDosis=document.createElement('input');
+  inDosis.placeholder='dosis/dag';inDosis.value=dosis||'';inDosis.oninput=render;
+  const del=document.createElement('button');
+  del.className='del';del.textContent='✕';del.title='Rij verwijderen';
+  del.onclick=function(){row.remove();render();};
+  row.appendChild(inNaam);row.appendChild(inDosis);row.appendChild(del);
+  wrap.appendChild(row);
+  render();
+}
+function medList(){
+  return Array.from(document.querySelectorAll('#med-rows .med-row')).map(r=>{
+    const ins=r.querySelectorAll('input');
+    return {naam:ins[0].value.trim(),dosis:ins[1].value.trim()};
+  }).filter(m=>m.naam||m.dosis);
+}
+
+/* ---------- render A4 ---------- */
+function render(){
+  const arts=currentArts();
+  const meds=medList();
+  const medRows=(meds.length?meds:[{naam:'',dosis:''}]).map(m=>
+    '<tr><td>'+(m.naam?esc(m.naam):'&nbsp;')+'</td><td class="dose">'+(m.dosis?esc(m.dosis):'&nbsp;')+'</td></tr>'
+  ).join('');
+  const extraEmpty=meds.length<3?'<tr><td>&nbsp;</td><td class="dose">&nbsp;</td></tr>'.repeat(3-meds.length):'';
+
+  document.getElementById('preview').innerHTML=
+  '<div class="briefhoofd">'+
+    '<div class="arts"><b>'+esc(arts.naam)+'</b><br>'+esc(arts.titel)+
+      (v('arts-riziv')?'<br>RIZIV: '+esc(v('arts-riziv')):'')+
+      (v('arts-adres')?'<br>'+esc(v('arts-adres')):'')+
+      (v('arts-tel')?'<br>Tel: '+esc(v('arts-tel')):'')+
+    '</div>'+
+    '<div class="aan">Voor de belanghebbende<br>To whom it may concern<br>À qui de droit</div>'+
+  '</div>'+
+
+  '<h2 class="titel">Attest medicatie buitenland</h2>'+
+  '<div class="titel-sub">Attestation medication abroad — Attestation médication à l’étranger</div>'+
+
+  '<div class="blok">'+
+    '<span class="lbl">Betreft, concerning, concerne:</span><br>'+
+    'Naam van de patiënt <span class="lbl">(name, nom)</span>: '+dots(v('pt-naam'))+'<br>'+
+    'Geboortedatum <span class="lbl">(date of birth, date de naissance)</span>: '+dots(fmtDate(v('pt-geb')),'30%')+'<br>'+
+    'Adres <span class="lbl">(address, adresse)</span>: '+dots(v('pt-adres'))+'<br>'+
+    'Tel: '+dots(v('pt-tel'),'40%')+
+  '</div>'+
+
+  '<div class="blok">'+
+    '<span class="lbl">Vakantieverblijf, period of time, séjour de vacances:</span><br>'+
+    'Van <span class="lbl">(from, du)</span>: '+dots(fmtDate(v('van')),'22%')+
+    ' &nbsp;tot <span class="lbl">(to, au)</span>: '+dots(fmtDate(v('tot')),'22%')+
+    ' <span class="lbl">(incluis, inclusive, inclus)</span>.'+
+  '</div>'+
+
+  '<div class="drietalig">'+
+    'Deze patiënt neemt om medische redenen volgende medicatie in:<br>'+
+    '<span class="en">This patient needs the following medication for medical reasons:</span><br>'+
+    '<span class="fr">Ce patient a besoin des médicaments suivants sur prescription médicale :</span>'+
+  '</div>'+
+
+  '<table><tr>'+
+    '<th>Naam medicatie + summiere beschrijving<br><span style="font-weight:400;font-style:italic">Medication — Médication</span></th>'+
+    '<th class="dose">Dosering per dag<br><span style="font-weight:400;font-style:italic">Dose/day — Dose/jour</span></th>'+
+  '</tr>'+medRows+extraEmpty+'</table>'+
+
+  '<div class="onderaan">'+
+    '<div class="links">'+
+      'Opgemaakt te <span class="lbl">(at, à)</span>: '+dots(v('plaats'),'35mm')+'<br>'+
+      'Op <span class="lbl">(on, le)</span>: '+dots(fmtDate(v('datum')),'35mm')+
+      '<div class="handtekening">Handtekening <span class="lbl">(signature)</span>:<br><br><span class="lijn"></span></div>'+
+    '</div>'+
+    '<div class="stempel">Duidelijke identificatiestempel arts<br>Identification doctor — Identification médecin</div>'+
+  '</div>';
+
+  const mb=document.getElementById('mailbtn');
+  if(mb&&!mb.dataset.busy)mb.disabled=!medList().length;
+}
+
+/* ---------- PDF ---------- */
+function pdfOptions(fname){
+  return {
+    margin:[14,14,14,14],filename:fname,
+    image:{type:'jpeg',quality:0.98},
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+    jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
+  };
+}
+function pdfClone(){
+  const el=document.getElementById('preview');
+  const sandbox=document.createElement('div');
+  sandbox.style.cssText='position:fixed;left:-99999px;top:0;width:182mm;background:#ffffff;';
+  const clone=el.cloneNode(true);
+  clone.style.width='182mm';clone.style.minHeight='0';clone.style.padding='0';clone.style.margin='0';clone.style.boxShadow='none';
+  sandbox.appendChild(clone);document.body.appendChild(sandbox);
+  return {sandbox,clone};
+}
+function pdfFilename(){
+  const naam=v('pt-naam');
+  return 'attest_medicatie_buitenland'+(naam?('_'+slug(naam)):'')+'.pdf';
+}
+function downloadPdf(){
+  const {sandbox,clone}=pdfClone();
+  const cleanup=()=>{try{document.body.removeChild(sandbox);}catch(e){}};
+  html2pdf().set(pdfOptions(pdfFilename())).from(clone).save()
+    .then(cleanup)
+    .catch(err=>{cleanup();console.error(err);alert('Er liep iets mis bij het genereren. Probeer opnieuw.');});
+}
+
+/* ---------- E-MAIL (rechtstreeks versturen via Edge Function 'send-mail') ---------- */
+async function emailDoc(){
+  const to=v('pt-email');
+  if(!to){alert('Vul eerst het e-mailadres van de patiënt in (veld in de zijbalk).');return;}
+  if(!medList().length){alert('Voeg eerst minstens één geneesmiddel toe.');return;}
+
+  const btn=document.getElementById('mailbtn');
+  const old=btn.textContent;
+  btn.textContent='Versturen…';btn.disabled=true;btn.dataset.busy='1';
+  const done=()=>{btn.textContent=old;btn.disabled=false;delete btn.dataset.busy;};
+  const fail=(m)=>{console.error('mail:',m);alert('Versturen mislukt: '+m);done();};
+
+  try{
+    if(typeof sb==='undefined'||!sb)return fail('Niet ingelogd.');
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)return fail('Je sessie is verlopen — log opnieuw in.');
+
+    const naam=v('pt-naam');
+    const arts=currentArts();
+    const aanhef=naam?('Beste '+naam+','):'Beste,';
+    const body=[
+      aanhef,'',
+      'In bijlage vind je het attest voor je medicatie in het buitenland (drietalig: Nederlands, Engels, Frans).',
+      'Druk het af en breng het mee naar de consultatie voor handtekening en stempel, of bewaar de getekende versie bij je reisdocumenten en medicatie (in de originele verpakking).',
+      '','Goede reis gewenst!','','Met vriendelijke groeten,',arts.naam
+    ].join('\n');
+
+    const {sandbox,clone}=pdfClone();
+    let dataUri;
+    try{
+      const worker=html2pdf().set(pdfOptions(pdfFilename())).from(clone);
+      await worker.toPdf();
+      dataUri=await worker.outputPdf('datauristring');
+    }
+    finally{try{document.body.removeChild(sandbox);}catch(e){}}
+    const pdfBase64=(dataUri.split(',')[1]||'');
+
+    const resp=await fetch(SUPABASE_URL+'/functions/v1/send-mail',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token},
+      body:JSON.stringify({
+        to:to,
+        subject:'Attest medicatie buitenland'+(naam?(' — '+naam):''),
+        body:body,
+        filename:pdfFilename(),
+        pdfBase64:pdfBase64,
+        senderName:arts.naam,
+        clientName:naam,
+        toolId:'dashboard-attest-medicatie-buitenland'
+      })
+    });
+    const out=await resp.json().catch(()=>({}));
+    if(!resp.ok||!out.ok)return fail(out.error||('server gaf status '+resp.status));
+
+    btn.textContent='✓ Verzonden';
+    setTimeout(done,2500);
+  }catch(e){fail((e&&e.message)?e.message:String(e));}
+}
+
+/* ---------- init ---------- */
+populateArtsen();
+populatePresets();
+loadArts();
+document.getElementById('datum').value=new Date().toISOString().slice(0,10);
+addMedRow('','');
+render();
+</script>
+
+<!-- ===== Auth script ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='dashboard-attest-medicatie-buitenland';
+let sb=null,currentUser=null;
+function showAuthMsg(t,k){const e=document.getElementById('auth-msg');if(!e)return;e.innerHTML=t?'<div class="msg '+(k||'err')+'">'+t+'</div>':'';}
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){showAuthMsg('Vul email en wachtwoord in.');return;}
+  const btn=document.getElementById('auth-btn-login');btn.disabled=true;btn.textContent='Bezig…';showAuthMsg('');
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){showAuthMsg('Inloggen mislukt: '+error.message);return;}
+  await afterLogin(data.session);
+}
+async function doLogout(){
+  if(!confirm('Uitloggen?'))return;
+  await sb.auth.signOut();currentUser=null;
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('auth-overlay').style.display='flex';
+  document.getElementById('auth-pw').value='';
+}
+async function afterLogin(session){
+  currentUser=session.user;
+  const {data:access,error:accErr}=await sb.from('user_tool_access').select('tool_id').eq('user_id',currentUser.id).eq('tool_id',TOOL_ID).maybeSingle();
+  if(accErr||!access){
+    showAuthMsg('Je account heeft (nog) geen toegang tot dit dashboard. Vraag een beheerder om toegang.','err');
+    await sb.auth.signOut();currentUser=null;return;
+  }
+  const {data:prof}=await sb.from('profiles').select('display_name,role').eq('id',currentUser.id).maybeSingle();
+  const dn=(prof&&prof.display_name)||currentUser.email;
+  document.getElementById('auth-overlay').style.display='none';
+  const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
+  document.getElementById('user-name').textContent=dn+((prof&&prof.role==='admin')?' ⭐':'');
+}
+(async function(){
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
+  catch(e){console.error('Supabase init mislukt',e);return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session){await afterLogin(session);}
+})();
+</script>
+</body>
+</html>
