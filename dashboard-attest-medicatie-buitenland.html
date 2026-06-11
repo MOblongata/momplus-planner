@@ -82,6 +82,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .a4 .stempel{border:1.5px dashed #8aa6b8;border-radius:6px;width:62mm;min-height:34mm;padding:6px 8px;font-size:8.5pt;color:#777;font-style:italic;text-align:center;display:flex;align-items:flex-start;justify-content:center;}
 .a4 .handtekening{margin-top:14px;font-size:10.5pt;}
 .a4 .handtekening .lijn{display:inline-block;border-bottom:1px dotted #999;min-width:55mm;height:1.2em;}
+.a4 .handtekening-img{display:block;height:18mm;max-width:70mm;object-fit:contain;object-position:left;margin-top:2px;}
+.a4 .stempel.met-afbeelding{align-items:center;border-style:solid;border-color:#e2e8f0;}
+.a4 .stempel img{max-width:100%;max-height:31mm;object-fit:contain;}
 
 @media print{
   body{background:#fff;}
@@ -213,10 +216,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 </div>
 
 <script>
-/* ---------- artsen (voeg hier toe om de lijst uit te breiden) ---------- */
+/* ---------- artsen (voeg hier toe om de lijst uit te breiden) ----------
+   stempelImg / handtekeningImg worden NA login geladen uit de beveiligde
+   Supabase-tabel praktijk_assets (RLS: enkel gebruikers met toegang tot
+   deze tool). Leeg = klassiek vak voor fysieke stempel en handtekening. */
+const FRANK_STEMPEL = '';      /* wordt na login geladen uit Supabase (praktijk_assets) */
+const FRANK_HANDTEKENING = ''; /* wordt na login geladen uit Supabase (praktijk_assets) */
 const ARTSEN = [
-  { id:'frank',  naam:'Dr. Van Steenkiste Frank', titel:'Neuroloog' },
-  { id:'jeroen', naam:'Dr. Vervaet Jeroen',      titel:'Psychiater' }
+  { id:'frank',  naam:'Dr. Frank Van Steenkiste', titel:'Neuroloog',
+    riziv:'1-49872-90-770', adres:'Cardea Clinic Merelbeke', tel:'09 336 55 66',
+    stempelImg:FRANK_STEMPEL, handtekeningImg:FRANK_HANDTEKENING },
+  { id:'jeroen', naam:'Dr. Vervaet Jeroen', titel:'Psychiater',
+    riziv:'', adres:'', tel:'', stempelImg:'', handtekeningImg:'' }
 ];
 const LS_KEY = 'attest-medicatie-buitenland-v1';
 
@@ -260,10 +271,11 @@ function populateArtsen(){
   sel.innerHTML=ARTSEN.map(a=>'<option value="'+esc(a.id)+'">'+esc(a.naam+' — '+a.titel)+'</option>').join('');
 }
 function loadArts(){
-  const d=lsData()[currentArts().id]||{};
-  document.getElementById('arts-riziv').value=d.riziv||'';
-  document.getElementById('arts-adres').value=d.adres||'';
-  document.getElementById('arts-tel').value=d.tel||'';
+  const a=currentArts();
+  const d=lsData()[a.id]||{};
+  document.getElementById('arts-riziv').value=d.riziv!=null?d.riziv:(a.riziv||'');
+  document.getElementById('arts-adres').value=d.adres!=null?d.adres:(a.adres||'');
+  document.getElementById('arts-tel').value=d.tel!=null?d.tel:(a.tel||'');
 }
 function saveArts(){
   const all=lsData();
@@ -357,9 +369,15 @@ function render(){
     '<div class="links">'+
       'Opgemaakt te <span class="lbl">(at, à)</span>: '+dots(v('plaats'),'35mm')+'<br>'+
       'Op <span class="lbl">(on, le)</span>: '+dots(fmtDate(v('datum')),'35mm')+
-      '<div class="handtekening">Handtekening <span class="lbl">(signature)</span>:<br><br><span class="lijn"></span></div>'+
+      '<div class="handtekening">Handtekening <span class="lbl">(signature)</span>:<br>'+
+        (arts.handtekeningImg
+          ?'<img class="handtekening-img" src="'+arts.handtekeningImg+'" alt="handtekening">'
+          :'<br><span class="lijn"></span>')+
+      '</div>'+
     '</div>'+
-    '<div class="stempel">Duidelijke identificatiestempel arts<br>Identification doctor — Identification médecin</div>'+
+    (arts.stempelImg
+      ?'<div class="stempel met-afbeelding"><img src="'+arts.stempelImg+'" alt="identificatiestempel arts"></div>'
+      :'<div class="stempel">Duidelijke identificatiestempel arts<br>Identification doctor — Identification médecin</div>')+
   '</div>';
 
   const mb=document.getElementById('mailbtn');
@@ -500,6 +518,26 @@ async function afterLogin(session){
   document.getElementById('auth-overlay').style.display='none';
   const pill=document.getElementById('user-pill');pill.style.display='inline-flex';
   document.getElementById('user-name').textContent=dn+((prof&&prof.role==='admin')?' ⭐':'');
+  await loadPraktijkAssets();
+}
+
+/* Stempel/handtekening: pas NA login op te halen uit de beveiligde tabel
+   praktijk_assets (RLS) — staan bewust niet in deze publieke HTML. */
+async function loadPraktijkAssets(){
+  try{
+    const {data,error}=await sb.from('praktijk_assets').select('id,data_uri').eq('tool_id',TOOL_ID);
+    if(error||!data)return;
+    data.forEach(x=>{
+      const uri=String(x.data_uri||'');
+      if(!uri.startsWith('data:image/'))return; // enkel afbeeldingen toelaten
+      const m=String(x.id).match(/^(stempel|handtekening)-(.+)$/);
+      if(!m)return;
+      const a=ARTSEN.find(t=>t.id===m[2]);
+      if(!a)return;
+      if(m[1]==='stempel')a.stempelImg=uri;else a.handtekeningImg=uri;
+    });
+    render();
+  }catch(e){console.error('assets laden mislukt',e);}
 }
 (async function(){
   try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
