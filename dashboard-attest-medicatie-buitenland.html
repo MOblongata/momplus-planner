@@ -82,9 +82,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .a4 .stempel{border:1.5px dashed #8aa6b8;border-radius:6px;width:62mm;min-height:34mm;padding:6px 8px;font-size:8.5pt;color:#777;font-style:italic;text-align:center;display:flex;align-items:flex-start;justify-content:center;}
 .a4 .handtekening{margin-top:14px;font-size:10.5pt;}
 .a4 .handtekening .lijn{display:inline-block;border-bottom:1px dotted #999;min-width:55mm;height:1.2em;}
-.a4 .handtekening-img{display:block;height:18mm;max-width:70mm;object-fit:contain;object-position:left;margin-top:2px;}
+.a4 .handtekening-img{display:block;max-width:60mm;max-height:18mm;margin-top:2px;}
 .a4 .stempel.met-afbeelding{align-items:center;border-style:solid;border-color:#e2e8f0;}
-.a4 .stempel img{max-width:100%;max-height:31mm;object-fit:contain;}
+.a4 .stempel img{max-width:100%;max-height:31mm;}
 
 @media print{
   body{background:#fff;}
@@ -389,29 +389,41 @@ function pdfOptions(fname){
   return {
     margin:[14,14,14,14],filename:fname,
     image:{type:'jpeg',quality:0.98},
-    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+    /* scrollX/scrollY:0 voorkomt dat html2canvas maar een deel van de
+       pagina vastlegt wanneer er gescrold is (oorzaak "halve PDF") */
+    html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',scrollX:0,scrollY:0,
+      windowWidth:document.documentElement.offsetWidth,windowHeight:document.documentElement.offsetHeight},
     jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}
   };
 }
 function pdfClone(){
   const el=document.getElementById('preview');
   const sandbox=document.createElement('div');
-  sandbox.style.cssText='position:fixed;left:-99999px;top:0;width:182mm;background:#ffffff;';
+  sandbox.style.cssText='position:absolute;left:-9999px;top:0;width:182mm;background:#ffffff;';
   const clone=el.cloneNode(true);
   clone.style.width='182mm';clone.style.minHeight='0';clone.style.padding='0';clone.style.margin='0';clone.style.boxShadow='none';
   sandbox.appendChild(clone);document.body.appendChild(sandbox);
   return {sandbox,clone};
 }
+/* wacht tot alle afbeeldingen in de kloon gedecodeerd zijn vóór capture */
+async function wachtOpAfbeeldingen(el){
+  const imgs=Array.from(el.querySelectorAll('img'));
+  await Promise.all(imgs.map(im=>(im.decode?im.decode():Promise.resolve()).catch(()=>{})));
+}
 function pdfFilename(){
   const naam=v('pt-naam');
   return 'attest_medicatie_buitenland'+(naam?('_'+slug(naam)):'')+'.pdf';
 }
-function downloadPdf(){
+async function downloadPdf(){
+  const sx=window.scrollX,sy=window.scrollY;
+  window.scrollTo(0,0);
   const {sandbox,clone}=pdfClone();
-  const cleanup=()=>{try{document.body.removeChild(sandbox);}catch(e){}};
-  html2pdf().set(pdfOptions(pdfFilename())).from(clone).save()
-    .then(cleanup)
-    .catch(err=>{cleanup();console.error(err);alert('Er liep iets mis bij het genereren. Probeer opnieuw.');});
+  const cleanup=()=>{try{document.body.removeChild(sandbox);}catch(e){} window.scrollTo(sx,sy);};
+  try{
+    await wachtOpAfbeeldingen(clone);
+    await html2pdf().set(pdfOptions(pdfFilename())).from(clone).save();
+    cleanup();
+  }catch(err){cleanup();console.error(err);alert('Er liep iets mis bij het genereren. Probeer opnieuw.');}
 }
 
 /* ---------- E-MAIL (rechtstreeks versturen via Edge Function 'send-mail') ---------- */
@@ -441,14 +453,17 @@ async function emailDoc(){
       '','Goede reis gewenst!','','Met vriendelijke groeten,',arts.naam
     ].join('\n');
 
+    const sx=window.scrollX,sy=window.scrollY;
+    window.scrollTo(0,0);
     const {sandbox,clone}=pdfClone();
     let dataUri;
     try{
+      await wachtOpAfbeeldingen(clone);
       const worker=html2pdf().set(pdfOptions(pdfFilename())).from(clone);
       await worker.toPdf();
       dataUri=await worker.outputPdf('datauristring');
     }
-    finally{try{document.body.removeChild(sandbox);}catch(e){}}
+    finally{try{document.body.removeChild(sandbox);}catch(e){} window.scrollTo(sx,sy);}
     const pdfBase64=(dataUri.split(',')[1]||'');
 
     const resp=await fetch(SUPABASE_URL+'/functions/v1/send-mail',{
@@ -535,6 +550,7 @@ async function loadPraktijkAssets(){
       const a=ARTSEN.find(t=>t.id===m[2]);
       if(!a)return;
       if(m[1]==='stempel')a.stempelImg=uri;else a.handtekeningImg=uri;
+      console.log('praktijk-asset geladen:',x.id,uri.length,'tekens');
     });
     render();
   }catch(e){console.error('assets laden mislukt',e);}
