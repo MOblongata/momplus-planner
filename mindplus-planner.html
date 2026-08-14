@@ -264,7 +264,7 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
   <div class="card" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
     <div style="flex:1;min-width:240px">
       <div style="font-weight:700;font-size:14px;color:#1f2937">💼 Inkomstenmodel</div>
-      <div style="font-size:12px;color:#6b7280;margin-top:3px">Per teamlid kies je hieronder in de tabel: <strong>Afdracht-%</strong> (klassiek model) of <strong>Huur per dagdeel</strong> (vaste huur via componenten). Deze instelling is de <strong>default voor nieuwe leden</strong>.</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:3px">Per teamlid kies je hieronder in de tabel: <strong>Afdracht-%</strong> (klassiek model) of <strong>Huur per dagdeel</strong> (vaste huur via componenten). Deze instelling is de <strong>default voor nieuwe leden</strong>. Is er een <strong>🏛 coöperatieve vennootschap</strong>? Activeer dan de CV-kaart hieronder om het bedrag op te splitsen in echte huur en aandelen-inleg.</div>
     </div>
     <div class="modus-switch" id="modus-switch">
       <button data-modus="afdracht" onclick="setInkomstenModus('afdracht')">Afdracht-%</button>
@@ -272,17 +272,30 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
     </div>
   </div>
   <div class="sum-grid">
-    <div class="sum-card"><div class="sum-label">Maandkosten</div><div class="sum-val neutral" id="fk">—</div></div>
+    <div class="sum-card"><div class="sum-label" id="fk-label">Maandkosten</div><div class="sum-val neutral" id="fk">—</div></div>
     <div class="sum-card"><div class="sum-label" id="fi-label">MINDplus afdracht/mnd</div><div class="sum-val neutral" id="fi">—</div></div>
-    <div class="sum-card"><div class="sum-label">Resultaat MINDplus</div><div class="sum-val" id="fr">—</div></div>
+    <div class="sum-card"><div class="sum-label" id="fr-label">Resultaat MINDplus</div><div class="sum-val" id="fr">—</div></div>
+  </div>
+  <div class="sum-grid" id="cv-sum-grid" style="display:none">
+    <div class="sum-card" style="border-left:3px solid #b45309"><div class="sum-label">→ CV aandelen-inleg/mnd</div><div class="sum-val neutral" id="cv-sum-inleg" style="color:#b45309">—</div></div>
+    <div class="sum-card" style="border-left:3px solid #b45309"><div class="sum-label" id="cv-sum-kost-label">CV vastgoedkost/mnd</div><div class="sum-val neutral" id="cv-sum-kost">—</div></div>
+    <div class="sum-card" style="border-left:3px solid #b45309"><div class="sum-label">Resultaat CV</div><div class="sum-val" id="cv-sum-res">—</div></div>
   </div>
   <div id="fin-breakeven" class="be-indicator unknown" style="margin-bottom:11px"></div>
+
+  <!-- CV-kaart -->
+  <div class="card" id="fin-cv-card" style="border-left:3px solid #b45309">
+    <div class="card-title" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">🏛 Coöperatieve vennootschap (CV)
+      <button class="btn btn-primary" id="cv-toggle-btn" style="margin-left:auto" onclick="setCvActief(!cvActief)">Activeren</button>
+    </div>
+    <div id="cv-body"></div>
+  </div>
 
   <!-- HUUR-modus cards (verborgen in afdracht-modus) -->
   <div class="card" id="fin-huur-comp-card">
     <div class="card-title">🏠 Huur per dagdeel — basis-bepaling</div>
     <p class="note" style="margin-bottom:8px">Stel hier in welke <strong>huur-componenten</strong> beschikbaar zijn voor zelfstandigen en wat elke component kost per dagdeel.</p>
-    <table><thead><tr><th>Naam</th><th style="width:140px">€ per dagdeel</th><th style="width:30px"></th></tr></thead><tbody id="huur-comp-tbody"></tbody></table>
+    <table><thead id="huur-comp-thead"><tr><th>Naam</th><th style="width:140px">€ per dagdeel</th><th style="width:30px"></th></tr></thead><tbody id="huur-comp-tbody"></tbody></table>
     <div class="add-row" style="margin-top:6px">
       <div><label>Naam component</label><input type="text" id="nhc-naam" placeholder="Bv. Apparatuur" style="width:180px"></div>
       <div><label>€ per dagdeel</label><input type="number" id="nhc-bedrag" placeholder="0" min="0" style="width:100px"></div>
@@ -654,6 +667,14 @@ let huurComponenten=[
   {id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}
 ];
 let personHuur={}; // {pid:[componentId,...]}
+// ===== CV (coöperatieve vennootschap) =====
+// Als er een CV is die het vastgoed beheert, kan de betaling van teamleden opgesplitst worden in
+// echte HUUR (lopende kosten MIND+) en AANDELEN-inleg in de CV (kapitaalopbouw, B-aandelen).
+let cvActief=false;                       // toggle: bestaat er een CV?
+let cvVastgoedBijCv=true;                 // ontdubbeling: huisvestingskost gedragen door CV i.p.v. MIND+ lopende kosten
+let cvParams={dividendPct:3,horizonJaren:5}; // dividend-simulatie (%/jr) + opbouwhorizon (jaren)
+let personCvPct={};                       // {pid: %} — afdracht-leden: % van hun afdracht dat als CV-aandelen geboekt wordt
+// huurComponenten-items krijgen optioneel veld bestemming: 'lopend' | 'cv' (default 'lopend')
 // Tab-toggles: standaard alles UIT — kan per tab geactiveerd worden
 let tabsEnabled={mdo:false,mix:false,overleg:false,capp:false};
 // Inkomstenmodus: default voor nieuwe leden. Per persoon kan dit overschreven worden via p.modus
@@ -1149,7 +1170,7 @@ function renderScenariosList(){
 
 function getOverlegFromDOM(){const g=id=>+(document.getElementById(id)?.value)||0;return{opstart:g('p-opstart')||15,ntraject:g('p-ntraject')||2,mintraject:g('p-mintraject')||15,mdofreq:g('p-mdofreq')||5,mdomin:g('p-mdomin')||15,trajlen:g('p-trajlen')||20,consdur:g('p-consdur')||60};}
 function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
-function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok)),ificParams:JSON.parse(JSON.stringify(ificParams)),ificInputs:JSON.parse(JSON.stringify(ificInputs)),ificScenarios:JSON.parse(JSON.stringify(ificScenarios)),ificBaremaOverride:ificBaremaOverride?JSON.parse(JSON.stringify(ificBaremaOverride)):null,nettoParams:JSON.parse(JSON.stringify(nettoParams)),breakEvenInputs:JSON.parse(JSON.stringify(breakEvenInputs))};}
+function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),cvActief:cvActief,cvVastgoedBijCv:cvVastgoedBijCv,cvParams:JSON.parse(JSON.stringify(cvParams)),personCvPct:JSON.parse(JSON.stringify(personCvPct)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok)),ificParams:JSON.parse(JSON.stringify(ificParams)),ificInputs:JSON.parse(JSON.stringify(ificInputs)),ificScenarios:JSON.parse(JSON.stringify(ificScenarios)),ificBaremaOverride:ificBaremaOverride?JSON.parse(JSON.stringify(ificBaremaOverride)):null,nettoParams:JSON.parse(JSON.stringify(nettoParams)),breakEvenInputs:JSON.parse(JSON.stringify(breakEvenInputs))};}
 function applyState(st){
   team=(st.team||DEFAULT_TEAM.map(p=>({...p}))).map(p=>({type:'zelfstandige',brutoJaar:0,ific:'',modus:'afdracht',tier:'basis',...p}));
   slots=st.slots||{};team.forEach(p=>{if(!slots[p.id])slots[p.id]=mkDef();});
@@ -1199,8 +1220,12 @@ function applyState(st){
   personMinAfdrachtPct=_clone(st.personMinAfdrachtPct);
   personAvondPct=_clone(st.personAvondPct);
   ruimtes=Array.isArray(st.ruimtes)?JSON.parse(JSON.stringify(st.ruimtes)):[];
-  huurComponenten=Array.isArray(st.huurComponenten)?JSON.parse(JSON.stringify(st.huurComponenten)):[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}];
+  huurComponenten=(Array.isArray(st.huurComponenten)?JSON.parse(JSON.stringify(st.huurComponenten)):[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}]).map(c=>({bestemming:'lopend',...c}));
   personHuur=_clone(st.personHuur);
+  cvActief=st.cvActief===true;
+  cvVastgoedBijCv=st.cvVastgoedBijCv!==false;
+  cvParams={dividendPct:3,horizonJaren:5,...(st.cvParams||{})};
+  personCvPct=_clone(st.personCvPct);
   tabsEnabled={mdo:false,mix:false,overleg:false,capp:false,...(st.tabsEnabled||{})};
   inkomstenModus=(st.inkomstenModus==='huur'||st.inkomstenModus==='afdracht')?st.inkomstenModus:'afdracht';
   cappV5Active=st.cappV5Active!==undefined?!!st.cappV5Active:true;
@@ -1247,7 +1272,7 @@ function cloudSaveDebounced(){if(saveDebounceTimer)clearTimeout(saveDebounceTime
 function setSyncStatus(cls,txt){const el=document.getElementById('save-status');if(el){el.className='save-status sync-status '+cls;el.textContent=txt;}}
 function setStatus(t,c){const el=document.getElementById('save-status');if(el){el.textContent=t;el.className='save-status'+(c?' '+c:'');}}
 function onAnyChange(){lsAutoSave();if(sb&&currentUser){cloudSaveDebounced();}else{setStatus('✓ Lokaal opgeslagen','saved');}}
-function resetConfirm(){if(!confirm('Alles resetten naar standaard?'))return;team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));personMandaten={};personOpleiding={};werkelijkeCons={};cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};cappOptIn={};overlegOhActief=true;cappKostendekking=false;cappLockedLagen=[];personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};ruimtes=[];huurComponenten=[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}];personHuur={};tabsEnabled={mdo:false,mix:false,overleg:false,capp:false};inkomstenModus='afdracht';cappV5Active=true;cappV5SliderWerk=0.7;personCappVastPerBlok={};acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};Object.entries(DEFAULT_OVERLEG).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;const om=document.getElementById('capp-overschot-manual');if(om)om.value='';refreshAll();lsAutoSave();setStatus('↺ Reset','saved');}
+function resetConfirm(){if(!confirm('Alles resetten naar standaard?'))return;team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));personMandaten={};personOpleiding={};werkelijkeCons={};cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};cappOptIn={};overlegOhActief=true;cappKostendekking=false;cappLockedLagen=[];personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};ruimtes=[];huurComponenten=[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}];personHuur={};cvActief=false;cvVastgoedBijCv=true;cvParams={dividendPct:3,horizonJaren:5};personCvPct={};tabsEnabled={mdo:false,mix:false,overleg:false,capp:false};inkomstenModus='afdracht';cappV5Active=true;cappV5SliderWerk=0.7;personCappVastPerBlok={};acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};Object.entries(DEFAULT_OVERLEG).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;const om=document.getElementById('capp-overschot-manual');if(om)om.value='';refreshAll();lsAutoSave();setStatus('↺ Reset','saved');}
 
 function clr(i){return COLORS[i%COLORS.length];}
 // XSS-bescherming: escape user-input vóór invoegen in innerHTML
@@ -1300,6 +1325,35 @@ function huurPerPersoonMnd(p){
   return huur*(dagBlokken(p)+avondDelen(p)*avondShare())*wk;
 }
 function totalHuurMnd(){return team.reduce((s,p)=>s+huurPerPersoonMnd(p),0);}
+// ===== CV helpers =====
+function compBestemming(c){return c&&c.bestemming==='cv'?'cv':'lopend';}
+function cvHuurPerDagdeelPersoon(p){
+  // Deel van de huur per dagdeel dat als CV-aandelen bestemd is
+  if(!cvActief)return 0;
+  const ids=personHuur[p.id]||[];
+  return ids.reduce((s,cid)=>{const c=huurComponenten.find(x=>x.id===cid);return s+(c&&compBestemming(c)==='cv'?+c.bedragPerDagdeel||0:0);},0);
+}
+function cvPerPersoonMnd(p){
+  // €/mnd dat deze persoon als aandelen-inleg in de CV stopt (huur-modus: via component-bestemming; afdracht-modus: % van afdracht)
+  if(!cvActief||p.type==='bediende')return 0;
+  if(getPersonModus(p)==='huur'){
+    const cvDd=cvHuurPerDagdeelPersoon(p),wk=wkPerMaand(p);
+    return cvDd*(dagBlokken(p)+avondDelen(p)*avondShare())*wk;
+  }
+  const pct=Math.min(100,Math.max(0,+personCvPct[p.id]||0));
+  return vzwActual(p)*pct/100;
+}
+function totalCvMnd(){return cvActief?team.reduce((s,p)=>s+cvPerPersoonMnd(p),0):0;}
+function cvVastgoedKostMnd(){return(cvActief&&cvVastgoedBijCv)?hvMaandlast():0;}
+// Ontdubbeling: "lopend" = wat bij MIND+ (werkingsvennootschap) blijft; CV krijgt de aandelen-inleg en (optioneel) de vastgoedkost.
+function vzwLopendMnd(){return totalVzw()-totalCvMnd();}
+function kostenLopendMnd(){return totalKosten()-cvVastgoedKostMnd();}
+function cvResultaatMnd(){return totalCvMnd()-cvVastgoedKostMnd();}
+function setCvActief(on){cvActief=!!on;refreshAll();onAnyChange();}
+function setCvVastgoed(on){cvVastgoedBijCv=!!on;refreshAll();onAnyChange();}
+function setCvParam(k,v){cvParams[k]=Math.max(0,+v||0);renderFin();onAnyChange();}
+function setPersonCvPct(pid,v){if(v===''||v===null){delete personCvPct[pid];}else{personCvPct[pid]=Math.min(100,Math.max(0,+v||0));}renderFin();renderCapp();onAnyChange();}
+function setHuurComponentBestemming(id,v){const c=huurComponenten.find(x=>x.id===id);if(c){c.bestemming=(v==='cv'?'cv':'lopend');renderFin();renderCapp();onAnyChange();}}
 // Bruto van afdracht-routing acts (consult + technisch) = wat er tussen persoon en VZW verdeeld wordt.
 // Gegarandeerd consistent: bruto = vzw-deel + netto-deel in afdracht-modus. Bij gelijke huur = gelijke netto in huur-modus.
 function brutoConsultatiesMnd(p){
@@ -1502,7 +1556,8 @@ function totalPot1(){return team.reduce((s,p)=>s+pot1PerPersoon(p),0);}
 function cappPoolV5(){
   if(!tabsEnabled.capp)return 0;
   // Pool = strikt overschot: alleen MINDplus-afdrachten minus kosten (pot 1 zit niet meer in de pool)
-  return Math.max(0,totalVzw()-totalKosten());
+  // CV actief: aandelen-inleg is kapitaal van de CV, geen verdeelbaar overschot; vastgoedkost verhuist mee naar CV.
+  return Math.max(0,vzwLopendMnd()-kostenLopendMnd());
 }
 // Verdeling pot 2: eerst vaste sokkel (per persoon: €/blok × dagdelen × wk), dan rest via werk×rol
 function calcCappV5(sliderOverride,tierOverrides){
@@ -1541,7 +1596,7 @@ function brutoVzwPotentieelMnd(){
 function breakEvenPct(){
   const bruto=brutoVzwPotentieelMnd();
   if(bruto<=0)return null;
-  return(totalKosten()/bruto)*100;
+  return(kostenLopendMnd()/bruto)*100;
 }
 function actueelGewogenPct(){
   // Gewogen gemiddelde van pct, naar gewicht van bruto/maand (dag + avond apart gewogen)
@@ -1615,7 +1670,7 @@ function cappPool(){
   if(!tabsEnabled.capp)return 0; // Cappuccino-tab uit = geen pool
   const om=document.getElementById('capp-overschot-manual')?.value;
   if(om&&om!=='')return Math.max(0,+om||0);
-  const vzwOverschot=totalVzw()-totalKosten();
+  const vzwOverschot=vzwLopendMnd()-kostenLopendMnd();
   const bronnen=mdoCappIncome()+mdoBlokIncome()+adminCappIncome()+avondCappIncome()+mixCappIncome();
   if(cappKostendekking){
     // Pool-bronnen dekken eerst MINDplus-tekort; rest vormt de pool. Bij positief overschot telt dat ook mee als bron.
@@ -1670,17 +1725,36 @@ function calcCapp(){
 function renderHuurComponenten(){
   const tb=document.getElementById('huur-comp-tbody');
   if(!tb)return;
-  if(!huurComponenten.length){tb.innerHTML='<tr><td colspan="3" style="text-align:center;color:#9ca3af;font-size:11px;padding:10px">Geen huur-componenten — voeg er hieronder een toe.</td></tr>';}
+  const th=document.getElementById('huur-comp-thead');
+  const cols=cvActief?4:3;
+  if(th)th.innerHTML='<tr><th>Naam</th><th style="width:140px">€ per dagdeel</th>'+(cvActief?'<th style="width:160px">Bestemming</th>':'')+'<th style="width:30px"></th></tr>';
+  if(!huurComponenten.length){tb.innerHTML='<tr><td colspan="'+cols+'" style="text-align:center;color:#9ca3af;font-size:11px;padding:10px">Geen huur-componenten — voeg er hieronder een toe.</td></tr>';}
   else{
-    tb.innerHTML=huurComponenten.map(c=>'<tr>'
+    tb.innerHTML=huurComponenten.map(c=>{
+      const isCv=compBestemming(c)==='cv';
+      const bestemmingCell=cvActief
+        ?'<td><select onchange="setHuurComponentBestemming(\''+c.id+'\',this.value)" style="font-size:11px;padding:3px 5px;border-radius:5px;border:1px solid '+(isCv?'#b45309':'#e5e7eb')+';background:'+(isCv?'#fef3c7':'#fff')+';color:'+(isCv?'#b45309':'#374151')+';font-weight:600">'
+          +'<option value="lopend"'+(isCv?'':' selected')+'>💶 Lopende kosten (huur)</option>'
+          +'<option value="cv"'+(isCv?' selected':'')+'>🏛 CV-aandelen</option>'
+        +'</select></td>'
+        :'';
+      return '<tr>'
       +'<td><input type="text" value="'+esc(c.naam)+'" oninput="setHuurComponentNaam(\''+c.id+'\',this.value)" style="width:90%"></td>'
       +'<td><input type="number" value="'+(+c.bedragPerDagdeel||0)+'" min="0" step="0.5" style="width:90px;text-align:right" oninput="setHuurComponentBedrag(\''+c.id+'\',+this.value)"> €/dagdeel</td>'
+      +bestemmingCell
       +'<td><button class="btn-del" onclick="delHuurComponent(\''+c.id+'\')" title="Verwijderen">×</button></td>'
-      +'</tr>').join('');
+      +'</tr>';}).join('');
   }
   const tot=huurComponenten.reduce((s,c)=>s+(+c.bedragPerDagdeel||0),0);
   const totEl=document.getElementById('huur-comp-totaal');
-  if(totEl)totEl.innerHTML='Som van alle componenten: <strong>'+fmt(tot)+'/dagdeel</strong>';
+  if(totEl){
+    if(cvActief){
+      const totCv=huurComponenten.filter(c=>compBestemming(c)==='cv').reduce((s,c)=>s+(+c.bedragPerDagdeel||0),0);
+      totEl.innerHTML='Som van alle componenten: <strong>'+fmt(tot)+'/dagdeel</strong> &nbsp;·&nbsp; waarvan echte huur: <strong>'+fmt(tot-totCv)+'</strong> &nbsp;·&nbsp; waarvan 🏛 CV-aandelen: <strong style="color:#b45309">'+fmt(totCv)+'</strong>';
+    } else {
+      totEl.innerHTML='Som van alle componenten: <strong>'+fmt(tot)+'/dagdeel</strong>';
+    }
+  }
 }
 function renderHuurToewijzing(){
   const wrap=document.getElementById('huur-toewijzing-wrap');
@@ -1690,7 +1764,10 @@ function renderHuurToewijzing(){
   if(!zelfst.length){wrap.innerHTML='<p class="note" style="padding:8px;text-align:center;color:#9ca3af">Geen teamleden in huur-modus. Switch een teamlid naar <strong>🏠 Huur</strong> in de inkomen-tabel hieronder om hen hier te zien.</p>';return;}
   if(!huurComponenten.length){wrap.innerHTML='<p class="note" style="padding:8px;text-align:center;color:#9ca3af">Voeg eerst huur-componenten toe (hierboven).</p>';return;}
   let h='<table style="font-size:12.5px"><thead><tr><th style="text-align:left;min-width:140px">Teamlid</th>';
-  huurComponenten.forEach(c=>{h+='<th style="text-align:center;min-width:80px">'+esc(c.naam)+'<br><small style="font-weight:400;color:#9ca3af">€'+(+c.bedragPerDagdeel||0)+'/dd</small></th>';});
+  huurComponenten.forEach(c=>{
+    const isCv=cvActief&&compBestemming(c)==='cv';
+    h+='<th style="text-align:center;min-width:80px">'+(isCv?'🏛 ':'')+esc(c.naam)+'<br><small style="font-weight:400;color:'+(isCv?'#b45309':'#9ca3af')+'">€'+(+c.bedragPerDagdeel||0)+'/dd'+(isCv?' · CV':'')+'</small></th>';
+  });
   h+='<th style="text-align:right;min-width:90px">Per dagdeel</th><th style="text-align:right;min-width:90px">€/mnd</th></tr></thead><tbody>';
   zelfst.forEach((p,pi)=>{
     const ids=personHuur[p.id]||[];
@@ -1698,14 +1775,20 @@ function renderHuurToewijzing(){
     h+='<tr><td style="font-weight:600"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px"></span>'+esc(p.naam)+'</td>';
     huurComponenten.forEach(c=>{
       const checked=ids.includes(c.id);
-      h+='<td style="text-align:center"><input type="checkbox" '+(checked?'checked':'')+' style="width:18px;height:18px;cursor:pointer;accent-color:#4f46e5" onchange="toggleHuur(\''+p.id+'\',\''+c.id+'\')"></td>';
+      const isCv=cvActief&&compBestemming(c)==='cv';
+      h+='<td style="text-align:center'+(isCv?';background:#fffbeb':'')+'"><input type="checkbox" '+(checked?'checked':'')+' style="width:18px;height:18px;cursor:pointer;accent-color:'+(isCv?'#b45309':'#4f46e5')+'" onchange="toggleHuur(\''+p.id+'\',\''+c.id+'\')"></td>';
     });
     const perDd=huurPerDagdeelPersoon(p),mnd=huurPerPersoonMnd(p);
+    const cvMnd=cvPerPersoonMnd(p);
+    const cvLine=(cvActief&&dd&&cvMnd>0)?'<div style="font-size:9.5px;color:#b45309;font-weight:600">waarvan 🏛 CV: '+fmt(cvMnd)+'</div>':'';
     h+='<td style="text-align:right;color:#4f46e5;font-weight:600">'+fmt(perDd)+'</td>'
-      +'<td style="text-align:right;color:#4f46e5;font-weight:700">'+(dd?fmt(mnd):'<span style="color:#d1d5db">— geen dd</span>')+'</td></tr>';
+      +'<td style="text-align:right;color:#4f46e5;font-weight:700">'+(dd?fmt(mnd)+cvLine:'<span style="color:#d1d5db">— geen dd</span>')+'</td></tr>';
   });
   const totMnd=zelfst.reduce((s,p)=>s+huurPerPersoonMnd(p),0);
-  h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td colspan="'+(huurComponenten.length+2)+'" style="text-align:right">Totaal huurinkomst MINDplus:</td><td style="text-align:right;color:#4f46e5">'+fmt(totMnd)+'/mnd</td></tr></tbody></table>';
+  const totCvMndHuur=cvActief?zelfst.reduce((s,p)=>s+cvPerPersoonMnd(p),0):0;
+  h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td colspan="'+(huurComponenten.length+2)+'" style="text-align:right">Totaal huurinkomst MINDplus:</td><td style="text-align:right;color:#4f46e5">'+fmt(totMnd)+'/mnd'
+    +(cvActief&&totCvMndHuur>0?'<div style="font-size:9.5px;color:#374151;font-weight:600">echte huur: '+fmt(totMnd-totCvMndHuur)+'</div><div style="font-size:9.5px;color:#b45309;font-weight:600">🏛 CV-aandelen: '+fmt(totCvMndHuur)+'</div>':'')
+    +'</td></tr></tbody></table>';
   wrap.innerHTML=h;
 }
 function addHuurComponent(){
@@ -1732,6 +1815,88 @@ function toggleHuur(pid,cid){
   renderFin();renderCapp();onAnyChange();
 }
 
+// ===== CV-kaart =====
+function renderCv(){
+  const btn=document.getElementById('cv-toggle-btn');
+  if(btn){
+    btn.textContent=cvActief?'⊘ CV uitschakelen':'✓ CV activeren';
+    btn.style.background=cvActief?'#fff':'#b45309';
+    btn.style.color=cvActief?'#b45309':'#fff';
+    btn.style.border='1px solid #b45309';
+  }
+  const body=document.getElementById('cv-body');
+  if(!body)return;
+  if(!cvActief){
+    body.innerHTML='<p class="note">Nog geen CV? Zolang deze staat op <strong>uit</strong> werkt alles zoals voorheen: het volledige bedrag van teamleden telt als lopende inkomst voor MIND+.<br>'
+      +'Zodra er een <strong>coöperatieve vennootschap</strong> is die het vastgoed beheert, activeer je deze kaart. Dan kan je het bedrag per teamlid <strong>opsplitsen</strong> in <strong>echte huur</strong> (lopende kosten MIND+) en <strong>aandelen-inleg</strong> in de CV (kapitaalopbouw, met mogelijkheid tot dividend op B-aandelen).</p>';
+    return;
+  }
+  let h='';
+  // Uitleg + vastgoed-toggle
+  h+='<div class="alert alert-info" style="font-size:11.5px;margin-bottom:10px">🏛 <strong>Ontdubbeling actief.</strong> Componenten met bestemming <strong>CV-aandelen</strong> (huur-modus) en het ingestelde <strong>%-deel van de afdracht</strong> (afdracht-modus) tellen niet als lopende inkomst van MIND+, maar als <strong>kapitaalinbreng in de CV</strong>. Let op: echte huur is voor het teamlid een aftrekbare beroepskost; een aandelen-aankoop is dat niet — dat is opbouw van eigen vermogen (met mogelijk dividend).</div>';
+  h+='<label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:12px;cursor:pointer">'
+    +'<input type="checkbox" '+(cvVastgoedBijCv?'checked':'')+' style="width:16px;height:16px;accent-color:#b45309" onchange="setCvVastgoed(this.checked)">'
+    +'<span><strong>Vastgoedkost (huisvesting) bij de CV</strong> — de maandlast uit de Kosten-tab ('+fmt(hvMaandlast())+'/mnd) wordt gedragen door de CV en verdwijnt uit de lopende kosten van MIND+.</span></label>';
+  // Afdracht-leden: % van afdracht → CV
+  const afdLeden=team.filter(p=>p.type!=='bediende'&&getPersonModus(p)==='afdracht');
+  if(afdLeden.length){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:10px 0 5px">💼 Aandelen-inleg afdracht-leden</div>'
+      +'<p class="note" style="margin-bottom:6px">Per teamlid in afdracht-modus: welk % van hun MINDplus-afdracht wordt geboekt als CV-aandelen i.p.v. lopende inkomst.</p>'
+      +'<table style="font-size:12px"><thead><tr><th>Naam</th><th style="width:130px;text-align:right">% van afdracht → CV</th><th style="width:110px;text-align:right">Afdracht/mnd</th><th style="width:110px;text-align:right">→ 🏛 CV/mnd</th></tr></thead><tbody>';
+    afdLeden.forEach(p=>{
+      const pct=personCvPct[p.id]!==undefined?+personCvPct[p.id]:'';
+      const vzwM=vzwActual(p),cvM=cvPerPersoonMnd(p);
+      h+='<tr><td style="font-weight:600">'+esc(p.naam)+'</td>'
+        +'<td style="text-align:right"><input type="number" min="0" max="100" step="1" value="'+pct+'" placeholder="0" style="width:65px;text-align:right" onchange="setPersonCvPct(\''+p.id+'\',this.value)"> %</td>'
+        +'<td style="text-align:right">'+fmt(vzwM)+'</td>'
+        +'<td style="text-align:right;color:#b45309;font-weight:600">'+(cvM>0?fmt(cvM):'—')+'</td></tr>';
+    });
+    h+='</tbody></table>';
+  }
+  const huurLedenCv=team.filter(p=>p.type!=='bediende'&&getPersonModus(p)==='huur');
+  if(huurLedenCv.length){
+    h+='<p class="note" style="margin-top:8px">🏠 Voor <strong>huur-leden</strong> stel je de splitsing in via de kolom <strong>Bestemming</strong> in de huur-componenten hierboven (per component: lopende kosten of CV-aandelen).</p>';
+  }
+  // Kapitaalopbouw + dividend
+  const inlegLeden=team.filter(p=>p.type!=='bediende'&&cvPerPersoonMnd(p)>0);
+  h+='<div style="font-weight:700;font-size:12.5px;margin:14px 0 5px">📈 Kapitaalopbouw per teamlid</div>';
+  if(!inlegLeden.length){
+    h+='<p class="note" style="color:#9ca3af">Nog geen aandelen-inleg — zet een huur-component op bestemming CV of stel bij een afdracht-lid een %-inleg in.</p>';
+  } else {
+    const hz=Math.max(1,+cvParams.horizonJaren||5),divPct=+cvParams.dividendPct||0;
+    h+='<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:7px;font-size:12px">'
+      +'<span>Opbouwhorizon: <input type="number" min="1" max="40" value="'+hz+'" style="width:55px;text-align:right" onchange="setCvParam(\'horizonJaren\',this.value)"> jaar</span>'
+      +'<span>Dividend-simulatie B-aandelen: <input type="number" min="0" max="100" step="0.5" value="'+divPct+'" style="width:55px;text-align:right" onchange="setCvParam(\'dividendPct\',this.value)"> %/jr</span>'
+      +'</div>';
+    h+='<table style="font-size:12px"><thead><tr><th>Naam</th><th style="text-align:right">Inleg/mnd</th><th style="text-align:right">Inleg/jaar</th><th style="text-align:right">Kapitaal na '+hz+' jr</th><th style="text-align:right">Dividend/jr bij '+divPct+'%</th></tr></thead><tbody>';
+    let totM=0,totKap=0,totDiv=0;
+    inlegLeden.forEach(p=>{
+      const m=cvPerPersoonMnd(p),jr=m*12,kap=jr*hz,div=kap*divPct/100;
+      totM+=m;totKap+=kap;totDiv+=div;
+      h+='<tr><td style="font-weight:600">'+esc(p.naam)+'</td>'
+        +'<td style="text-align:right;color:#b45309;font-weight:600">'+fmt(m)+'</td>'
+        +'<td style="text-align:right">'+fmt(jr)+'</td>'
+        +'<td style="text-align:right;font-weight:700">'+fmt(kap)+'</td>'
+        +'<td style="text-align:right;color:#059669;font-weight:600">'+(div>0?fmt(div):'—')+'</td></tr>';
+    });
+    h+='<tr style="border-top:2px solid #e5e7eb;font-weight:700"><td>Totaal CV</td>'
+      +'<td style="text-align:right;color:#b45309">'+fmt(totM)+'</td>'
+      +'<td style="text-align:right">'+fmt(totM*12)+'</td>'
+      +'<td style="text-align:right">'+fmt(totKap)+'</td>'
+      +'<td style="text-align:right;color:#059669">'+(totDiv>0?fmt(totDiv):'—')+'</td></tr></tbody></table>';
+    h+='<p class="note" style="font-size:10.5px;margin-top:5px">⚠️ Simulatie is indicatief: dividend kan enkel uitgekeerd worden uit voldoende winst van de CV, en voor <strong>erkende coöperaties</strong> (Nationale Raad voor de Coöperatie) is het dividend wettelijk beperkt tot max. <strong>6%</strong> op de werkelijk gestorte inbreng.</p>';
+  }
+  // CV resultaat-blok
+  const cvIn=totalCvMnd(),cvKost=cvVastgoedKostMnd(),cvRes=cvResultaatMnd();
+  h+='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:11px;font-size:12px;margin-top:12px">'
+    +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>Aandelen-instroom CV</span><strong style="color:#1a1a1a">'+fmt(cvIn)+'/mnd</strong></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>− Vastgoedkost'+(cvVastgoedBijCv?'':' (staat bij MIND+)')+'</span><strong style="color:#1a1a1a">'+fmt(cvKost)+'/mnd</strong></div>'
+    +'<div style="display:flex;justify-content:space-between;padding:5px 0;margin-top:3px;border-top:1px dashed #fde68a;font-weight:700;color:'+(cvRes>=0?'#059669':'#dc2626')+'"><span>= Resultaat CV (cashflow)</span><span>'+(cvRes>=0?'+':'')+fmt(cvRes)+'/mnd</span></div>'
+    +'<div style="font-size:10px;color:#9ca3af;margin-top:4px">Boekhoudkundig is de aandelen-instroom kapitaal (geen omzet); dit blok toont de maandelijkse cashflow van de CV.</div>'
+    +'</div>';
+  body.innerHTML=h;
+}
+
 function renderFin(){
   // Modus-switch knoppen (default voor nieuwe leden)
   document.querySelectorAll('#modus-switch button').forEach(b=>{b.classList.toggle('active',b.dataset.modus===inkomstenModus);});
@@ -1741,10 +1906,32 @@ function renderFin(){
   const huurLeden=team.filter(p=>p.type!=='bediende'&&getPersonModus(p)==='huur').length;
   const afdrachtLeden=team.filter(p=>p.type!=='bediende'&&getPersonModus(p)==='afdracht').length;
   const labelEl=document.getElementById('fi-label');
-  if(labelEl)labelEl.textContent=(huurLeden>0&&afdrachtLeden>0)?'MINDplus inkomst/mnd':(huurLeden>0?'MINDplus huurinkomst/mnd':'MINDplus afdracht/mnd');
-  const k=totalKosten(),vzw=totalVzw(),r=vzw-k;
+  let fiLbl=(huurLeden>0&&afdrachtLeden>0)?'MINDplus inkomst/mnd':(huurLeden>0?'MINDplus huurinkomst/mnd':'MINDplus afdracht/mnd');
+  if(cvActief)fiLbl+=' (lopend)';
+  if(labelEl)labelEl.textContent=fiLbl;
+  const fkLbl=document.getElementById('fk-label');
+  if(fkLbl)fkLbl.textContent='Maandkosten'+(cvActief&&cvVastgoedBijCv?' (excl. vastgoed → CV)':'');
+  const frLbl=document.getElementById('fr-label');
+  if(frLbl)frLbl.textContent='Resultaat MINDplus'+(cvActief?' (lopend)':'');
+  const k=kostenLopendMnd(),vzw=vzwLopendMnd(),r=vzw-k;
   document.getElementById('fk').textContent=fmt(k);document.getElementById('fi').textContent=fmt(vzw);
   const el=document.getElementById('fr');el.textContent=(r>=0?'+':'')+fmt(r);el.className='sum-val '+(r>=0?'green':'red');
+  // CV sum-row
+  const cvGrid=document.getElementById('cv-sum-grid');
+  if(cvGrid){
+    cvGrid.style.display=cvActief?'':'none';
+    if(cvActief){
+      const cvIn=totalCvMnd(),cvKost=cvVastgoedKostMnd(),cvRes=cvResultaatMnd();
+      document.getElementById('cv-sum-inleg').textContent=fmt(cvIn);
+      document.getElementById('cv-sum-kost').textContent=fmt(cvKost);
+      const kostLblEl=document.getElementById('cv-sum-kost-label');
+      if(kostLblEl)kostLblEl.textContent=cvVastgoedBijCv?'CV vastgoedkost/mnd':'CV vastgoedkost/mnd (bij MIND+)';
+      const cvResEl=document.getElementById('cv-sum-res');
+      cvResEl.textContent=(cvRes>=0?'+':'')+fmt(cvRes);
+      cvResEl.className='sum-val '+(cvRes>=0?'green':'red');
+    }
+  }
+  renderCv();
   document.getElementById('fin-note').innerHTML='Per teamlid kies je <strong>afdracht-%</strong> of <strong>huur per dagdeel</strong> via de modus-knop. '+(tabsEnabled.overleg?'Overhead: '+(ohPct()*100).toFixed(1)+'% niet-factureerbaar.':'Overlegoverhead UIT — geen aftrek op bruto.')+' ☕ pool-payout uit cappuccino-verdeling.';
   // Break-even indicator: totaal inkomst tov kosten
   const beEl=document.getElementById('fin-breakeven');
@@ -1856,7 +2043,9 @@ function renderFin(){
     mainRow+='<td style="text-align:center">'+modusCell+'</td>';
     mainRow+='<td>'+paramsCell+'</td>';
     mainRow+='<td style="text-align:right;font-weight:600;color:'+(dd?'#4f46e5':'#d1d5db')+'">'+dd+'</td>';
-    mainRow+='<td style="text-align:right;font-weight:600">'+(dd?fmt(vzwM):'—')+'</td>';
+    const cvM=cvPerPersoonMnd(p);
+    const cvSubLine=(cvActief&&dd&&cvM>0)?'<div style="font-size:9.5px;color:#b45309;font-weight:600;line-height:1.3">waarvan 🏛 CV: '+fmt(cvM)+'</div>':'';
+    mainRow+='<td style="text-align:right;font-weight:600">'+(dd?fmt(vzwM)+cvSubLine:'—')+'</td>';
     mainRow+='<td style="text-align:right;font-size:11px">'+pers+'</td>';
     if(showCappCol)mainRow+='<td style="text-align:right;font-size:11px">'+capp+'</td>';
     mainRow+='<td style="text-align:right;font-weight:600">'+totaal+'</td></tr>';
@@ -1899,9 +2088,9 @@ function renderFin(){
     }
     return mainRow+subRows;
   }).join('');
-  const bars=team.map(p=>vzwActual(p));let cum=0;const cumL=bars.map(v=>{cum+=v;return cum;});
+  const bars=team.map(p=>vzwActual(p)-cvPerPersoonMnd(p));let cum=0;const cumL=bars.map(v=>{cum+=v;return cum;});
   if(finChart)finChart.destroy();
-  finChart=new Chart(document.getElementById('fin-chart').getContext('2d'),{data:{labels:team.map(p=>p.naam.split(' ')[0]),datasets:[{type:'bar',label:'MINDplus/mnd',data:bars,backgroundColor:team.map((_,i)=>clr(i)+'bb'),borderColor:team.map((_,i)=>clr(i)),borderWidth:1,borderRadius:4,yAxisID:'y'},{type:'line',label:'Cumulatief',data:cumL,borderColor:'#4f46e5',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y'},{type:'line',label:'Break-even',data:Array(team.length).fill(totalKosten()),borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:0,yAxisID:'y'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:7}}},scales:{y:{ticks:{callback:v=>'€'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'#f3f4f6'}},x:{ticks:{font:{size:9.5}}}}}});
+  finChart=new Chart(document.getElementById('fin-chart').getContext('2d'),{data:{labels:team.map(p=>p.naam.split(' ')[0]),datasets:[{type:'bar',label:'MINDplus/mnd',data:bars,backgroundColor:team.map((_,i)=>clr(i)+'bb'),borderColor:team.map((_,i)=>clr(i)),borderWidth:1,borderRadius:4,yAxisID:'y'},{type:'line',label:'Cumulatief',data:cumL,borderColor:'#4f46e5',backgroundColor:'transparent',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y'},{type:'line',label:'Break-even',data:Array(team.length).fill(kostenLopendMnd()),borderColor:'#ef4444',backgroundColor:'transparent',borderWidth:2,borderDash:[5,3],pointRadius:0,yAxisID:'y'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:10},boxWidth:10,padding:7}}},scales:{y:{ticks:{callback:v=>'€'+Math.round(v/1000)+'k',font:{size:10}},grid:{color:'#f3f4f6'}},x:{ticks:{font:{size:9.5}}}}}});
 }
 
 function renderRuimtes(){
@@ -2115,7 +2304,9 @@ function renderKosten(){
   const handRows=kostenData.map(k=>{const isJr=k.periode==='jr',mnd=maandBedrag(k),hint=isJr&&k.bedrag?'<span style="font-size:10px;color:#9ca3af;margin-left:4px">= '+fmt(mnd)+'/mnd</span>':'';return'<tr><td><input type="text" value="'+esc(k.naam)+'" oninput="kn(\''+k.id+'\',this.value)"></td><td style="white-space:nowrap"><input type="number" value="'+k.bedrag+'" style="width:90px" oninput="kb(\''+k.id+'\',+this.value)"><button onclick="kp(\''+k.id+'\')" style="margin-left:4px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;font-size:10.5px;font-weight:600;background:'+(isJr?'#4f46e5':'#f9fafb')+';color:'+(isJr?'#fff':'#6b7280')+'">'+(isJr?'jr':'mnd')+'</button>'+hint+'</td><td><button class="btn-del" onclick="delKost(\''+k.id+'\')">×</button></td></tr>';}).join('');
   document.getElementById('kosten-tbody').innerHTML=invRows+persRows+handRows;
   const ov=kostenData.reduce((s,k)=>s+maandBedrag(k),0),hv=hvMaandlast(),inv=totaleInvesteringMnd(),pers=personeelKostenMnd(),tot=ov+hv+inv+pers;
-  document.getElementById('kosten-totaal').innerHTML='Huisvesting: <strong>'+fmt(hv)+'</strong> + investeringen: <strong style="color:#7c3aed">'+fmt(inv)+'</strong> + personeel: <strong style="color:#dc2626">'+fmt(pers)+'</strong> + overige: <strong>'+fmt(ov)+'</strong> = <strong style="color:#4f46e5">'+fmt(tot)+'</strong> / maand';
+  const cvHv=cvActief&&cvVastgoedBijCv;
+  document.getElementById('kosten-totaal').innerHTML='Huisvesting: <strong'+(cvHv?' style="color:#b45309"':'')+'>'+fmt(hv)+(cvHv?' 🏛→CV':'')+'</strong> + investeringen: <strong style="color:#7c3aed">'+fmt(inv)+'</strong> + personeel: <strong style="color:#dc2626">'+fmt(pers)+'</strong> + overige: <strong>'+fmt(ov)+'</strong> = <strong style="color:#4f46e5">'+fmt(tot)+'</strong> / maand'
+    +(cvHv?'<div style="font-size:11px;color:#b45309;margin-top:4px">🏛 CV actief: de huisvestingskost ('+fmt(hv)+'/mnd) wordt gedragen door de CV. Lopende kosten MIND+: <strong>'+fmt(tot-hv)+'</strong>/mnd (zie tab Financieel).</div>':'');
   const vpk=team.filter(p=>p.pct===0&&dagdelen(p)>0&&!(+p.brutoJaar)),ne=document.getElementById('kosten-vpk-note');
   if(vpk.length){ne.innerHTML='⚠️ <strong>'+vpk.map(p=>p.naam).join(', ')+'</strong> afdracht 0% en geen brutoloon ingevuld in personeelskost.';ne.style.display='block';}else ne.style.display='none';
 }
@@ -2188,10 +2379,10 @@ function renderCappV5(){
   const pool=cappPoolV5();
   const poolEl=document.getElementById('capp-pot2-pool');
   if(poolEl){
-    const k=totalKosten(),v=totalVzw(),over=v-k;
+    const k=kostenLopendMnd(),v=vzwLopendMnd(),over=v-k;
     poolEl.innerHTML='<div style="background:#f9fafb;border-radius:8px;padding:11px;font-size:12px">'
-      +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>MINDplus inkomst</span><strong style="color:#1a1a1a">'+fmt(v)+'</strong></div>'
-      +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>− Maandkosten</span><strong style="color:#1a1a1a">'+fmt(k)+'</strong></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>MINDplus inkomst'+(cvActief?' (lopend, excl. CV-inleg)':'')+'</span><strong style="color:#1a1a1a">'+fmt(v)+'</strong></div>'
+      +'<div style="display:flex;justify-content:space-between;padding:2px 0;color:#6b7280"><span>− Maandkosten'+(cvActief&&cvVastgoedBijCv?' (excl. vastgoed → CV)':'')+'</span><strong style="color:#1a1a1a">'+fmt(k)+'</strong></div>'
       +'<div style="display:flex;justify-content:space-between;padding:5px 0;margin-top:3px;border-top:1px dashed #e5e7eb;font-weight:700;color:'+(over>=0?'#059669':'#dc2626')+'"><span>= Pot 2 pool</span><span>'+fmt(Math.max(0,over))+(over<0?' ⚠ (tekort €'+Math.round(-over)+', geen pool)':'')+'</span></div>'
       +'</div>';
   }
@@ -2278,7 +2469,7 @@ function renderCapp(){
   if(v4sec)v4sec.style.display=cappV5Active?'none':'';
   if(cappV5Active){renderCappV5();return;}
   // Klassiek v4 (oude logica)
-  const vzwInk=totalVzw(),kost=totalKosten(),overschot=vzwInk-kost,mdo=mdoCappIncome(),mdoBlk=mdoBlokIncome(),adm=adminCappIncome(),av=avondCappIncome(),mixCp=mixCappIncome(),pool=cappPool();
+  const vzwInk=vzwLopendMnd(),kost=kostenLopendMnd(),overschot=vzwInk-kost,mdo=mdoCappIncome(),mdoBlk=mdoBlokIncome(),adm=adminCappIncome(),av=avondCappIncome(),mixCp=mixCappIncome(),pool=cappPool();
   const bronnen=mdo+mdoBlk+adm+av+mixCp;
   // Sync kostendekking checkbox & status
   const cbKost=document.getElementById('capp-kostendekking');if(cbKost)cbKost.checked=cappKostendekking;
