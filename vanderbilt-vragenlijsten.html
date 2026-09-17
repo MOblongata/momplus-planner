@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Vanderbilt-vragenlijsten</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:light;--ind:#4f46e5;--ind-d:#4338ca;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f0f2f5;min-height:100vh;}
+button{font-family:inherit;}
+/* ===== Auth overlay (arts-modus) ===== */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;}
+.auth-card input:focus{outline:none;border-color:var(--ind);box-shadow:0 0 0 3px rgba(79,70,229,.15);}
+.auth-card .btn-auth{width:100%;background:var(--ind);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:var(--ind-d);}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+/* ===== Frame ===== */
+.wrap{max-width:920px;margin:0 auto;padding:22px;}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.brand{font-size:20px;font-weight:700;color:#1f2937;letter-spacing:-.4px;}
+.brand .accent{color:var(--ind);}
+.brand-sub{display:block;font-size:11.5px;color:#9ca3af;font-weight:500;margin-top:2px;}
+.top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.back-link{font-size:12.5px;color:#6b7280;text-decoration:none;padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;}
+.back-link:hover{background:#f9fafb;color:var(--ind);border-color:#c7d2fe;}
+.user-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;background:#ede9fe;color:#6d28d9;border-radius:18px;font-size:12.5px;font-weight:600;}
+.user-pill .dot{width:8px;height:8px;border-radius:50%;background:#10b981;}
+.btn-logout{background:#fff;border:1px solid #e5e7eb;color:#6b7280;padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
+.btn-logout:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.btn{padding:9px 15px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+.btn-primary{background:var(--ind);color:#fff;}.btn-primary:hover{background:var(--ind-d);}
+.btn-ghost{background:#fff;border:1px solid #e5e7eb;color:#374151;}.btn-ghost:hover{background:#f9fafb;}
+.btn:disabled{opacity:.55;cursor:wait;}
+.banner{border-radius:9px;padding:11px 14px;font-size:12.5px;line-height:1.55;margin-bottom:14px;}
+.banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
+.banner.warn{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;}
+.banner.err{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+.banner.ok{background:#dcfce7;border:1px solid #86efac;color:#166534;}
+/* ===== Dashboard-kaarten ===== */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.card{background:#fff;border-radius:13px;padding:18px;border:1px solid #e0e7ff;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.card h3{font-size:15px;font-weight:700;color:#1f2937;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.card .card-sub{font-size:12px;color:#6b7280;margin-bottom:13px;line-height:1.45;}
+.card .acts{display:flex;gap:8px;flex-wrap:wrap;}
+.card .acts .btn{font-size:12.5px;padding:8px 12px;}
+.linkbox{background:#fff;border-radius:13px;padding:16px 18px;border:1px solid #e0e7ff;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:16px;}
+.linkbox h3{font-size:14px;font-weight:700;color:#1f2937;margin-bottom:8px;}
+.linkbox p{font-size:12.5px;color:#6b7280;margin-bottom:10px;line-height:1.5;}
+.linkbox input{border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;font-size:13.5px;font-family:inherit;width:100%;max-width:340px;}
+.linkbox input:focus{outline:none;border-color:var(--ind);}
+.linkurl{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+.linkurl code{font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:7px;padding:8px 10px;word-break:break-all;flex:1;min-width:220px;color:#374151;}
+/* ===== Formulier ===== */
+.fcard{background:#fff;border-radius:13px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.05);padding:20px;margin-bottom:16px;}
+.f-title{font-size:19px;font-weight:800;color:#1f2937;letter-spacing:-.3px;margin-bottom:2px;}
+.f-praktijk{font-size:12.5px;color:#6b7280;margin-bottom:16px;}
+.kop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.kop-grid .veld.breed{grid-column:1/-1;}
+.veld label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;}
+.veld label .req{color:#dc2626;}
+.veld input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fafafa;}
+.veld input:focus{outline:none;border-color:var(--ind);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.veld.missend input{border-color:#f87171;background:#fef2f2;}
+.instructies{background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:13px 15px;font-size:13px;line-height:1.6;color:#3730a3;margin:16px 0;}
+.instructies b{color:#312e81;}
+/* medicatievraag */
+.medvraag{border:2px solid #fbbf24;background:#fffbeb;border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+.medvraag.missend{border-color:#f87171;background:#fef2f2;}
+.medvraag .mv-q{font-weight:700;font-size:13.5px;color:#78350f;margin-bottom:9px;}
+.medvraag .mv-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.medvraag label{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #e5e7eb;border-radius:9px;padding:8px 13px;font-size:13px;cursor:pointer;user-select:none;}
+.medvraag label:has(input:checked){border-color:var(--ind);background:#eef2ff;color:#3730a3;font-weight:600;}
+.medvraag input{accent-color:var(--ind);}
+/* items */
+.sectie-kop{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 0 4px;flex-wrap:wrap;}
+.sectie-kop h2{font-size:15px;font-weight:800;color:#1f2937;}
+.sectie-kop .schaal-uitleg{font-size:11.5px;color:#6b7280;}
+.subsectie{font-size:12.5px;font-weight:700;color:#6d28d9;margin:14px 0 2px;font-style:italic;}
+.kolomkop{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--ncols,4),74px);gap:6px;padding:6px 10px 4px;font-size:10.5px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:#f0f2f5;z-index:5;}
+.kolomkop span{text-align:center;line-height:1.25;}
+.item{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--ncols,4),74px);gap:6px;align-items:center;background:#fff;border:1px solid #eef0f4;border-radius:10px;padding:9px 10px;margin-bottom:6px;}
+.item.beantwoord{border-color:#bbf7d0;background:#fbfefc;}
+.item.missend{border-color:#f87171;background:#fef2f2;}
+.item .itxt{font-size:13.2px;line-height:1.45;color:#1f2937;}
+.item .itxt .inr{font-weight:700;color:#6b7280;margin-right:5px;}
+.opt{display:flex;flex-direction:column;align-items:center;gap:3px;border:1.5px solid #e5e7eb;border-radius:8px;padding:6px 2px 5px;cursor:pointer;user-select:none;background:#fafafa;min-height:46px;justify-content:center;}
+.opt:hover{border-color:#c7d2fe;background:#fff;}
+.opt input{accent-color:var(--ind);margin:0;}
+.opt .olbl{font-size:9.5px;color:#6b7280;line-height:1.1;text-align:center;}
+.opt .onr{font-size:11px;font-weight:700;color:#374151;line-height:1;}
+.opt:has(input:checked){border-color:var(--ind);background:#eef2ff;}
+.opt:has(input:checked) .onr,.opt:has(input:checked) .olbl{color:#3730a3;}
+/* bijwerkingen */
+.bw-kop{font-weight:700;font-size:13.5px;color:#1f2937;margin:4px 0 2px;}
+.bw-kolomvraag{font-size:12px;color:#6b7280;margin-bottom:8px;}
+textarea{width:100%;border:1px solid #e5e7eb;border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;background:#fafafa;resize:vertical;min-height:84px;}
+textarea:focus{outline:none;border-color:var(--ind);background:#fff;}
+/* score */
+.scoreblok{background:#fff;border:2px solid var(--ind);border-radius:13px;padding:18px 20px;margin:18px 0;}
+.scoreblok h2{font-size:15px;font-weight:800;color:#312e81;margin-bottom:3px;}
+.scoreblok .sb-sub{font-size:11.5px;color:#6b7280;margin-bottom:13px;}
+.sb-tabel{width:100%;border-collapse:collapse;font-size:12.8px;margin-bottom:13px;}
+.sb-tabel td{padding:6px 8px;border-bottom:1px solid #f3f4f6;}
+.sb-tabel td:last-child{text-align:right;font-weight:700;color:#1f2937;white-space:nowrap;}
+.crit{display:flex;gap:9px;align-items:flex-start;padding:7px 9px;border-radius:8px;margin-bottom:5px;font-size:12.8px;}
+.crit.ja{background:#fef3c7;border:1px solid #fcd34d;}
+.crit.nee{background:#f9fafb;border:1px solid #eef0f4;color:#6b7280;}
+.crit .cv{font-weight:800;white-space:nowrap;}
+.crit.ja .cv{color:#92400e;}.crit.nee .cv{color:#9ca3af;}
+.crit .cd{font-size:11px;color:#9ca3af;display:block;margin-top:1px;}
+.score-noot{font-size:11.5px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;line-height:1.5;}
+/* verzendbalk */
+.verzendbalk{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:20px 0;}
+.verzendbalk .btn-verzend{font-size:14.5px;padding:12px 22px;}
+.klein{font-size:11.5px;color:#9ca3af;line-height:1.55;}
+.footer-teksten{margin-top:26px;border-top:1px solid #e5e7eb;padding-top:14px;display:flex;flex-direction:column;gap:8px;}
+/* bevestiging */
+.done-card{background:#fff;border-radius:14px;padding:38px 30px;text-align:center;max-width:520px;margin:60px auto;box-shadow:0 8px 30px rgba(0,0,0,.08);}
+.done-card .big{font-size:44px;margin-bottom:12px;}
+.done-card h2{font-size:19px;color:#1f2937;margin-bottom:9px;}
+.done-card p{font-size:13.5px;color:#6b7280;line-height:1.6;}
+@media(max-width:680px){
+  .cards{grid-template-columns:1fr;}
+  .kop-grid{grid-template-columns:1fr;}
+  .kolomkop{display:none;}
+  .item{grid-template-columns:1fr;gap:8px;}
+  .item .opts-rij{display:grid;grid-template-columns:repeat(var(--ncols,4),1fr);gap:6px;}
+  .opt{min-height:44px;}
+}
+@media(min-width:681px){.item .opts-rij{display:contents;}}
+/* ===== PRINT ===== */
+#print-area{display:none;}
+@media print{
+  body{background:#fff;}
+  body.printing > :not(#print-area){display:none !important;}
+  body.printing #print-area{display:block;}
+  @page{size:A4;margin:12mm 13mm;}
+  #print-area{font-family:Georgia,'Times New Roman',serif;color:#000;font-size:10.2pt;line-height:1.3;}
+  .p-band{background:#000;color:#fff;font-family:-apple-system,'Segoe UI',sans-serif;font-weight:700;text-align:center;padding:4pt 8pt;font-size:11pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .p-kop{margin:7pt 0 4pt;font-size:10pt;}
+  .p-kop .p-veld{display:inline-block;margin-right:14pt;margin-bottom:3pt;}
+  .p-kop .p-lijn{display:inline-block;border-bottom:1px solid #000;min-width:110pt;padding:0 3pt;font-weight:700;}
+  .p-instr{margin:5pt 0;font-size:9.6pt;}
+  .p-med{margin:5pt 0 7pt;font-weight:700;font-size:9.8pt;}
+  .p-med .p-chk{font-family:'Segoe UI Symbol',sans-serif;margin:0 3pt 0 10pt;}
+  table.p-items{width:100%;border-collapse:collapse;margin-top:4pt;}
+  table.p-items th{border-bottom:1.5pt solid #000;font-size:8.6pt;text-align:center;padding:2pt 3pt;font-family:-apple-system,'Segoe UI',sans-serif;}
+  table.p-items th:first-child{text-align:left;font-size:9.5pt;}
+  table.p-items td{border-bottom:.5pt solid #999;padding:2.6pt 3pt;vertical-align:top;}
+  table.p-items td.p-c{text-align:center;width:34pt;font-size:9.5pt;}
+  table.p-items td.p-c .sel{display:inline-block;background:#000;color:#fff;border-radius:50%;width:12pt;height:12pt;line-height:12pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .p-sectie{font-style:italic;font-weight:700;padding-top:5pt;}
+  .p-office{border:1.5pt solid #000;padding:7pt 10pt;margin-top:9pt;page-break-inside:avoid;}
+  .p-office h4{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10pt;margin-bottom:4pt;}
+  .p-office div{margin:3pt 0;font-size:9.6pt;}
+  .p-office .p-l{display:inline-block;border-bottom:1px solid #000;min-width:70pt;padding:0 4pt;font-weight:700;}
+  .p-voet{margin-top:8pt;font-size:7.8pt;color:#333;}
+  .p-opm{margin-top:6pt;font-size:9.6pt;}
+  .p-opm .p-schrijf{border-bottom:.5pt solid #999;height:13pt;margin-top:5pt;}
+  .p-breek{page-break-before:always;}
+}
+</style>
+</head>
+<body>
+
+<!-- Login (enkel arts-modus) -->
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h1>&#129513; Vanderbilt-vragenlijsten</h1>
+    <p class="sub">Log in om vragenlijsten te openen, af te drukken of invullinks te delen</p>
+    <div id="auth-msg"></div>
+    <label>Email</label>
+    <input type="email" id="auth-email" placeholder="naam@praktijk.be" autocomplete="email">
+    <label>Wachtwoord</label>
+    <input type="password" id="auth-pw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
+    <button class="btn-auth" id="auth-btn" onclick="doLogin()">Inloggen</button>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none"></div>
+
+<div id="print-area" aria-hidden="true"></div>
+
+<script>
+"use strict";
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='vanderbilt-vragenlijsten';
+const FN_URL=SUPABASE_URL+'/functions/v1/vanderbilt-submit';
+
+const BANK = {"schalen":{"symptoom":{"labels":["Nooit","Soms","Vaak","Zeer vaak"],"scores":[0,1,2,3]},"functioneren":{"labels":["Uitstekend","Bovengemiddeld","Gemiddeld","Enigszins een probleem","Problematisch"],"scores":[1,2,3,4,5]},"bijwerking":{"labels":["Geen","Mild","Matig","Ernstig"],"waarden":["geen","mild","matig","ernstig"]}},"medicatie":{"vraag":"Is deze beoordeling gebaseerd op een periode waarin het kind:","opties":[{"id":"medicatie","label":"medicatie nam"},{"id":"geen_medicatie","label":"geen medicatie nam"},{"id":"niet_zeker","label":"niet zeker"}]},"teksten":{"disclaimer":"Deze vragenlijst mag nooit op zichzelf gebruikt worden om een diagnose te stellen. De beoordeling gebeurt door de behandelend arts, die informatie uit meerdere bronnen samenlegt.","bron":"NICHQ Vanderbilt Assessment Scale — Nederlandse vertaling voor klinisch gebruik, praktijk Dr. F. Van Steenkiste. Origineel: ©2002 American Academy of Pediatrics en National Institute for Children's Health Quality; ontwikkeld door Mark L. Wolraich, MD. Bijwerkingenlijst gebaseerd op de Pittsburgh Side Effects Rating Scale (W.E. Pelham, Jr, PhD).","privacy":"Uw antwoorden worden via een beveiligde verbinding rechtstreeks naar Dr. Van Steenkiste gestuurd en uitsluitend gebruikt in het kader van de zorg voor uw kind/deze leerling. Er worden geen antwoorden op deze website bewaard. Vragen? neurologie@drvansteenkiste.be","scoreNoot":"Scores 2–3 wijzen op vaak voorkomend gedrag; scores 4–5 bij functioneren wijzen op problemen. Deze schaal is een hulpmiddel en volstaat nooit op zichzelf voor een diagnose.","bijwerkingKopOuder":"Heeft uw kind de afgelopen week last gehad van een van de volgende bijwerkingen of problemen?","bijwerkingKopLeerkracht":"Heeft het kind de afgelopen week last gehad van een van de volgende bijwerkingen of problemen?","bijwerkingKolom":"Vormen deze bijwerkingen op dit moment een probleem?"},"formulieren":{"ouder-initieel":{"titel":"Vanderbilt-beoordelingsschaal — OUDER (initiële beoordeling)","kort":"Initieel OUDER","rol":"ouder","icoon":"🧩","instructies":"Beoordeel elk gedrag in het licht van wat gepast is voor de leeftijd van uw kind. Denk bij het invullen van deze vragenlijst aan het gedrag van uw kind tijdens de afgelopen 6 maanden.","velden":[{"id":"datum","label":"Datum van vandaag","type":"date","verplicht":true},{"id":"kindNaam","label":"Naam van het kind","type":"text","verplicht":true},{"id":"kindGeboortedatum","label":"Geboortedatum van het kind","type":"date","verplicht":true},{"id":"invullerNaam","label":"Naam van de ouder","type":"text","verplicht":true},{"id":"telefoon","label":"Telefoonnummer van de ouder (optioneel)","type":"tel","verplicht":false},{"id":"emailInvuller","label":"Uw e-mailadres (optioneel, voor eventuele vragen)","type":"email","verplicht":false}],"symptomen":[{"nr":1,"tekst":"Heeft onvoldoende aandacht voor details of maakt onzorgvuldige fouten, bijvoorbeeld in het huiswerk"},{"nr":2,"tekst":"Heeft moeite om de aandacht vast te houden bij wat moet gebeuren"},{"nr":3,"tekst":"Lijkt niet te luisteren wanneer hij/zij rechtstreeks wordt aangesproken"},{"nr":4,"tekst":"Volgt instructies niet op en maakt taken of activiteiten niet af (niet uit onwil of doordat hij/zij de instructies niet begrijpt)"},{"nr":5,"tekst":"Heeft moeite met het organiseren van taken en activiteiten"},{"nr":6,"tekst":"Vermijdt taken die langdurige mentale inspanning vragen, heeft er een hekel aan of wil er niet aan beginnen"},{"nr":7,"tekst":"Verliest dingen die nodig zijn voor taken of activiteiten (speelgoed, schooltaken, potloden of boeken)"},{"nr":8,"tekst":"Wordt gemakkelijk afgeleid door geluiden of andere prikkels"},{"nr":9,"tekst":"Is vergeetachtig bij dagelijkse bezigheden"},{"nr":10,"tekst":"Beweegt onrustig met handen of voeten of wiebelt op de stoel"},{"nr":11,"tekst":"Staat op van zijn/haar plaats wanneer verwacht wordt dat hij/zij blijft zitten"},{"nr":12,"tekst":"Rent rond of klautert overmatig in situaties waarin blijven zitten verwacht wordt"},{"nr":13,"tekst":"Heeft moeite om rustig te spelen of aan rustige spelactiviteiten te beginnen"},{"nr":14,"tekst":"Is voortdurend “in de weer” of gedraagt zich vaak alsof hij/zij “door een motor wordt aangedreven”"},{"nr":15,"tekst":"Praat overdreven veel"},{"nr":16,"tekst":"Gooit het antwoord er al uit voordat de vraag is afgemaakt"},{"nr":17,"tekst":"Heeft moeite om op zijn/haar beurt te wachten"},{"nr":18,"tekst":"Verstoort of onderbreekt gesprekken en/of activiteiten van anderen"},{"nr":19,"tekst":"Maakt ruzie met volwassenen"},{"nr":20,"tekst":"Wordt driftig, verliest zijn/haar zelfbeheersing"},{"nr":21,"tekst":"Verzet zich actief tegen verzoeken of regels van volwassenen, of weigert die op te volgen"},{"nr":22,"tekst":"Ergert anderen met opzet"},{"nr":23,"tekst":"Geeft anderen de schuld van zijn/haar eigen fouten of wangedrag"},{"nr":24,"tekst":"Is prikkelbaar of ergert zich snel aan anderen"},{"nr":25,"tekst":"Is boos of wrokkig"},{"nr":26,"tekst":"Is hatelijk en wil het anderen betaald zetten"},{"nr":27,"tekst":"Pest, bedreigt of intimideert anderen"},{"nr":28,"tekst":"Begint vechtpartijen"},{"nr":29,"tekst":"Liegt om onder problemen uit te komen of om verplichtingen te ontlopen (bedriegt of misleidt anderen)"},{"nr":30,"tekst":"Spijbelt (blijft zonder toestemming weg van school)"},{"nr":31,"tekst":"Is lichamelijk wreed tegenover mensen"},{"nr":32,"tekst":"Heeft dingen van waarde gestolen"},{"nr":33,"tekst":"Vernielt met opzet andermans eigendommen"},{"nr":34,"tekst":"Heeft een wapen gebruikt dat ernstig letsel kan veroorzaken (knuppel, mes, baksteen, vuurwapen)"},{"nr":35,"tekst":"Is lichamelijk wreed tegenover dieren"},{"nr":36,"tekst":"Heeft opzettelijk brand gesticht om schade aan te richten"},{"nr":37,"tekst":"Heeft ingebroken in iemands huis, zaak of auto"},{"nr":38,"tekst":"Is ’s nachts zonder toestemming weggebleven"},{"nr":39,"tekst":"Is van huis weggelopen en ’s nachts weggebleven"},{"nr":40,"tekst":"Heeft iemand tot seksuele handelingen gedwongen"},{"nr":41,"tekst":"Is bang, angstig of bezorgd"},{"nr":42,"tekst":"Durft geen nieuwe dingen te proberen uit angst om fouten te maken"},{"nr":43,"tekst":"Voelt zich waardeloos of minderwaardig"},{"nr":44,"tekst":"Geeft zichzelf de schuld van problemen, voelt zich schuldig"},{"nr":45,"tekst":"Voelt zich eenzaam, ongewenst of niet geliefd; klaagt dat “niemand van hem/haar houdt”"},{"nr":46,"tekst":"Is verdrietig, ongelukkig of somber"},{"nr":47,"tekst":"Is onzeker over zichzelf of snel verlegen/beschaamd"}],"functioneren":[{"nr":48,"tekst":"Algemene schoolprestaties"},{"nr":49,"tekst":"Lezen"},{"nr":50,"tekst":"Schrijven"},{"nr":51,"tekst":"Rekenen/wiskunde"},{"nr":52,"tekst":"Relatie met de ouders"},{"nr":53,"tekst":"Relatie met broers/zussen"},{"nr":54,"tekst":"Relatie met leeftijdsgenoten"},{"nr":55,"tekst":"Deelname aan georganiseerde activiteiten (bv. sportclub, jeugdbeweging)"}],"bijwerkingen":false,"scoring":{"type":"initieel","subschalen":[{"id":"onoplettend","label":"Onoplettendheid (items 1–9)","van":1,"tot":9},{"id":"hyperactief","label":"Hyperactiviteit/impulsiviteit (items 10–18)","van":10,"tot":18},{"id":"odd","label":"Oppositioneel-opstandig (items 19–26)","van":19,"tot":26},{"id":"cd","label":"Gedragsstoornis-screen (items 27–40)","van":27,"tot":40},{"id":"angstdep","label":"Angst/depressie-screen (items 41–47)","van":41,"tot":47}],"criteria":[{"id":"crit-onoplettend","label":"Overwegend onoplettend beeld","sub":"onoplettend","drempel":6},{"id":"crit-hyperactief","label":"Overwegend hyperactief/impulsief beeld","sub":"hyperactief","drempel":6},{"id":"crit-gecombineerd","label":"Gecombineerd beeld","combineer":["crit-onoplettend","crit-hyperactief"]},{"id":"crit-odd","label":"ODD-screen (oppositioneel-opstandig)","sub":"odd","drempel":4},{"id":"crit-cd","label":"Gedragsstoornis-screen (conduct disorder)","sub":"cd","drempel":3},{"id":"crit-angstdep","label":"Angst/depressie-screen","sub":"angstdep","drempel":3}]}},"leerkracht-initieel":{"titel":"Vanderbilt-beoordelingsschaal — LEERKRACHT (initiële beoordeling)","kort":"Initieel LEERKRACHT","rol":"leerkracht","icoon":"🏫","instructies":"Beoordeel elk gedrag in het licht van wat gepast is voor de leeftijd van het kind dat u beoordeelt, en baseer u op het gedrag van het kind sinds het begin van het schooljaar. Gelieve hierboven aan te geven hoeveel weken of maanden u het gedrag hebt kunnen observeren.","velden":[{"id":"invullerNaam","label":"Naam van de leerkracht","type":"text","verplicht":true},{"id":"klas","label":"Klas","type":"text","verplicht":true},{"id":"lesuur","label":"Lesuur/vak (optioneel)","type":"text","verplicht":false},{"id":"datum","label":"Datum van vandaag","type":"date","verplicht":true},{"id":"kindNaam","label":"Naam van het kind","type":"text","verplicht":true},{"id":"leerjaar","label":"Leerjaar","type":"text","verplicht":true},{"id":"observatieduur","label":"Hoeveel weken of maanden hebt u het gedrag van dit kind kunnen observeren?","type":"text","verplicht":true},{"id":"emailInvuller","label":"Uw e-mailadres (optioneel, voor eventuele vragen)","type":"email","verplicht":false}],"symptomen":[{"nr":1,"tekst":"Heeft onvoldoende aandacht voor details of maakt onzorgvuldige fouten in schoolwerk"},{"nr":2,"tekst":"Heeft moeite om de aandacht vast te houden bij taken of activiteiten"},{"nr":3,"tekst":"Lijkt niet te luisteren wanneer hij/zij rechtstreeks wordt aangesproken"},{"nr":4,"tekst":"Volgt instructies niet op en maakt schoolwerk niet af (niet uit oppositioneel gedrag of doordat hij/zij de instructies niet begrijpt)"},{"nr":5,"tekst":"Heeft moeite met het organiseren van taken en activiteiten"},{"nr":6,"tekst":"Vermijdt taken die langdurige mentale inspanning vragen, heeft er een hekel aan of begint er met tegenzin aan"},{"nr":7,"tekst":"Verliest dingen die nodig zijn voor taken of activiteiten (schooltaken, potloden of boeken)"},{"nr":8,"tekst":"Wordt gemakkelijk afgeleid door prikkels van buitenaf"},{"nr":9,"tekst":"Is vergeetachtig bij dagelijkse bezigheden"},{"nr":10,"tekst":"Beweegt onrustig met handen of voeten of wiebelt op de stoel"},{"nr":11,"tekst":"Staat op van zijn/haar plaats in de klas of in andere situaties waarin blijven zitten verwacht wordt"},{"nr":12,"tekst":"Rent rond of klautert overmatig in situaties waarin blijven zitten verwacht wordt"},{"nr":13,"tekst":"Heeft moeite om rustig te spelen of zich rustig bezig te houden in de vrije tijd"},{"nr":14,"tekst":"Is voortdurend “in de weer” of gedraagt zich vaak alsof hij/zij “door een motor wordt aangedreven”"},{"nr":15,"tekst":"Praat overdreven veel"},{"nr":16,"tekst":"Gooit het antwoord er al uit voordat de vraag is afgemaakt"},{"nr":17,"tekst":"Heeft moeite om in de rij of op zijn/haar beurt te wachten"},{"nr":18,"tekst":"Verstoort anderen of dringt zich op (bv. mengt zich in gesprekken of spelletjes)"},{"nr":19,"tekst":"Wordt driftig, verliest zijn/haar zelfbeheersing"},{"nr":20,"tekst":"Verzet zich actief tegen verzoeken of regels van volwassenen, of weigert die op te volgen"},{"nr":21,"tekst":"Is boos of wrokkig"},{"nr":22,"tekst":"Is hatelijk en rancuneus"},{"nr":23,"tekst":"Pest, bedreigt of intimideert anderen"},{"nr":24,"tekst":"Begint vechtpartijen"},{"nr":25,"tekst":"Liegt om iets gedaan te krijgen of om verplichtingen te ontlopen (bedriegt of misleidt anderen)"},{"nr":26,"tekst":"Is lichamelijk wreed tegenover mensen"},{"nr":27,"tekst":"Heeft dingen van waarde gestolen"},{"nr":28,"tekst":"Vernielt met opzet andermans eigendommen"},{"nr":29,"tekst":"Is bang, angstig of bezorgd"},{"nr":30,"tekst":"Is onzeker over zichzelf of snel verlegen/beschaamd"},{"nr":31,"tekst":"Durft geen nieuwe dingen te proberen uit angst om fouten te maken"},{"nr":32,"tekst":"Voelt zich waardeloos of minderwaardig"},{"nr":33,"tekst":"Geeft zichzelf de schuld van problemen, voelt zich schuldig"},{"nr":34,"tekst":"Voelt zich eenzaam, ongewenst of niet geliefd; klaagt dat “niemand van hem/haar houdt”"},{"nr":35,"tekst":"Is verdrietig, ongelukkig of somber"}],"functioneren":[{"nr":36,"tekst":"Lezen","sectie":"Schoolse prestaties"},{"nr":37,"tekst":"Rekenen/wiskunde","sectie":"Schoolse prestaties"},{"nr":38,"tekst":"Schriftelijke expressie","sectie":"Schoolse prestaties"},{"nr":39,"tekst":"Relatie met klasgenoten","sectie":"Gedrag in de klas"},{"nr":40,"tekst":"Instructies opvolgen","sectie":"Gedrag in de klas"},{"nr":41,"tekst":"Verstoren van de les","sectie":"Gedrag in de klas"},{"nr":42,"tekst":"Taken afwerken","sectie":"Gedrag in de klas"},{"nr":43,"tekst":"Organisatorische vaardigheden","sectie":"Gedrag in de klas"}],"bijwerkingen":false,"scoring":{"type":"initieel","subschalen":[{"id":"onoplettend","label":"Onoplettendheid (items 1–9)","van":1,"tot":9},{"id":"hyperactief","label":"Hyperactiviteit/impulsiviteit (items 10–18)","van":10,"tot":18},{"id":"oddcd","label":"ODD/gedragsstoornis-screen (items 19–28)","van":19,"tot":28},{"id":"angstdep","label":"Angst/depressie-screen (items 29–35)","van":29,"tot":35}],"criteria":[{"id":"crit-onoplettend","label":"Overwegend onoplettend beeld","sub":"onoplettend","drempel":6},{"id":"crit-hyperactief","label":"Overwegend hyperactief/impulsief beeld","sub":"hyperactief","drempel":6},{"id":"crit-gecombineerd","label":"Gecombineerd beeld","combineer":["crit-onoplettend","crit-hyperactief"]},{"id":"crit-oddcd","label":"ODD/gedragsstoornis-screen","sub":"oddcd","drempel":3},{"id":"crit-angstdep","label":"Angst/depressie-screen","sub":"angstdep","drempel":3}]}},"ouder-followup":{"titel":"Vanderbilt follow-up — OUDER","kort":"Follow-up OUDER","rol":"ouder","icoon":"🔄","instructies":"Beoordeel elk gedrag in het licht van wat gepast is voor de leeftijd van uw kind. Denk bij het beoordelen aan het gedrag van uw kind sinds de vorige vragenlijst werd ingevuld.","velden":[{"id":"datum","label":"Datum van vandaag","type":"date","verplicht":true},{"id":"kindNaam","label":"Naam van het kind","type":"text","verplicht":true},{"id":"kindGeboortedatum","label":"Geboortedatum van het kind","type":"date","verplicht":true},{"id":"invullerNaam","label":"Naam van de ouder","type":"text","verplicht":true},{"id":"telefoon","label":"Telefoonnummer van de ouder (optioneel)","type":"tel","verplicht":false},{"id":"emailInvuller","label":"Uw e-mailadres (optioneel, voor eventuele vragen)","type":"email","verplicht":false}],"symptomen":[{"nr":1,"tekst":"Heeft onvoldoende aandacht voor details of maakt onzorgvuldige fouten, bijvoorbeeld in het huiswerk"},{"nr":2,"tekst":"Heeft moeite om de aandacht vast te houden bij wat moet gebeuren"},{"nr":3,"tekst":"Lijkt niet te luisteren wanneer hij/zij rechtstreeks wordt aangesproken"},{"nr":4,"tekst":"Volgt instructies niet op en maakt taken of activiteiten niet af (niet uit onwil of doordat hij/zij de instructies niet begrijpt)"},{"nr":5,"tekst":"Heeft moeite met het organiseren van taken en activiteiten"},{"nr":6,"tekst":"Vermijdt taken die langdurige mentale inspanning vragen, heeft er een hekel aan of wil er niet aan beginnen"},{"nr":7,"tekst":"Verliest dingen die nodig zijn voor taken of activiteiten (speelgoed, schooltaken, potloden of boeken)"},{"nr":8,"tekst":"Wordt gemakkelijk afgeleid door geluiden of andere prikkels"},{"nr":9,"tekst":"Is vergeetachtig bij dagelijkse bezigheden"},{"nr":10,"tekst":"Beweegt onrustig met handen of voeten of wiebelt op de stoel"},{"nr":11,"tekst":"Staat op van zijn/haar plaats wanneer verwacht wordt dat hij/zij blijft zitten"},{"nr":12,"tekst":"Rent rond of klautert overmatig in situaties waarin blijven zitten verwacht wordt"},{"nr":13,"tekst":"Heeft moeite om rustig te spelen of aan rustige spelactiviteiten te beginnen"},{"nr":14,"tekst":"Is voortdurend “in de weer” of gedraagt zich vaak alsof hij/zij “door een motor wordt aangedreven”"},{"nr":15,"tekst":"Praat overdreven veel"},{"nr":16,"tekst":"Gooit het antwoord er al uit voordat de vraag is afgemaakt"},{"nr":17,"tekst":"Heeft moeite om op zijn/haar beurt te wachten"},{"nr":18,"tekst":"Verstoort of onderbreekt gesprekken en/of activiteiten van anderen"}],"functioneren":[{"nr":19,"tekst":"Algemene schoolprestaties"},{"nr":20,"tekst":"Lezen"},{"nr":21,"tekst":"Schrijven"},{"nr":22,"tekst":"Rekenen/wiskunde"},{"nr":23,"tekst":"Relatie met de ouders"},{"nr":24,"tekst":"Relatie met broers/zussen"},{"nr":25,"tekst":"Relatie met leeftijdsgenoten"},{"nr":26,"tekst":"Deelname aan georganiseerde activiteiten (bv. sportclub, jeugdbeweging)"}],"bijwerkingen":true,"scoring":{"type":"followup","subschalen":[{"id":"onoplettend","label":"Onoplettendheid (items 1–9)","van":1,"tot":9},{"id":"hyperactief","label":"Hyperactiviteit/impulsiviteit (items 10–18)","van":10,"tot":18}],"criteria":[]}},"leerkracht-followup":{"titel":"Vanderbilt follow-up — LEERKRACHT","kort":"Follow-up LEERKRACHT","rol":"leerkracht","icoon":"📘","instructies":"Beoordeel elk gedrag in het licht van wat gepast is voor de leeftijd van het kind dat u beoordeelt, en baseer u op het gedrag van het kind sinds de vorige vragenlijst werd ingevuld. Gelieve hierboven aan te geven hoeveel weken of maanden u het gedrag hebt kunnen observeren.","velden":[{"id":"invullerNaam","label":"Naam van de leerkracht","type":"text","verplicht":true},{"id":"klas","label":"Klas","type":"text","verplicht":true},{"id":"lesuur","label":"Lesuur/vak (optioneel)","type":"text","verplicht":false},{"id":"datum","label":"Datum van vandaag","type":"date","verplicht":true},{"id":"kindNaam","label":"Naam van het kind","type":"text","verplicht":true},{"id":"leerjaar","label":"Leerjaar","type":"text","verplicht":true},{"id":"observatieduur","label":"Hoeveel weken of maanden hebt u het gedrag van dit kind kunnen observeren?","type":"text","verplicht":true},{"id":"emailInvuller","label":"Uw e-mailadres (optioneel, voor eventuele vragen)","type":"email","verplicht":false}],"symptomen":[{"nr":1,"tekst":"Heeft onvoldoende aandacht voor details of maakt onzorgvuldige fouten, bijvoorbeeld in het huiswerk"},{"nr":2,"tekst":"Heeft moeite om de aandacht vast te houden bij wat moet gebeuren"},{"nr":3,"tekst":"Lijkt niet te luisteren wanneer hij/zij rechtstreeks wordt aangesproken"},{"nr":4,"tekst":"Volgt instructies niet op en maakt taken of activiteiten niet af (niet uit onwil of doordat hij/zij de instructies niet begrijpt)"},{"nr":5,"tekst":"Heeft moeite met het organiseren van taken en activiteiten"},{"nr":6,"tekst":"Vermijdt taken die langdurige mentale inspanning vragen, heeft er een hekel aan of wil er niet aan beginnen"},{"nr":7,"tekst":"Verliest dingen die nodig zijn voor taken of activiteiten (speelgoed, schooltaken, potloden of boeken)"},{"nr":8,"tekst":"Wordt gemakkelijk afgeleid door geluiden of andere prikkels"},{"nr":9,"tekst":"Is vergeetachtig bij dagelijkse bezigheden"},{"nr":10,"tekst":"Beweegt onrustig met handen of voeten of wiebelt op de stoel"},{"nr":11,"tekst":"Staat op van zijn/haar plaats wanneer verwacht wordt dat hij/zij blijft zitten"},{"nr":12,"tekst":"Rent rond of klautert overmatig in situaties waarin blijven zitten verwacht wordt"},{"nr":13,"tekst":"Heeft moeite om rustig te spelen of aan rustige spelactiviteiten te beginnen"},{"nr":14,"tekst":"Is voortdurend “in de weer” of gedraagt zich vaak alsof hij/zij “door een motor wordt aangedreven”"},{"nr":15,"tekst":"Praat overdreven veel"},{"nr":16,"tekst":"Gooit het antwoord er al uit voordat de vraag is afgemaakt"},{"nr":17,"tekst":"Heeft moeite om op zijn/haar beurt te wachten"},{"nr":18,"tekst":"Verstoort of onderbreekt gesprekken en/of activiteiten van anderen"}],"functioneren":[{"nr":19,"tekst":"Lezen"},{"nr":20,"tekst":"Rekenen/wiskunde"},{"nr":21,"tekst":"Schriftelijke expressie"},{"nr":22,"tekst":"Relatie met klasgenoten"},{"nr":23,"tekst":"Instructies opvolgen"},{"nr":24,"tekst":"Verstoren van de les"},{"nr":25,"tekst":"Taken afwerken"},{"nr":26,"tekst":"Organisatorische vaardigheden"}],"bijwerkingen":true,"scoring":{"type":"followup","subschalen":[{"id":"onoplettend","label":"Onoplettendheid (items 1–9)","van":1,"tot":9},{"id":"hyperactief","label":"Hyperactiviteit/impulsiviteit (items 10–18)","van":10,"tot":18}],"criteria":[]}}},"bijwerkingenLijst":[{"nr":1,"tekst":"Hoofdpijn"},{"nr":2,"tekst":"Buikpijn"},{"nr":3,"tekst":"Verandering van eetlust","toelichten":true},{"nr":4,"tekst":"Slaapproblemen"},{"nr":5,"tekst":"Prikkelbaarheid in de late voormiddag, late namiddag of avond","toelichten":true},{"nr":6,"tekst":"Sociaal teruggetrokken — minder contact met anderen"},{"nr":7,"tekst":"Extreme droefheid of ongewoon veel huilen"},{"nr":8,"tekst":"Mat, vermoeid of lusteloos gedrag"},{"nr":9,"tekst":"Beven / trillerig gevoel"},{"nr":10,"tekst":"Herhaalde bewegingen, tics, schokken, trekkingen, knipperen met de ogen","toelichten":true},{"nr":11,"tekst":"Pulken aan huid of vingers, nagelbijten, bijten op lip of wang","toelichten":true},{"nr":12,"tekst":"Ziet of hoort dingen die er niet zijn"}]};
+
+/* Vanderbilt scoring — gedeelde, pure logica (identiek in HTML en Edge Function).
+   antwoorden:   { "1": 0..3, ... }   (symptoomitems, sleutel = itemnummer als string of number)
+   functioneren: { "48": 1..5, ... }  (functioneringsitems)
+   Onbeantwoorde items tellen NOOIT mee als positief. */
+function vdbComputeScores(formulier, antwoorden, functioneren) {
+  const sc = formulier.scoring;
+  const sym = formulier.symptomen;
+  const perf = formulier.functioneren;
+  const val = (obj, nr) => {
+    const v = obj ? obj[nr] !== undefined ? obj[nr] : obj[String(nr)] : undefined;
+    return (v === null || v === undefined || v === "") ? undefined : Number(v);
+  };
+
+  const onbeantwoordSym = sym.filter(it => val(antwoorden, it.nr) === undefined).map(it => it.nr);
+  const onbeantwoordPerf = perf.filter(it => val(functioneren, it.nr) === undefined).map(it => it.nr);
+
+  // Subschalen: aantal positieve items (score 2 of 3) + som
+  const subschalen = {};
+  (sc.subschalen || []).forEach(ss => {
+    let positief = 0, som = 0, beantwoord = 0;
+    for (let nr = ss.van; nr <= ss.tot; nr++) {
+      const v = val(antwoorden, nr);
+      if (v === undefined) continue;
+      beantwoord++; som += v;
+      if (v >= 2) positief++;
+    }
+    subschalen[ss.id] = { label: ss.label, van: ss.van, tot: ss.tot,
+      totaalItems: ss.tot - ss.van + 1, beantwoord, positief, som };
+  });
+
+  // Totale symptoomscore items 1-18 (alle formulieren hebben items 1-18)
+  let totaal18 = 0, beantwoord18 = 0;
+  for (let nr = 1; nr <= 18; nr++) {
+    const v = val(antwoorden, nr);
+    if (v === undefined) continue;
+    beantwoord18++; totaal18 += v;
+  }
+
+  // Functioneren: aantal 4/5 + gemiddelde van beantwoorde items
+  let perf45 = 0, perfSom = 0, perfBeantwoord = 0;
+  perf.forEach(it => {
+    const v = val(functioneren, it.nr);
+    if (v === undefined) return;
+    perfBeantwoord++; perfSom += v;
+    if (v >= 4) perf45++;
+  });
+  const perfGemiddelde = perfBeantwoord ? Math.round((perfSom / perfBeantwoord) * 100) / 100 : null;
+  const perfProbleem = perf45 >= 1; // minstens één functioneringsitem met score 4 of 5
+
+  // Screeningcriteria (enkel initiële formulieren)
+  const criteria = [];
+  const perId = {};
+  (sc.criteria || []).forEach(cr => {
+    let voldaan, detail;
+    if (cr.combineer) {
+      voldaan = cr.combineer.every(id => perId[id] && perId[id].voldaan);
+      detail = "vereist dat beide bovenstaande ADHD-criteria voldaan zijn";
+    } else {
+      const ss = subschalen[cr.sub];
+      const symOk = ss.positief >= cr.drempel;
+      voldaan = symOk && perfProbleem;
+      detail = ss.positief + " van ≥" + cr.drempel + " vereiste positieve items (bereik " + ss.van + "–" + ss.tot +
+        "); functioneringsprobleem (≥1 item met score 4–5): " + (perfProbleem ? "ja" : "nee");
+    }
+    const r = { id: cr.id, label: cr.label, voldaan, detail };
+    perId[cr.id] = r;
+    criteria.push(r);
+  });
+
+  return {
+    subschalen,
+    totaalSymptoom18: totaal18,
+    beantwoord18,
+    perf45,
+    perfGemiddelde,
+    perfProbleem,
+    criteria,
+    onbeantwoordSymptoom: onbeantwoordSym,
+    onbeantwoordFunctioneren: onbeantwoordPerf,
+  };
+}
+if (typeof module !== "undefined" && module.exports) { module.exports = { vdbComputeScores }; }
+
+
+/* ===================== gemeenschappelijk ===================== */
+const params=new URLSearchParams(location.search);
+const VORM=params.get('vorm');
+const LINK_TOKEN_URL=params.get('t')||'';
+const KIND_PREFILL=params.get('kind')||'';
+const IS_PUBLIC=!!VORM;
+let sb=null,currentUser=null,artsLinkToken='';
+let state={vorm:null,startedAt:Date.now(),antwoorden:{},functioneren:{},bijwerkingen:{},velden:{},medicatie:'',toelichting:'',opmerkingen:''};
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function el(id){return document.getElementById(id);}
+function vandaagISO(){const d=new Date();return d.toISOString().slice(0,10);}
+function fmtDatumNL(iso){if(!iso)return '';const [y,m,dd]=iso.split('-');return dd+'/'+m+'/'+y;}
+function medLabel(id){const o=BANK.medicatie.opties.find(o=>o.id===id);return o?o.label:'(niet ingevuld)';}
+
+/* sessionStorage autosave (géén localStorage: geen gezondheidsgegevens laten staan) */
+function saveDraft(){
+  if(!state.vorm)return;
+  try{sessionStorage.setItem('vdb-'+state.vorm,JSON.stringify({
+    startedAt:state.startedAt,velden:state.velden,medicatie:state.medicatie,antwoorden:state.antwoorden,
+    functioneren:state.functioneren,bijwerkingen:state.bijwerkingen,
+    toelichting:state.toelichting,opmerkingen:state.opmerkingen}));}catch(_){}
+}
+function loadDraft(vorm){
+  try{const r=sessionStorage.getItem('vdb-'+vorm);return r?JSON.parse(r):null;}catch(_){return null;}
+}
+function clearDraft(vorm){try{sessionStorage.removeItem('vdb-'+vorm);}catch(_){}}
+
+/* ===================== formulier renderen ===================== */
+function renderForm(vorm,artsMode){
+  const F=BANK.formulieren[vorm];
+  if(!F){el('app').innerHTML='<div class="banner err">Onbekend formulier. Controleer de link.</div>';return;}
+  state={vorm,startedAt:Date.now(),antwoorden:{},functioneren:{},bijwerkingen:{},velden:{},medicatie:'',toelichting:'',opmerkingen:''};
+  const draft=loadDraft(vorm);
+  if(draft){const t0=draft.startedAt||Date.now();Object.assign(state,draft,{vorm,startedAt:t0});}
+  if(!state.velden.datum)state.velden.datum=vandaagISO();
+  if(KIND_PREFILL&&!state.velden.kindNaam)state.velden.kindNaam=KIND_PREFILL;
+
+  const sLbl=BANK.schalen.symptoom.labels,pLbl=BANK.schalen.functioneren.labels,bLbl=BANK.schalen.bijwerking.labels;
+  let h='';
+  h+='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
+    +'<span class="brand-sub">Praktijk Dr. F. Van Steenkiste — neurologie</span></div>';
+  if(artsMode){h+='<div class="top-right"><a class="back-link" onclick="renderDashboard()">&larr; Dashboard</a>'
+    +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span></div>';}
+  h+='</div>';
+
+  h+='<div class="fcard"><div class="f-title">'+esc(F.titel)+'</div>'
+    +'<div class="f-praktijk">In te vullen voor de praktijk van Dr. Van Steenkiste. Alle vragen zijn in het Nederlands; kruis telkens het best passende antwoord aan.</div>'
+    +'<div class="kop-grid">';
+  F.velden.forEach(v=>{
+    const val=state.velden[v.id]||'';
+    const breed=v.id==='observatieduur'?' breed':'';
+    h+='<div class="veld'+breed+'" id="veld-'+v.id+'"><label for="in-'+v.id+'">'+esc(v.label)+(v.verplicht?' <span class="req">*</span>':'')+'</label>'
+      +'<input id="in-'+v.id+'" type="'+v.type+'" value="'+esc(val)+'" oninput="onVeld(\''+v.id+'\',this.value)"></div>';
+  });
+  h+='</div>'
+    +'<div class="instructies"><b>Instructies:</b> '+esc(F.instructies)+'</div>'
+    +'<div class="medvraag" id="medvraag"><div class="mv-q">'+esc(BANK.medicatie.vraag)+' <span class="req">*</span></div><div class="mv-opts">';
+  BANK.medicatie.opties.forEach(o=>{
+    h+='<label><input type="radio" name="med" value="'+o.id+'" '+(state.medicatie===o.id?'checked':'')+' onchange="onMed(this.value)"> '+esc(o.label)+'</label>';
+  });
+  h+='</div></div>';
+
+  // Symptoomitems
+  h+='<div class="sectie-kop"><h2>Symptomen</h2><span class="schaal-uitleg">0 = Nooit &middot; 1 = Soms &middot; 2 = Vaak &middot; 3 = Zeer vaak</span></div>';
+  h+='<div class="kolomkop" style="--ncols:4"><span style="text-align:left">Gedrag</span>'+sLbl.map((l,i)=>'<span>'+esc(l)+'<br>('+i+')</span>').join('')+'</div>';
+  F.symptomen.forEach(it=>{
+    h+=itemRij('s',it.nr,it.tekst,BANK.schalen.symptoom.scores,sLbl,state.antwoorden[it.nr]);
+  });
+
+  // Functioneringsitems
+  h+='<div class="sectie-kop"><h2>Functioneren</h2><span class="schaal-uitleg">1 = Uitstekend &middot; 2 = Bovengemiddeld &middot; 3 = Gemiddeld &middot; 4 = Enigszins een probleem &middot; 5 = Problematisch</span></div>';
+  h+='<div class="kolomkop" style="--ncols:5"><span style="text-align:left">Domein</span>'+pLbl.map((l,i)=>'<span>'+esc(l)+'<br>('+(i+1)+')</span>').join('')+'</div>';
+  let laatsteSectie=null;
+  F.functioneren.forEach(it=>{
+    if(it.sectie&&it.sectie!==laatsteSectie){h+='<div class="subsectie">'+esc(it.sectie)+'</div>';laatsteSectie=it.sectie;}
+    h+=itemRij('f',it.nr,it.tekst,BANK.schalen.functioneren.scores,pLbl,state.functioneren[it.nr]);
+  });
+
+  // Bijwerkingen (follow-up)
+  if(F.bijwerkingen){
+    const kop=F.rol==='ouder'?BANK.teksten.bijwerkingKopOuder:BANK.teksten.bijwerkingKopLeerkracht;
+    h+='<div class="sectie-kop"><h2>Bijwerkingen</h2></div>'
+      +'<div class="bw-kop">'+esc(kop)+'</div><div class="bw-kolomvraag">'+esc(BANK.teksten.bijwerkingKolom)+'</div>';
+    h+='<div class="kolomkop" style="--ncols:4"><span style="text-align:left">Bijwerking</span>'+bLbl.map(l=>'<span>'+esc(l)+'</span>').join('')+'</div>';
+    BANK.bijwerkingenLijst.forEach(b=>{
+      const tk=b.tekst+(b.toelichten?' — licht toe hieronder':'');
+      h+=itemRij('b',b.nr,tk,BANK.schalen.bijwerking.waarden,bLbl,state.bijwerkingen[b.nr]);
+    });
+    h+='<div style="margin-top:12px" class="veld"><label for="in-toelichting">Toelichting / opmerkingen (bv. bij eetlust, prikkelbaarheid, tics of pulken)</label>'
+      +'<textarea id="in-toelichting" oninput="state.toelichting=this.value;saveDraft()">'+esc(state.toelichting)+'</textarea></div>';
+  }
+
+  // Opmerkingen
+  h+='<div style="margin-top:14px" class="veld"><label for="in-opmerkingen">Opmerkingen</label>'
+    +'<textarea id="in-opmerkingen" oninput="state.opmerkingen=this.value;saveDraft()">'+esc(state.opmerkingen)+'</textarea></div>';
+
+  // Honeypot (onzichtbaar voor mensen)
+  h+='<div style="position:absolute;left:-9999px" aria-hidden="true"><label>Laat dit veld leeg</label><input type="text" id="hp-veld" tabindex="-1" autocomplete="off"></div>';
+
+  // Acties
+  h+='<div id="valideer-msg"></div><div id="scorepaneel"></div>';
+  h+='<div class="verzendbalk">';
+  if(artsMode){
+    h+='<button class="btn btn-primary" onclick="artsScore()">Bereken score</button>'
+      +'<button class="btn btn-ghost" onclick="printForm(\''+vorm+'\',\'ingevuld\')">&#128424; Afdrukken (ingevuld)</button>'
+      +'<button class="btn btn-ghost" onclick="printForm(\''+vorm+'\',\'blanco\')">&#128424; Afdrukken (blanco)</button>'
+      +'<button class="btn btn-ghost" onclick="verzend(true)" id="btn-verzend">&#9993; Ook naar mijn mailbox sturen</button>'
+      +'<button class="btn btn-ghost" onclick="wisForm()">Wissen</button>';
+  }else{
+    h+='<button class="btn btn-primary btn-verzend" id="btn-verzend" onclick="verzend(false)">Vragenlijst verzenden naar Dr. Van Steenkiste</button>';
+  }
+  h+='</div>';
+
+  // Voetteksten
+  h+='<div class="footer-teksten">'
+    +'<div class="klein">'+esc(BANK.teksten.disclaimer)+'</div>'
+    +(artsMode?'':'<div class="klein">'+esc(BANK.teksten.privacy)+'</div>')
+    +'<div class="klein">'+esc(BANK.teksten.bron)+'</div>'
+    +'</div>';
+  h+='</div>'; // fcard
+
+  el('app').innerHTML=h;
+  el('app').style.display='block';
+  document.title=F.kort+' — Vanderbilt';
+  window.scrollTo(0,0);
+}
+
+function itemRij(soort,nr,tekst,waarden,labels,huidig){
+  const n=waarden.length;
+  let h='<div class="item" style="--ncols:'+n+'" id="item-'+soort+'-'+nr+'"'+(huidig!==undefined&&huidig!==''&&huidig!==null?' data-ok="1"':'')+'>'
+    +'<div class="itxt"><span class="inr">'+nr+'.</span>'+esc(tekst)+'</div><div class="opts-rij">';
+  waarden.forEach((w,i)=>{
+    const checked=(String(huidig)===String(w))?' checked':'';
+    const toon=(soort==='b')?'':'<span class="onr">'+w+'</span>';
+    h+='<label class="opt"><input type="radio" name="'+soort+'-'+nr+'" value="'+w+'"'+checked
+      +' onchange="onItem(\''+soort+'\','+nr+',this.value)">'+toon+'<span class="olbl">'+esc(labels[i])+'</span></label>';
+  });
+  h+='</div></div>';
+  if(huidig!==undefined&&huidig!==''&&huidig!==null){setTimeout(()=>{const e=el('item-'+soort+'-'+nr);if(e)e.classList.add('beantwoord');},0);}
+  return h;
+}
+
+function onItem(soort,nr,waarde){
+  if(soort==='s')state.antwoorden[nr]=Number(waarde);
+  else if(soort==='f')state.functioneren[nr]=Number(waarde);
+  else state.bijwerkingen[nr]=waarde;
+  const e=el('item-'+soort+'-'+nr);
+  if(e){e.classList.add('beantwoord');e.classList.remove('missend');}
+  saveDraft();
+}
+function onVeld(id,waarde){state.velden[id]=waarde;const e=el('veld-'+id);if(e&&waarde)e.classList.remove('missend');saveDraft();}
+function onMed(v){state.medicatie=v;el('medvraag').classList.remove('missend');saveDraft();}
+function wisForm(){if(!state.vorm)return;clearDraft(state.vorm);const v=state.vorm;renderForm(v,!IS_PUBLIC);}
+
+/* ===================== validatie & verzending ===================== */
+function valideer(){
+  const F=BANK.formulieren[state.vorm];
+  const missendVeld=[],missendItem=[];
+  F.velden.forEach(v=>{
+    const ok=(state.velden[v.id]||'').trim()!=='';
+    const e=el('veld-'+v.id);
+    if(v.verplicht&&!ok){missendVeld.push(v.label);if(e)e.classList.add('missend');}
+  });
+  let medOk=!!state.medicatie;
+  if(!medOk)el('medvraag').classList.add('missend');
+  F.symptomen.forEach(it=>{if(state.antwoorden[it.nr]===undefined){missendItem.push(it.nr);}});
+  F.functioneren.forEach(it=>{if(state.functioneren[it.nr]===undefined){missendItem.push(it.nr);}});
+  return {missendVeld,missendItem,medOk};
+}
+function toonValidatie(v,magToch){
+  let h='';
+  if(v.missendVeld.length||!v.medOk){
+    h+='<div class="banner err">Vul eerst de verplichte velden in'
+      +(v.missendVeld.length?': <b>'+v.missendVeld.map(esc).join(', ')+'</b>':'')
+      +(!v.medOk?(v.missendVeld.length?' en ':': ')+'de <b>medicatievraag</b> bovenaan':'')+'.</div>';
+  }else if(v.missendItem.length){
+    h+='<div class="banner warn">Nog <b>'+v.missendItem.length+'</b> vraag/vragen onbeantwoord (nr. '
+      +v.missendItem.slice(0,25).join(', ')+(v.missendItem.length>25?'…':'')+'). '
+      +'U kan terugkeren en aanvullen, of toch verzenden — onbeantwoorde vragen worden dan als “onbeantwoord” doorgestuurd.'
+      +(magToch?'<div style="margin-top:9px"><button class="btn btn-ghost" onclick="scrollNaarEerste()">Terug naar eerste open vraag</button> '
+      +'<button class="btn btn-primary" onclick="verzend('+(!IS_PUBLIC)+',true)">Toch verzenden</button></div>':'')+'</div>';
+  }
+  el('valideer-msg').innerHTML=h;
+  if(h)el('valideer-msg').scrollIntoView({behavior:'smooth',block:'center'});
+  return !h;
+}
+function scrollNaarEerste(){
+  const v=valideer();
+  if(v.missendItem.length){
+    const F=BANK.formulieren[state.vorm];
+    const nr=v.missendItem[0];
+    const soort=F.symptomen.some(it=>it.nr===nr&&state.antwoorden[nr]===undefined)?'s':'f';
+    const e=el('item-'+soort+'-'+nr)||el('item-s-'+nr)||el('item-f-'+nr);
+    if(e){e.classList.add('missend');e.scrollIntoView({behavior:'smooth',block:'center'});}
+  }
+  el('valideer-msg').innerHTML='';
+}
+
+function bouwPayload(){
+  const F=BANK.formulieren[state.vorm];
+  return {
+    action:'submit',
+    token:LINK_TOKEN_URL||artsLinkToken,
+    vorm:state.vorm,
+    meta:Object.assign({},state.velden,{rol:F.rol,bron:IS_PUBLIC?'link':'arts'}),
+    medicatie:state.medicatie,
+    antwoorden:state.antwoorden,
+    functioneren:state.functioneren,
+    bijwerkingen:F.bijwerkingen?state.bijwerkingen:undefined,
+    toelichting:state.toelichting||'',
+    opmerkingen:state.opmerkingen||'',
+    hp:(el('hp-veld')&&el('hp-veld').value)||'',
+    verstrekenMs:Date.now()-state.startedAt
+  };
+}
+
+async function verzend(artsMode,forceer){
+  const v=valideer();
+  if(v.missendVeld.length||!v.medOk){toonValidatie(v,false);return;}
+  if(v.missendItem.length&&!forceer){toonValidatie(v,true);return;}
+  el('valideer-msg').innerHTML='';
+  const btn=el('btn-verzend');const oud=btn.textContent;
+  btn.disabled=true;btn.textContent='Bezig met verzenden…';
+  try{
+    const headers={'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY};
+    if(artsMode&&sb){const {data:{session}}=await sb.auth.getSession();if(session)headers['Authorization']='Bearer '+session.access_token;}
+    const res=await fetch(FN_URL,{method:'POST',headers,body:JSON.stringify(bouwPayload())});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||data.error)throw new Error(data.error||('HTTP '+res.status));
+    clearDraft(state.vorm);
+    if(artsMode){
+      el('valideer-msg').innerHTML='<div class="banner ok">Verzonden naar je mailbox &#10003;</div>';
+      btn.disabled=false;btn.textContent=oud;
+    }else{
+      toonBevestiging();
+    }
+  }catch(e){
+    el('valideer-msg').innerHTML='<div class="banner err"><b>Verzenden is niet gelukt.</b> '+esc(e.message||'Onbekende fout')
+      +'<br>Uw antwoorden staan nog steeds in het formulier — probeer het zo dadelijk opnieuw. Blijft het misgaan, neem dan contact op met de praktijk: neurologie@drvansteenkiste.be</div>';
+    el('valideer-msg').scrollIntoView({behavior:'smooth',block:'center'});
+    btn.disabled=false;btn.textContent=oud;
+  }
+}
+function toonBevestiging(){
+  el('app').innerHTML='<div class="done-card"><div class="big">&#9989;</div>'
+    +'<h2>Bedankt!</h2><p>Uw vragenlijst werd veilig verzonden naar de praktijk van Dr.&nbsp;Van&nbsp;Steenkiste.<br>'
+    +'U mag dit venster nu sluiten. Er worden geen antwoorden op deze website bewaard.</p></div>';
+  window.scrollTo(0,0);
+}
+
+/* ===================== score (arts) ===================== */
+function artsScore(){
+  const F=BANK.formulieren[state.vorm];
+  const r=vdbComputeScores(F,state.antwoorden,state.functioneren);
+  el('scorepaneel').innerHTML=scoreHTML(F,r);
+  el('scorepaneel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function scoreHTML(F,r){
+  let h='<div class="scoreblok"><h2>Enkel voor de arts — automatische scoring</h2>'
+    +'<div class="sb-sub">'+esc(F.titel)+' &middot; medicatiestatus: <b>'+esc(medLabel(state.medicatie))+'</b></div>'
+    +'<table class="sb-tabel">';
+  Object.values(r.subschalen).forEach(ss=>{
+    h+='<tr><td>'+esc(ss.label)+' — positieve items (score 2–3)</td><td>'+ss.positief+' / '+ss.totaalItems+'</td></tr>';
+  });
+  h+='<tr><td>Totale symptoomscore items 1–18</td><td>'+r.totaalSymptoom18+'</td></tr>'
+    +'<tr><td>Functioneringsitems met score 4 of 5</td><td>'+r.perf45+'</td></tr>'
+    +'<tr><td>Gemiddelde functioneringsscore</td><td>'+(r.perfGemiddelde===null?'—':r.perfGemiddelde.toFixed(2))+'</td></tr>';
+  if(r.onbeantwoordSymptoom.length||r.onbeantwoordFunctioneren.length){
+    h+='<tr><td style="color:#b45309">Onbeantwoord</td><td style="color:#b45309">'
+      +(r.onbeantwoordSymptoom.length?'sympt. '+r.onbeantwoordSymptoom.join(', '):'')
+      +(r.onbeantwoordFunctioneren.length?(r.onbeantwoordSymptoom.length?' · ':'')+'funct. '+r.onbeantwoordFunctioneren.join(', '):'')+'</td></tr>';
+  }
+  h+='</table>';
+  if(r.criteria.length){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 7px;color:#374151">Screeningcriteria</div>';
+    r.criteria.forEach(c=>{
+      h+='<div class="crit '+(c.voldaan?'ja':'nee')+'"><span class="cv">'+(c.voldaan?'&#9679; VOLDAAN':'&#9675; niet voldaan')+'</span>'
+        +'<span>'+esc(c.label)+'<span class="cd">'+esc(c.detail)+'</span></span></div>';
+    });
+  }
+  h+='<div class="score-noot" style="margin-top:10px">'+esc(BANK.teksten.scoreNoot)+'</div></div>';
+  return h;
+}
+
+/* ===================== print ===================== */
+function printForm(vorm,modus){
+  const F=BANK.formulieren[vorm];
+  el('print-area').innerHTML=printHTML(F,modus);
+  document.body.classList.add('printing');
+  const klaar=()=>{document.body.classList.remove('printing');window.removeEventListener('afterprint',klaar);};
+  window.addEventListener('afterprint',klaar);
+  window.print();
+  setTimeout(klaar,1500);
+}
+function pLijn(waarde,minb){return '<span class="p-lijn" style="min-width:'+(minb||110)+'pt">'+(waarde?esc(waarde):'&nbsp;')+'</span>';}
+function printHTML(F,modus){
+  const ingevuld=(modus==='ingevuld');
+  const g=id=>ingevuld?(state.velden[id]||''):'';
+  const sLbl=BANK.schalen.symptoom.labels,pLbl=BANK.schalen.functioneren.labels,bLbl=BANK.schalen.bijwerking.labels;
+  let h='<div class="p-band">'+esc(F.titel)+'</div><div class="p-kop">';
+  F.velden.filter(v=>v.id!=='emailInvuller').forEach(v=>{
+    const w=v.type==='date'?fmtDatumNL(g(v.id)):g(v.id);
+    h+='<span class="p-veld">'+esc(v.label.replace(' (optioneel)','').replace(' (optioneel, voor eventuele vragen)',''))+': '+pLijn(w,v.id==='observatieduur'?60:110)+'</span>';
+  });
+  h+='</div><div class="p-instr"><b>Instructies:</b> '+esc(F.instructies)+'</div>';
+  h+='<div class="p-med">'+esc(BANK.medicatie.vraag)+' ';
+  BANK.medicatie.opties.forEach(o=>{
+    const aan=ingevuld&&state.medicatie===o.id;
+    h+='<span class="p-chk">'+(aan?'&#9746;':'&#9744;')+'</span> '+esc(o.label);
+  });
+  h+='</div>';
+
+  const rij=(nr,tekst,waarden,huidig,sectie)=>{
+    let r=sectie?'<tr><td class="p-sectie" colspan="'+(waarden.length+1)+'">'+esc(sectie)+'</td></tr>':'';
+    r+='<tr><td>'+nr+'.&nbsp; '+esc(tekst)+'</td>';
+    waarden.forEach(w=>{
+      const sel=ingevuld&&String(huidig)===String(w);
+      r+='<td class="p-c">'+(sel?'<span class="sel">'+(typeof w==='number'?w:'&#10003;')+'</span>':(typeof w==='number'?w:'&#9675;'))+'</td>';
+    });
+    return r+'</tr>';
+  };
+
+  h+='<table class="p-items"><thead><tr><th>Symptomen</th>'+sLbl.map(l=>'<th>'+esc(l)+'</th>').join('')+'</tr></thead><tbody>';
+  F.symptomen.forEach(it=>{h+=rij(it.nr,it.tekst,BANK.schalen.symptoom.scores,state.antwoorden[it.nr]);});
+  h+='</tbody></table>';
+
+  h+='<table class="p-items" style="margin-top:7pt"><thead><tr><th>Functioneren</th>'+pLbl.map(l=>'<th>'+esc(l)+'</th>').join('')+'</tr></thead><tbody>';
+  let ls=null;
+  F.functioneren.forEach(it=>{
+    const sec=(it.sectie&&it.sectie!==ls)?it.sectie:null;if(sec)ls=it.sectie;
+    h+=rij(it.nr,it.tekst,BANK.schalen.functioneren.scores,state.functioneren[it.nr],sec);
+  });
+  h+='</tbody></table>';
+
+  if(F.bijwerkingen){
+    const kop=F.rol==='ouder'?BANK.teksten.bijwerkingKopOuder:BANK.teksten.bijwerkingKopLeerkracht;
+    h+='<table class="p-items" style="margin-top:7pt"><thead><tr><th><b>Bijwerkingen:</b> '+esc(kop)+'<br><i>'+esc(BANK.teksten.bijwerkingKolom)+'</i></th>'
+      +bLbl.map(l=>'<th>'+esc(l)+'</th>').join('')+'</tr></thead><tbody>';
+    BANK.bijwerkingenLijst.forEach(b=>{
+      h+=rij(b.nr,b.tekst+(b.toelichten?' — licht toe hieronder':''),BANK.schalen.bijwerking.waarden,state.bijwerkingen[b.nr]);
+    });
+    h+='</tbody></table>';
+    h+='<div class="p-opm"><b>Toelichting / opmerkingen:</b>'
+      +(ingevuld&&state.toelichting?'<div>'+esc(state.toelichting)+'</div>':'<div class="p-schrijf"></div><div class="p-schrijf"></div>')+'</div>';
+  }
+  h+='<div class="p-opm"><b>Opmerkingen:</b>'
+    +(ingevuld&&state.opmerkingen?'<div>'+esc(state.opmerkingen)+'</div>':'<div class="p-schrijf"></div><div class="p-schrijf"></div>')+'</div>';
+
+  // Enkel voor de arts
+  h+='<div class="p-office"><h4>Enkel voor de arts (for office use only)</h4>';
+  if(ingevuld){
+    const r=vdbComputeScores(F,state.antwoorden,state.functioneren);
+    Object.values(r.subschalen).forEach(ss=>{h+='<div>'+esc(ss.label)+' — positieve items (2–3): <span class="p-l">'+ss.positief+' / '+ss.totaalItems+'</span></div>';});
+    h+='<div>Totale symptoomscore items 1–18: <span class="p-l">'+r.totaalSymptoom18+'</span></div>'
+      +'<div>Functioneringsitems met score 4 of 5: <span class="p-l">'+r.perf45+'</span></div>'
+      +'<div>Gemiddelde functioneringsscore: <span class="p-l">'+(r.perfGemiddelde===null?'—':r.perfGemiddelde.toFixed(2))+'</span></div>';
+    r.criteria.forEach(c=>{h+='<div>'+esc(c.label)+': <span class="p-l">'+(c.voldaan?'VOLDAAN':'niet voldaan')+'</span></div>';});
+    h+='<div>Medicatiestatus: <span class="p-l">'+esc(medLabel(state.medicatie))+'</span></div>';
+  }else{
+    (F.scoring.subschalen||[]).forEach(ss=>{h+='<div>'+esc(ss.label)+' — positieve items (2–3): <span class="p-l">&nbsp;</span></div>';});
+    h+='<div>Totale symptoomscore items 1–18: <span class="p-l">&nbsp;</span></div>'
+      +'<div>Functioneringsitems met score 4 of 5: <span class="p-l">&nbsp;</span></div>'
+      +'<div>Gemiddelde functioneringsscore: <span class="p-l">&nbsp;</span></div>';
+  }
+  h+='</div>';
+  h+='<div class="p-voet">'+esc(BANK.teksten.disclaimer)+'<br>'+esc(BANK.teksten.bron)+'</div>';
+  return h;
+}
+
+/* ===================== arts-dashboard ===================== */
+function renderDashboard(){
+  let h='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
+    +'<span class="brand-sub">Vanderbilt ADHD-vragenlijsten &middot; praktijk Dr. Van Steenkiste</span></div>'
+    +'<div class="top-right"><a class="back-link" href="praktijk.html">&larr; Alle tools</a>'
+    +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
+    +'<button class="btn-logout" onclick="doLogout()">Uitloggen</button></div></div>';
+  h+='<div class="banner info">Kies een vragenlijst: <b>nu invullen</b> (score meteen zichtbaar), <b>afdrukken</b> als blanco papieren versie, of <b>een invullink kopiëren</b> om naar een ouder of leerkracht te sturen. Ingevulde online lijsten komen automatisch in je mailbox terecht, inclusief scoring. De invuller ziet zelf géén scores.</div>';
+
+  h+='<div class="linkbox"><h3>&#128279; Invullinks delen</h3>'
+    +'<p>Vul (optioneel) de naam van het kind in — die wordt dan al ingevuld in het formulier van de ouder of leerkracht. Kies daarna bij de vragenlijst “Link kopiëren” of “Mail de link”.</p>'
+    +'<input type="text" id="link-kind" placeholder="Naam van het kind (optioneel)" oninput="linknaamGewijzigd()">'
+    +'<div id="link-status" style="margin-top:8px;font-size:12px;color:#6b7280"></div></div>';
+
+  h+='<div class="cards">';
+  Object.entries(BANK.formulieren).forEach(([code,F])=>{
+    const aant=F.symptomen.length+' symptoomitems + '+F.functioneren.length+' functioneringsitems'+(F.bijwerkingen?' + bijwerkingenlijst':'');
+    h+='<div class="card"><h3>'+F.icoon+' '+esc(F.kort)+'</h3><div class="card-sub">'+esc(F.titel)+'<br>'+aant+'</div>'
+      +'<div class="acts">'
+      +'<button class="btn btn-primary" onclick="openArtsForm(\''+code+'\')">Nu invullen</button>'
+      +'<button class="btn btn-ghost" onclick="printBlanco(\''+code+'\')">&#128424; Blanco afdruk</button>'
+      +'<button class="btn btn-ghost" onclick="kopieerLink(\''+code+'\')">&#128279; Link kopiëren</button>'
+      +'<button class="btn btn-ghost" onclick="mailLink(\''+code+'\')">&#9993; Mail de link</button>'
+      +'</div></div>';
+  });
+  h+='</div>';
+  h+='<div class="footer-teksten"><div class="klein">'+esc(BANK.teksten.bron)+'</div>'
+    +'<div class="klein">Beveiligd via Supabase &middot; inzendingen gaan rechtstreeks naar neurologie@drvansteenkiste.be &middot; er wordt niets op de server bewaard.</div></div>';
+  el('app').innerHTML=h;
+  el('app').style.display='block';
+  document.title='Vanderbilt-vragenlijsten';
+  window.scrollTo(0,0);
+}
+function openArtsForm(code){renderForm(code,true);}
+function printBlanco(code){
+  const F=BANK.formulieren[code];
+  const bewaar=state;state={vorm:code,velden:{},antwoorden:{},functioneren:{},bijwerkingen:{},medicatie:'',toelichting:'',opmerkingen:''};
+  el('print-area').innerHTML=printHTML(F,'blanco');
+  state=bewaar;
+  document.body.classList.add('printing');
+  const klaar=()=>{document.body.classList.remove('printing');window.removeEventListener('afterprint',klaar);};
+  window.addEventListener('afterprint',klaar);window.print();setTimeout(klaar,1500);
+}
+function bouwLink(code){
+  if(!artsLinkToken)return null;
+  const kind=(el('link-kind')&&el('link-kind').value.trim())||'';
+  const base=location.origin+location.pathname;
+  return base+'?vorm='+encodeURIComponent(code)+'&t='+encodeURIComponent(artsLinkToken)+(kind?'&kind='+encodeURIComponent(kind):'');
+}
+function linknaamGewijzigd(){el('link-status').textContent='';}
+async function kopieerLink(code){
+  const url=bouwLink(code);
+  if(!url){el('link-status').innerHTML='<span style="color:#b91c1c">Link-token kon niet worden opgehaald — herlaad de pagina of controleer de Edge Function.</span>';return;}
+  try{await navigator.clipboard.writeText(url);}catch(_){window.prompt('Kopieer deze link:',url);return;}
+  el('link-status').innerHTML='Link voor <b>'+esc(BANK.formulieren[code].kort)+'</b> gekopieerd &#10003; <code style="font-size:10.5px">'+esc(url)+'</code>';
+}
+function mailLink(code){
+  const url=bouwLink(code);
+  if(!url){el('link-status').innerHTML='<span style="color:#b91c1c">Link-token kon niet worden opgehaald — herlaad de pagina.</span>';return;}
+  const F=BANK.formulieren[code];
+  const kind=(el('link-kind')&&el('link-kind').value.trim())||'uw kind';
+  const isOuder=F.rol==='ouder';
+  const aanhef=isOuder?'Beste ouder':'Beste leerkracht';
+  const wie=isOuder?('uw kind'+(kind!=='uw kind'?' ('+kind+')':'')):kind;
+  const body=aanhef+',\n\nIn het kader van de begeleiding door de praktijk van Dr. Van Steenkiste willen wij u vragen een korte gedragsvragenlijst in te vullen over '+wie+'.\n\nDat kan online via deze beveiligde link (5 à 10 minuten):\n'+url+'\n\nUw antwoorden komen rechtstreeks en vertrouwelijk bij Dr. Van Steenkiste terecht; er wordt niets op de website bewaard.\n\nAlvast hartelijk bedankt!\n\nMet vriendelijke groeten,\nPraktijk Dr. F. Van Steenkiste — neurologie';
+  location.href='mailto:?subject='+encodeURIComponent('Vragenlijst voor de praktijk van Dr. Van Steenkiste')+'&body='+encodeURIComponent(body);
+}
+
+/* ===================== auth & init ===================== */
+async function doLogin(){
+  const email=el('auth-email').value.trim(),pw=el('auth-pw').value;
+  const btn=el('auth-btn'),msg=el('auth-msg');
+  if(!email||!pw){msg.innerHTML='<div class="msg err">Vul email en wachtwoord in</div>';return;}
+  btn.disabled=true;btn.textContent='Bezig…';
+  const {error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){msg.innerHTML='<div class="msg err">'+esc(error.message)+'</div>';return;}
+  msg.innerHTML='';onLoggedIn();
+}
+async function doLogout(){await sb.auth.signOut();currentUser=null;el('app').style.display='none';el('auth-overlay').style.display='flex';}
+async function haalToken(){
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session)return;
+    const res=await fetch(FN_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+session.access_token},body:JSON.stringify({action:'get_token'})});
+    const data=await res.json().catch(()=>({}));
+    if(res.ok&&data.token)artsLinkToken=data.token;
+  }catch(_){/* dashboard blijft bruikbaar zonder linkdelen */}
+}
+async function onLoggedIn(){
+  const {data:{user}}=await sb.auth.getUser();
+  currentUser=user;
+  el('auth-overlay').style.display='none';
+  await haalToken();
+  renderDashboard();
+}
+(function init(){
+  if(IS_PUBLIC){
+    renderForm(VORM,false);
+    return;
+  }
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  sb.auth.getSession().then(({data:{session}})=>{
+    if(session)onLoggedIn();
+    else el('auth-overlay').style.display='flex';
+  });
+})();
+</script>
+</body>
+</html>
