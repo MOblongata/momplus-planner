@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Vragenlijsten</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:light;--ind:#4f46e5;--ind-d:#4338ca;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f0f2f5;min-height:100vh;}
+button,input{font-family:inherit;}
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#0ea5e9,#06b6d4);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;}
+.auth-card .btn-auth{width:100%;background:#0ea5e9;color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.hub{max-width:1150px;margin:0 auto;padding:24px;}
+.hub-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+.brand{font-size:22px;font-weight:700;color:#1f2937;letter-spacing:-.5px;}
+.brand .accent{color:#0ea5e9;}
+.brand-sub{font-size:12px;color:#9ca3af;font-weight:500;display:block;margin-top:2px;}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.btn-back{background:#fff;border:1px solid #e5e7eb;color:#0ea5e9;padding:7px 14px;border-radius:8px;font-size:12.5px;text-decoration:none;}
+.user-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;background:#cffafe;color:#0e7490;border-radius:18px;font-size:13px;font-weight:600;}
+.user-pill .dot{width:8px;height:8px;border-radius:50%;background:#10b981;}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;position:sticky;top:0;background:#f0f2f5;padding:8px 0;z-index:5;}
+.chip{border:1.5px solid #e5e7eb;background:#fff;border-radius:20px;padding:7px 14px;font-size:13px;font-weight:600;color:#374151;cursor:pointer;}
+.chip.aan{background:#0ea5e9;border-color:#0ea5e9;color:#fff;}
+.chip.aanrader.aan{background:#f59e0b;border-color:#f59e0b;}
+.zoek{flex:1;min-width:180px;max-width:300px;border:1px solid #e5e7eb;border-radius:20px;padding:8px 14px;font-size:13px;}
+.intro{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:10px;padding:12px 15px;font-size:12.8px;line-height:1.55;margin-bottom:16px;}
+section{margin-bottom:28px;}
+section h2{font-size:18px;font-weight:800;color:#1f2937;margin-bottom:12px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;}
+.vl{background:#fff;border-radius:12px;padding:16px 18px;border:1px solid #eef0f4;box-shadow:0 1px 4px rgba(0,0,0,.05);display:flex;flex-direction:column;gap:8px;}
+.vl.online{border-color:#c7d2fe;}
+.vl h3{font-size:16px;font-weight:800;color:#1f2937;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.vl .vol{font-size:12.5px;color:#6b7280;margin-top:-4px;}
+.tags{display:flex;gap:5px;flex-wrap:wrap;}
+.tag{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:10px;background:#f3f4f6;color:#374151;text-transform:uppercase;letter-spacing:.03em;}
+.tag.volw{background:#e0f2fe;color:#075985;}.tag.jong{background:#ede9fe;color:#5b21b6;}.tag.kind{background:#dcfce7;color:#166534;}
+.tag.aanr{background:#fef3c7;color:#92400e;}
+.tag.st-online{background:#4f46e5;color:#fff;}.tag.st-papier{background:#e0e7ff;color:#3730a3;}.tag.st-comm{background:#fee2e2;color:#991b1b;}.tag.st-vrij{background:#dcfce7;color:#166534;}.tag.st-aanvraag{background:#fef3c7;color:#92400e;}
+.uitleg{font-size:12.8px;color:#374151;line-height:1.5;}
+.uitleg ul{margin:4px 0 0 18px;}
+.indic{font-size:12.5px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:7px 10px;color:#78350f;line-height:1.45;}
+.bron{font-size:11.5px;color:#6b7280;line-height:1.45;}
+.acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto;padding-top:4px;}
+.btn{padding:8px 12px;border:none;border-radius:8px;cursor:pointer;font-size:12.5px;font-weight:600;text-decoration:none;display:inline-block;}
+.btn-primary{background:var(--ind);color:#fff;}.btn-primary:hover{background:var(--ind-d);}
+.btn-ghost{background:#fff;border:1px solid #e5e7eb;color:#374151;}.btn-ghost:hover{background:#f9fafb;}
+.leeg{padding:20px;text-align:center;color:#6b7280;font-size:13px;}
+.footer{text-align:center;color:#9ca3af;font-size:11.5px;margin-top:30px;}
+</style>
+</head>
+<body>
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h1>📋 Vragenlijsten</h1>
+    <p class="sub">Log in om verder te gaan</p>
+    <div id="auth-msg"></div>
+    <label>Email</label><input type="email" id="auth-email" autocomplete="email">
+    <label>Wachtwoord</label><input type="password" id="auth-pw" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
+    <button class="btn-auth" id="auth-btn" onclick="doLogin()">Inloggen</button>
+  </div>
+</div>
+
+<div class="hub" id="hub" style="display:none">
+  <header class="hub-header">
+    <div><div class="brand">📋 <span class="accent">vragen</span>lijsten</div><span class="brand-sub">overzicht per domein · online invullen, officiële versies en uitgevers</span></div>
+    <div class="header-right"><a class="btn-back" href="praktijk.html">← Praktijk-toepassingen</a><span class="user-pill"><span class="dot"></span><span id="user-name">—</span></span></div>
+  </header>
+  <div class="intro">Paars gemarkeerde lijsten vul je <b>hier online</b> in (tijdens de consultatie of door de cliënt op jouw toestel). Het resultaat met scoring wordt automatisch gemaild naar <b>het e-mailadres waarmee je bent ingelogd</b>, en enkel naar jou. Bij de Vanderbilt-lijsten gaan ook de inzendingen via jouw invullinks naar jou. Voor de andere lijsten vind je de uitgever en de officiële link. <b>Aanrader</b> en de indicaties komen uit het interne overzicht van de praktijk.</div>
+  <div class="filters">
+    <button class="chip aan" data-dg="alle" onclick="zetDg('alle')">Alle</button>
+    <button class="chip" data-dg="volw" onclick="zetDg('volw')">Volwassene</button>
+    <button class="chip" data-dg="jong" onclick="zetDg('jong')">Jongere</button>
+    <button class="chip" data-dg="kind" onclick="zetDg('kind')">Kind</button>
+    <button class="chip aanrader" id="chip-aanr" onclick="toggleAanr()">★ Enkel aanraders</button>
+    <button class="chip" id="chip-online" onclick="toggleOnline()">Enkel online</button>
+    <input class="zoek" id="zoek" placeholder="Zoek (bv. AQ, sensorisch, PTSS)…" oninput="render()">
+  </div>
+  <div id="lijst"></div>
+  <div class="footer">Privé tools — <a href="praktijk.html" style="color:inherit">praktijk-toepassingen</a></div>
+</div>
+
+<script>
+"use strict";
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='vragenlijsten';
+const PRES='https://docs.google.com/presentation/d/1RQjdduhBiYblow0iDCNxvmMl9CbAXxEibD9wr-5RHv8/';
+
+/* Catalogus. Uitleg, subschalen, doelgroep, "aanrader" en indicaties = intern overzicht van de praktijk (sept. 2026).
+   Uitgever/licentie/links = opgezocht 21/09/2026 op de officiële sites (zie Notion-database "Vragenlijsten").
+   status: online | papier (officiële pdf gratis) | comm (commercieel, via uitgever) | vrij | aanvraag */
+const DOMEINEN=['ADHD','Autisme','Omgaan met problemen / coping','PTSS','Symptoominventarisatie'];
+const V=[
+ {d:'ADHD',naam:'Vanderbilt',vol:'NICHQ Vanderbilt Assessment Scales (NL)',dg:['kind','jong'],lt:'6-12 jaar (ouder & leerkracht)',status:'online',
+  uitleg:'Initiële beoordeling en follow-up, versie voor ouder en leerkracht. Scoring en screeningcriteria automatisch.',
+  acts:[{l:'Openen',u:'vanderbilt-vragenlijsten.html',p:1}],bron:'Bestaande tool van de praktijk; invullinks voor ouders en leerkrachten.'},
+ {d:'ADHD',naam:'DIVA-5',vol:'Diagnostisch interview voor ADHD bij volwassenen',dg:['volw'],status:'comm',
+  uitleg:'Diagnostisch interview (afgenomen door de clinicus).',
+  acts:[{l:'DIVA Foundation',u:'https://www.divacenter.eu/diva-5/what-is-diva-5/'}],bron:'DIVA Foundation. Clinici: eenmalig €10 per clinicus voor onbeperkte downloads (divacenter.eu, "commercial use").'},
+ {d:'ADHD',naam:'Young DIVA-5',vol:'Diagnostisch interview voor ADHD bij kinderen en jongeren',dg:['kind','jong'],lt:'5-17 jaar',status:'comm',
+  uitleg:'Diagnostisch interview.',acts:[{l:'DIVA Foundation',u:'https://www.divacenter.eu/diva-5/about-young-diva-5/'}],bron:'DIVA Foundation. Prijs Young DIVA-5 niet geverifieerd.'},
+ {d:'ADHD',naam:'ZVAH',vol:'Zelfrapportagevragenlijst voor aandachtsproblemen en hyperactiviteit',dg:['volw'],status:'vrij',
+  uitleg:'2 × 13 items.',acts:[{l:'PDF (Richtlijnendatabase)',u:'https://richtlijnendatabase.nl/gerelateerde_documenten/file/14629/1/110%20Zelf-rapportage%20vragenlijst%20ADHD.pdf'}],
+  bron:'Kooij & Buitelaar. PDF staat op de Richtlijnendatabase; formele gebruiksvoorwaarden niet vermeld. Kandidaat voor een online versie.'},
+ {d:'ADHD',naam:'BRIEF-A',vol:'Executieve functies — gedragsvragenlijst voor volwassenen',dg:['volw'],aanr:'AANRADER',status:'comm',
+  uitleg:'Ook informantenlijst.',sub:['inhibitie','flexibiliteit','emotieregulatie','zelfevaluatie','initiatief nemen','werkgeheugen','plannen en organiseren','taakevaluatie','ordelijkheid'],
+  acts:[{l:'Hogrefe',u:'https://www.hogrefe.com/nl/shop/brief-a-executieve-functies-gedragsvragenlijst-voor-volwassenen.html'},{l:'Voorbeeldrapport (BRIEF leerkracht)',u:'https://www.hogrefe.com/nl/shop/media/downloads/sample-reports/5701201_BRIEFleerkrachtversiebasisrapport_mr.pdf'}],
+  bron:'Hogrefe; digitaal via Hogrefe Testsystem. Startpakket €376, digitaal startpakket (10 afnames) €163.'},
+ {d:'ADHD',naam:'SEV',vol:'Sociaal-emotionele vragenlijst',dg:['kind','jong'],lt:'4-18 jaar',aanr:'AANRADER',status:'comm',
+  sub:['ADHD-gedrag','autisme','oppositioneel','agressie','antisociaal','angst','depressie','sociale angst'],
+  acts:[{l:'BSL Testweb',u:'https://testweb.bsl.nl/psychologie/sociaal-emotionele-vragenlijst-sev/'}],bron:'Bohn Stafleu van Loghum (Scholte & van der Ploeg); online via BSL Testweb. Prijs niet geverifieerd.'},
+ {d:'ADHD',naam:'VPV-Z / VPV-I',vol:'Vragenlijst psychosociale vaardigheden',dg:['kind','jong'],lt:'9-18 jaar',status:'comm',
+  uitleg:'Zelfrapportagelijst én informantenlijst.',sub:['interpersoonlijke vaardigheden','intrapersoonlijke vaardigheden','relationele vaardigheden','affectieve vaardigheden','zelfsturing','zelfbewustzijn'],
+  acts:[{l:'BSL Testweb',u:'https://testweb.bsl.nl/testweb-psychologie/'}],bron:'Bohn Stafleu van Loghum (Scholte & van der Ploeg). Ook via Embloom (€4,39 per afname).'},
+
+ {d:'Autisme',naam:'EQ',vol:'Empathiequotiënt',dg:['volw'],aanr:'x',status:'aanvraag',
+  uitleg:'Best af te nemen samen met SQ en AQ.',indic:'Indicatie ASS: 30 of lager (intern overzicht).',
+  acts:[{l:'Extra uitleg (presentatie)',u:PRES},{l:'Groen et al. 2015 (open access)',u:'https://link.springer.com/article/10.1007/s10803-015-2448-z'}],
+  bron:'De Nederlandse EQ (Groen et al., 2015) staat niet op de ARC-site; vragenlijst, scoringssleutel en normtabel zijn op aanvraag bij de auteurs (y.groen@rug.nl). Online versie volgt zodra we die versie hebben.'},
+ {d:'Autisme',naam:'AQ',vol:'Autismespectrumquotiënt (AQ-50)',dg:['volw'],aanr:'x',status:'online',
+  uitleg:'Best af te nemen samen met SQ en EQ.',indic:'32 of hoger / Nederlandse methode 110 of hoger (intern overzicht). Geverifieerd: 32 (Baron-Cohen 2001), 26 in een klinische verwijspopulatie (Woodbury-Smith 2005); de grens 110 is niet teruggevonden in Hoekstra 2008.',
+  acts:[{l:'Online invullen',u:'vragenlijst.html?lijst=aq50',p:1},{l:'Officiële NL-versie (ARC)',u:'https://docs.autismresearchcentre.com/tests/AQ_Nederlands.doc'},{l:'Extra uitleg (presentatie)',u:PRES}],
+  bron:'Autism Research Centre, Cambridge (vertaling R. Hoekstra). Vrij voor onderzoek, niet-commercieel, met bronvermelding.'},
+ {d:'Autisme',naam:'SRS-A',vol:'Social Responsiveness Scale — volwassenen',dg:['volw'],aanr:'x',status:'comm',
+  uitleg:'Informantenlijst beschikbaar!',sub:['sociale communicatie en interactie','stereotiepe gedragingen en interesses','sociaal bewustzijn','sociale motivatie','rigiditeit en repetitiviteit'],
+  acts:[{l:'Hogrefe',u:'https://www.hogrefe.com/nl/shop/srs-a-screeningslijst-voor-autismespectrum-stoornissen-bij-volwassenen.html'}],bron:'Hogrefe; digitaal via Hogrefe Testsystem. 18-65 jaar, 64 items. Startpakket €290.'},
+ {d:'Autisme',naam:'IOA',vol:'Inventarisatielijst omgaan met anderen',dg:['volw'],aanr:'x x',status:'comm',
+  acts:[{l:'Pearson',u:'https://www.pearsonclinical.nl/nl-nl/Aanbod/Tests/Gedrag/Inventarisatielijst-Omgaan-met-Anderen/p/P100100061'},{l:'Extra uitleg (presentatie)',u:PRES}],
+  bron:'Pearson (Van Dam-Baggen & Kraaimaat); vanaf 16 jaar, 35 items; papier. 50 lijsten €121,50.'},
+ {d:'Autisme',naam:'AGS-30',vol:'Autonomie-gehechtheidsschaal',dg:['volw'],status:'comm',
+  uitleg:'30 vragen.',sub:['gevoeligheid voor anderen','zelfbewustzijn','omgaan met nieuwe situaties'],
+  acts:[{l:'COTAN-beoordeling',u:'https://www.cotandocumentatie.nl/beoordelingen/b/15138/autonomie-gehechtheidsschaal/'}],bron:'Bohn Stafleu van Loghum (M. Bekker, 2015). Prijs niet geverifieerd.'},
+ {d:'Autisme',naam:'BRIEF-A',vol:'Executieve functies — gedragsvragenlijst voor volwassenen',dg:['volw'],aanr:'xx',status:'comm',
+  uitleg:'Ook informantenlijst.',sub:['inhibitie','flexibiliteit','emotieregulatie','zelfevaluatie','initiatief nemen','werkgeheugen','plannen en organiseren','taakevaluatie','ordelijkheid'],
+  acts:[{l:'Hogrefe',u:'https://www.hogrefe.com/nl/shop/brief-a-executieve-functies-gedragsvragenlijst-voor-volwassenen.html'}],bron:'Hogrefe; zie ook bij ADHD.'},
+ {d:'Autisme',naam:'ASV-Z / ASV-I',vol:'Autismespectrumvragenlijst',dg:['kind','jong'],lt:'4-18 jaar',status:'comm',
+  uitleg:'Zelfrapportagelijst en informantenvragenlijst.',sub:['interactieve en communicatieve vaardigheden','vreemde, afwijkende gedragingen','totaal gedragskenmerken autisme'],
+  acts:[{l:'BSL Testweb',u:'https://testweb.bsl.nl/testweb-psychologie/'}],bron:'Bohn Stafleu van Loghum (Scholte & van der Ploeg, 2014). Ook via Embloom (€4,39 per afname).'},
+ {d:'Autisme',naam:'SQ',vol:'Systematiseringsquotiënt (SQ-R-NL, 75 items)',dg:['volw'],aanr:'x',status:'online',
+  uitleg:'Meet de neiging tot systematiseren, analyseren van details. Best af te nemen samen met AQ en EQ.',indic:'Intern overzicht: vanaf 40. Voor de SQ-R (0-150) is geen afkapwaarde gepubliceerd; gemiddelden: ASS 77,2, typische mannen 61,2, vrouwen 51,7 (Wheelwright 2006).',
+  acts:[{l:'Online invullen',u:'vragenlijst.html?lijst=sqr',p:1},{l:'Officiële NL-versie (ARC)',u:'https://docs.autismresearchcentre.com/tests/SQ_Dutch.pdf'}],
+  bron:'SQ-R-NL (Groen et al., 2015), Autism Research Centre. Vrij voor onderzoek, niet-commercieel, met bronvermelding.'},
+ {d:'Autisme',naam:'SEV',vol:'Sociaal-emotionele vragenlijst',dg:['kind','jong'],lt:'4-18 jaar',aanr:'x',status:'comm',
+  uitleg:'In te vullen door een beoordelaar.',sub:['ADHD-gedrag','autisme','oppositioneel','agressie','antisociaal','angst','depressie','sociale angst'],
+  acts:[{l:'BSL Testweb',u:'https://testweb.bsl.nl/psychologie/sociaal-emotionele-vragenlijst-sev/'}],bron:'Bohn Stafleu van Loghum.'},
+ {d:'Autisme',naam:'SP-NL (nu SP-2-NL)',vol:'Sensory Profile — oudervragenlijst sensorische informatieverwerking',dg:['kind'],lt:'4-12 jaar',aanr:'x',status:'comm',
+  sub:['sensorische prikkelverwerking','modulatie','sociaal/emotionele responsen'],
+  acts:[{l:'Pearson',u:'https://www.pearsonclinical.nl/sensory-profile-2'}],bron:'Pearson; het SP-NL is vervangen door het SP-2-NL (scoren via Q-global). Complete set €436,40.'},
+ {d:'Autisme',naam:'AASP-NL',vol:'Adolescent/Adult Sensory Profile',dg:['jong','volw'],aanr:'x',status:'comm',
+  uitleg:'Meet het effect van de sensorische prikkelverwerking op het dagelijks functioneren.',sub:['gebrekkige registratie','prikkels zoekend','sensorische gevoeligheid','prikkels vermijdend'],
+  acts:[{l:'Pearson',u:'https://www.pearsonclinical.nl/nl-nl/Aanbod/Tests/Gedrag/Adolescent-Adult-Sensory-Profile---Nederlandse-vertaling/p/P100100068'}],bron:'Pearson; vanaf 11 jaar. Complete set €273,25.'},
+ {d:'Autisme',naam:'SRS-2',vol:'Sociale responsiviteitsschaal',dg:['kind','jong'],lt:'4-18 jaar',aanr:'x',status:'comm',
+  acts:[{l:'Hogrefe',u:'https://www.hogrefe.com/nl/shop/srs-2-screeningslijst-voor-autismespectrumstoornissen.html'}],bron:'Hogrefe; Vlaamse normen 4-18 jaar; digitaal via Hogrefe Testsystem. Startpakket €290.'},
+
+ {d:'Omgaan met problemen / coping',naam:'UCL-R',vol:'Utrechtse copinglijst, herziene editie',dg:['volw'],aanr:'X',status:'comm',
+  sub:['actief aanpakken','palliatieve reactie','vermijden','sociale steun zoeken','expressie van negatieve emoties','optimisme'],
+  acts:[{l:'Pearson',u:'https://www.pearsonclinical.nl/nl-nl/Aanbod/Tests/Gedrag/Sociaal-emotioneel/UCL-R---Utrechtse-Coping-Lijst---Herziene-Editie/p/P100100026'}],bron:'Pearson (Schreurs & van de Willige, 2023); 14-67 jaar.'},
+ {d:'Omgaan met problemen / coping',naam:'RS-nl',vol:'Resilience Scale — mentale veerkracht',dg:['jong','volw'],lt:'vanaf 16 jaar',aanr:'x',status:'comm',
+  sub:['zelfvertrouwen','onafhankelijkheid','doorzettingsvermogen','aanpassingsvermogen','flexibiliteit','gebalanceerde kijk op het leven'],
+  acts:[{l:'COTAN-beoordeling',u:'https://www.cotandocumentatie.nl/beoordelingen/b/14484/resilience-scale--e2-80-93-nederlandse-versie/'}],bron:'Pearson (Portzky); officiële productpagina niet gevonden. Via Embloom €6,00 per afname.'},
+ {d:'Omgaan met problemen / coping',naam:'WAV',vol:'Werkalliantievragenlijst',dg:['volw'],aanr:'x',status:'vrij',
+  uitleg:'36 stellingen.',sub:['overeenstemming therapietaken (12-60)','therapeutische band (12-60)','overeenstemming therapiedoelstellingen (12-60)'],
+  acts:[{l:'WAI-downloads (NL)',u:'https://wai.profhorvath.com/downloads'}],bron:'Nederlandse WAI (Vertommen & Vervaeke); copyright bij de Society for Psychotherapy Research. Vrij te gebruiken. Kandidaat voor een online versie.'},
+ {d:'Omgaan met problemen / coping',naam:'STV',vol:'Sessietevredenheidslijst',dg:['volw'],aanr:'x',status:'comm',
+  uitleg:'6 vragen.',sub:['zich ernstig en begrepen voelen','veiligheid','voldoende tijd','gewenste doelen/onderwerpen','gepaste werkwijze/aanpak'],
+  acts:[{l:'Embloom',u:'https://www.embloom.nl/content/stv/'}],bron:'Embloom (© 2019), gebaseerd op de Session Rating Scale; €1,00 per cliënt; volgens de handleiding niet wetenschappelijk onderzocht.'},
+ {d:'Omgaan met problemen / coping',naam:'OQ-45',vol:'Symptoominventarisatie',dg:['volw'],aanr:'x',status:'comm',
+  uitleg:'45 vragen: symptomen, interpersoonlijke relaties, functioneren op werk, vrije tijd.',
+  acts:[{l:'Embloom',u:'https://www.embloom.nl/content/oq-45/'}],bron:'OQ Measures LLC (Lambert & Burlingame); reproductie zonder toestemming verboden. Via Embloom €0,65 per cliënt.'},
+ {d:'Omgaan met problemen / coping',naam:'SDQ',vol:'Strengths and Difficulties Questionnaire',dg:['kind','jong'],lt:'4-17 jaar',aanr:'x',status:'online',
+  uitleg:'ADHD-symptomen, emotionele problemen, problemen met leeftijdsgenoten, gedragsproblemen, prosociaal gedrag. Versies voor ouder, leerkracht en kind.',
+  indic:'Automatische scoring met de officiële grenswaarden (4- en 3-bandenindeling, sdqinfo.org) en impactscore.',
+  acts:[{l:'Online: ouder',u:'vragenlijst.html?lijst=sdq-ouder',p:1},{l:'Online: leerkracht',u:'vragenlijst.html?lijst=sdq-leerkracht',p:1},{l:'Online: jongere 11-17',u:'vragenlijst.html?lijst=sdq-jongere',p:1},{l:'Officiële PDF\'s (sdqinfo)',u:'https://www.sdqinfo.org/py/sdqinfo/b3.py?language=Dutch'},{l:'Extra uitleg (presentatie)',u:PRES+'edit'}],
+  bron:'© Robert Goodman (SDQ-Dut). Papieren versie gratis voor eigen niet-commercieel gebruik. Online versie enkel voor eigen gebruik in de praktijk, niet delen (beslissing Frank, 21/09/2026).'},
+ {d:'Omgaan met problemen / coping',naam:'PQ-16',vol:'Prodromal Questionnaire 16 (Ervaringenlijst)',dg:['volw'],aanr:'x',status:'vrij',
+  uitleg:'Screening van subklinische symptomen, indicatief voor verhoogd risico op psychose. Bruikbaar bij vroeginterventie.',
+  indic:'Ising et al. (2012): "a cutoff score of 6 or more positively answered items" (sensitiviteit en specificiteit elk 87%).',
+  acts:[{l:'NL-versie (Kenniscentrum KJP)',u:'https://kenniscentrum-kjp.nl/professionals/instrumenten-a-z/psychotische-stoornissen-ervaringenlijst/'}],bron:'Ising et al., 2012 (Nederlandse "Ervaringenlijst"). Vrij beschikbaar. Kandidaat voor een online versie.'},
+
+ {d:'PTSS',naam:'SVL',vol:'Schokverwerkingslijst',dg:['volw'],aanr:'X',status:'vrij',
+  uitleg:'Herbeleving en vermijding.',acts:[{l:'COTAN-beoordeling',u:'https://www.cotandocumentatie.nl/beoordelingen/b/14082/schokverwerkingslijst/'}],
+  bron:'Nederlandse Impact of Event Scale (Brom & Kleber, 1985); 15 items. Officiële bron van de pdf niet geverifieerd. Via Embloom gratis.'},
+ {d:'PTSS',naam:'ZIL',vol:'Zelfinventarisatielijst',dg:['volw'],aanr:'x',status:'comm',
+  uitleg:'22 items.',sub:['herbeleving','vermijding','hyperarousal'],indic:'Afkappunt = 51 (intern overzicht). Bronnen spreken elkaar tegen (51 of >52); nog te controleren in de handleiding.',
+  acts:[{l:'Pearson',u:'https://www.pearsonclinical.nl/zil-zelfinventarisatielijst-posttraumatische-stressstoornis'}],bron:'Pearson (Hovens, Bramsen & van der Ploeg); 18+. Complete set €229,65.'},
+
+ {d:'Symptoominventarisatie',naam:'CBCL',vol:'Child Behavior Checklist',dg:['kind','jong'],aanr:'X',status:'comm',
+  uitleg:'Ouderversie, zelfrapportage en docentenversie. Behoort tot het ASEBA-assessment, samen met C-TRF en YSR.',sub:['sociaal','school','stress','affectief','angst','lichamelijke problemen','aandacht','gedragsproblemen'],
+  acts:[{l:'ASEBA Europe',u:'https://aseba-europe.org/be-nl/home'},{l:'Extra uitleg (presentatie)',u:PRES+'edit#slide=id.p2'}],bron:'ASEBA (Achenbach); in België via ASEBA Europe, online via ASEBA-Web (jaarabonnement €190).'},
+ {d:'Symptoominventarisatie',naam:'SEV',vol:'Sociaal-emotionele vragenlijst',dg:['kind','jong'],lt:'4-18 jaar',aanr:'x',status:'comm',
+  uitleg:'Versie voor ouders en voor leerkrachten.',sub:['ADHD-gedrag','autisme','oppositioneel','agressie','antisociaal','angst','depressie','sociale angst'],
+  acts:[{l:'BSL Testweb',u:'https://testweb.bsl.nl/psychologie/sociaal-emotionele-vragenlijst-sev/'}],bron:'Bohn Stafleu van Loghum.'}
+];
+const ST={online:['st-online','Online invullen'],papier:['st-papier','Officiële pdf'],comm:['st-comm','Commercieel — via uitgever'],vrij:['st-vrij','Vrij beschikbaar'],aanvraag:['st-aanvraag','Op aanvraag bij auteurs']};
+const DG={volw:'Volwassene',jong:'Jongere',kind:'Kind'};
+let filt={dg:'alle',aanr:false,online:false};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function zetDg(d){filt.dg=d;document.querySelectorAll('.chip[data-dg]').forEach(c=>c.classList.toggle('aan',c.dataset.dg===d));render();}
+function toggleAanr(){filt.aanr=!filt.aanr;document.getElementById('chip-aanr').classList.toggle('aan',filt.aanr);render();}
+function toggleOnline(){filt.online=!filt.online;document.getElementById('chip-online').classList.toggle('aan',filt.online);render();}
+function kaart(x){
+  const st=ST[x.status];
+  let h='<div class="vl'+(x.status==='online'?' online':'')+'"><h3>'+esc(x.naam)+(x.aanr?' <span class="tag aanr">★ Aanrader'+(x.aanr!=='AANRADER'&&x.aanr!=='x'&&x.aanr!=='X'?' ('+esc(x.aanr)+')':'')+'</span>':'')+'</h3>';
+  h+='<div class="vol">'+esc(x.vol)+(x.lt?' · '+esc(x.lt):'')+'</div>';
+  h+='<div class="tags">'+x.dg.map(d=>'<span class="tag '+d+'">'+DG[d]+'</span>').join('')+'<span class="tag '+st[0]+'">'+st[1]+'</span></div>';
+  if(x.uitleg||x.sub){h+='<div class="uitleg">'+(x.uitleg?esc(x.uitleg):'')+(x.sub?'<ul>'+x.sub.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul>':'')+'</div>';}
+  if(x.indic)h+='<div class="indic"><b>Indicatie:</b> '+esc(x.indic)+'</div>';
+  if(x.bron)h+='<div class="bron">'+esc(x.bron)+'</div>';
+  h+='<div class="acts">'+x.acts.map(a=>'<a class="btn '+(a.p?'btn-primary':'btn-ghost')+'" href="'+esc(a.u)+'"'+(a.p?'':' target="_blank" rel="noopener"')+'>'+esc(a.l)+'</a>').join('')+'</div></div>';
+  return h;
+}
+function render(){
+  const q=(document.getElementById('zoek').value||'').toLowerCase().trim();
+  let h='';let n=0;
+  DOMEINEN.forEach(d=>{
+    const rows=V.filter(x=>x.d===d&&(filt.dg==='alle'||x.dg.includes(filt.dg))&&(!filt.aanr||x.aanr)&&(!filt.online||x.status==='online')
+      &&(!q||JSON.stringify([x.naam,x.vol,x.uitleg,x.sub,x.indic]).toLowerCase().includes(q)));
+    if(!rows.length)return;n+=rows.length;
+    h+='<section><h2>Vragenlijsten '+esc(d)+'</h2><div class="grid">'+rows.map(kaart).join('')+'</div></section>';
+  });
+  document.getElementById('lijst').innerHTML=h||'<div class="leeg">Geen vragenlijsten voor deze selectie.</div>';
+}
+
+let sb=null;
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim(),pw=document.getElementById('auth-pw').value;
+  if(!email||!pw){document.getElementById('auth-msg').innerHTML='<div class="msg">Vul email en wachtwoord in.</div>';return;}
+  const {data,error}=await sb.auth.signInWithPassword({email,password:pw});
+  if(error){document.getElementById('auth-msg').innerHTML='<div class="msg">'+esc(error.message)+'</div>';return;}
+  afterLogin(data.session);
+}
+async function afterLogin(session){
+  const user=session.user;
+  const {data}=await sb.from('user_tool_access').select('tool_id').eq('user_id',user.id).eq('tool_id',TOOL_ID).maybeSingle();
+  document.getElementById('auth-overlay').style.display='none';
+  document.getElementById('hub').style.display='';
+  document.getElementById('user-name').textContent=user.email;
+  if(!data){document.getElementById('lijst').innerHTML='<div class="leeg">Je hebt (nog) geen toegang tot de vragenlijsten. Vraag een beheerder om toegang.</div>';document.querySelector('.filters').style.display='none';return;}
+  render();
+}
+(async function(){
+  try{sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});}
+  catch(e){document.getElementById('auth-overlay').style.display='flex';return;}
+  const {data:{session}}=await sb.auth.getSession();
+  if(session)afterLogin(session);else document.getElementById('auth-overlay').style.display='flex';
+})();
+</script>
+</body>
+</html>

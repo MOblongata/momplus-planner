@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Vragenlijst invullen</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:light;--ind:#4f46e5;--ind-d:#4338ca;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f0f2f5;min-height:100vh;}
+button,select,input,textarea{font-family:inherit;}
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:21px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;}
+.auth-card .btn-auth{width:100%;background:var(--ind);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+.wrap{max-width:920px;margin:0 auto;padding:22px;}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.brand{font-size:20px;font-weight:700;color:#1f2937;letter-spacing:-.4px;}
+.brand .accent{color:var(--ind);}
+.brand-sub{display:block;font-size:11.5px;color:#9ca3af;font-weight:500;margin-top:2px;}
+.top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.back-link{font-size:12.5px;color:#6b7280;text-decoration:none;padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;}
+.back-link:hover{color:var(--ind);border-color:#c7d2fe;}
+.user-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;background:#ede9fe;color:#6d28d9;border-radius:18px;font-size:12.5px;font-weight:600;}
+.user-pill .dot{width:8px;height:8px;border-radius:50%;background:#10b981;}
+.btn{padding:9px 15px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+.btn-primary{background:var(--ind);color:#fff;}.btn-primary:hover{background:var(--ind-d);}
+.btn-ghost{background:#fff;border:1px solid #e5e7eb;color:#374151;}.btn-ghost:hover{background:#f9fafb;}
+.btn:disabled{opacity:.55;cursor:wait;}
+.banner{border-radius:9px;padding:11px 14px;font-size:12.5px;line-height:1.55;margin-bottom:14px;}
+.banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
+.banner.warn{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;}
+.banner.err{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+.banner.ok{background:#dcfce7;border:1px solid #86efac;color:#166534;}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+.card{background:#fff;border-radius:13px;padding:18px;border:1px solid #e0e7ff;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.card h3{font-size:15px;font-weight:700;color:#1f2937;margin-bottom:4px;}
+.card .card-sub{font-size:12px;color:#6b7280;margin-bottom:13px;line-height:1.45;}
+.card .acts{display:flex;gap:8px;flex-wrap:wrap;}
+.card .acts .btn{font-size:12.5px;padding:8px 12px;}
+.fcard{background:#fff;border-radius:13px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.05);padding:20px;margin-bottom:16px;}
+.f-title{font-size:19px;font-weight:800;color:#1f2937;margin-bottom:2px;}
+.f-sub{font-size:12.5px;color:#6b7280;margin-bottom:16px;}
+.kop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.veld label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;}
+.veld label .req{color:#dc2626;}
+.veld input,.veld select{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;font-size:14px;background:#fafafa;}
+.veld.missend input,.veld.missend select{border-color:#f87171;background:#fef2f2;}
+.instructies{background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:13px 15px;font-size:13px;line-height:1.6;color:#3730a3;margin:16px 0;}
+.kolomkop{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--ncols,4),78px);gap:6px;padding:6px 10px 4px;font-size:10.5px;font-weight:700;color:#6b7280;position:sticky;top:0;background:#f0f2f5;z-index:2;}
+.kolomkop span{text-align:center;line-height:1.25;}
+.item{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--ncols,4),78px);gap:6px;align-items:center;background:#fff;border:1px solid #eef0f4;border-radius:10px;padding:9px 10px;margin-bottom:6px;}
+.item.beantwoord{border-color:#bbf7d0;background:#fbfefc;}
+.item.missend{border-color:#f87171;background:#fef2f2;}
+.item .itxt{font-size:13.2px;line-height:1.45;color:#1f2937;}
+.item .itxt .inr{font-weight:700;color:#6b7280;margin-right:5px;}
+.opt{display:flex;flex-direction:column;align-items:center;gap:3px;border:1.5px solid #e5e7eb;border-radius:8px;padding:6px 2px 5px;cursor:pointer;user-select:none;background:#fafafa;min-height:44px;justify-content:center;}
+.opt input{accent-color:var(--ind);margin:0;}
+.opt .olbl{font-size:9.5px;color:#6b7280;line-height:1.1;text-align:center;display:none;}
+.opt:has(input:checked){border-color:var(--ind);background:#eef2ff;}
+.sectie-kop{font-size:15px;font-weight:800;color:#1f2937;margin:22px 0 8px;}
+.impact{background:#fff;border:1px solid #eef0f4;border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+.impact .iq{font-size:13.2px;font-weight:600;color:#1f2937;margin-bottom:8px;}
+.impact .iopts{display:flex;gap:7px;flex-wrap:wrap;}
+.impact label{display:inline-flex;align-items:center;gap:6px;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 11px;font-size:12.8px;cursor:pointer;background:#fafafa;}
+.impact label:has(input:checked){border-color:var(--ind);background:#eef2ff;color:#3730a3;font-weight:600;}
+.impact input{accent-color:var(--ind);}
+.impact .sub-rij{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;margin:6px 0;}
+textarea{width:100%;border:1px solid #e5e7eb;border-radius:9px;padding:10px 12px;font-size:13.5px;background:#fafafa;resize:vertical;min-height:80px;}
+.acties{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+.toggle{display:inline-flex;gap:8px;align-items:center;font-size:12.5px;color:#374151;background:#fff;border:1px solid #e5e7eb;border-radius:9px;padding:8px 12px;cursor:pointer;}
+.scoreblok{background:#fff;border:2px solid var(--ind);border-radius:13px;padding:18px 20px;margin:18px 0;}
+.scoreblok h2{font-size:15px;font-weight:800;color:#312e81;margin-bottom:10px;}
+.rap table{border-collapse:collapse;width:100%;font-size:12.8px;margin-bottom:12px;}
+.rap td,.rap th{padding:5px 8px;border-bottom:1px solid #eef0f4;text-align:left;vertical-align:top;}
+.rap th{color:#4f46e5;border-bottom:2px solid #4f46e5;font-size:12px;}
+.klein{font-size:11px;color:#6b7280;line-height:1.5;margin-top:8px;}
+.bedankt{background:#fff;border-radius:14px;padding:40px 24px;text-align:center;border:1px solid #e5e7eb;}
+.bedankt h2{font-size:22px;color:#166534;margin-bottom:10px;}
+#print-area{display:none;}
+@media (max-width:640px){
+  .kop-grid{grid-template-columns:1fr;}
+  .kolomkop{display:none;}
+  .item{grid-template-columns:repeat(var(--ncols,4),1fr);}
+  .item .itxt{grid-column:1/-1;}
+  .opt .olbl{display:block;}
+}
+@media print{
+  @page{size:A4;margin:14mm 13mm;}
+  body{background:#fff;}
+  body.printing #app,body.printing .auth-overlay{display:none!important;}
+  body.printing #print-area{display:block!important;font-size:10.5pt;color:#000;}
+  #print-area h1{font-size:14pt;margin-bottom:4pt;}
+  #print-area .pmeta{margin:6pt 0 8pt;font-size:10pt;line-height:1.9;}
+  #print-area table{width:100%;border-collapse:collapse;font-size:9.6pt;}
+  #print-area td,#print-area th{border-bottom:.5pt solid #999;padding:3pt 4pt;vertical-align:top;}
+  #print-area th{font-size:8.6pt;text-align:center;}
+  #print-area td.c{text-align:center;width:13mm;font-size:12pt;}
+  #print-area tr{break-inside:avoid;}
+  #print-area .pinstr{border:.6pt solid #666;padding:5pt 7pt;margin:6pt 0;font-size:9.6pt;}
+  #print-area .pvoet{margin-top:8pt;font-size:8pt;color:#333;}
+  #print-area .rap table{font-size:9.4pt;}
+}
+</style>
+</head>
+<body>
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h1>📋 Vragenlijsten</h1>
+    <p class="sub">Enkel voor behandelaars van de praktijk.<br>Log in met je gewone account.</p>
+    <div id="auth-msg"></div>
+    <label>Email</label>
+    <input type="email" id="auth-email" autocomplete="email" placeholder="naam@praktijk.be">
+    <label>Wachtwoord</label>
+    <input type="password" id="auth-pw" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
+    <button class="btn-auth" id="auth-btn" onclick="doLogin()">Inloggen</button>
+  </div>
+</div>
+<div class="wrap" id="app" style="display:none"></div>
+<div id="print-area" aria-hidden="true"></div>
+
+<script>
+"use strict";
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='vragenlijsten';
+const FN_URL=SUPABASE_URL+'/functions/v1/vragenlijst-mail';
+
+/* ============ ITEMBANK (gegenereerd uit geverifieerde bronbestanden — niet met de hand aanpassen) ============ */
+const AQ_ITEMS=[{"nr":1,"tekst":"Ik doe dingen liever met anderen dan alleen."},{"nr":2,"tekst":"Ik doe dingen het liefst steeds weer op dezelfde manier."},{"nr":3,"tekst":"Als ik me iets probeer voor te stellen, kan ik me makkelijk een beeld voor de geest halen."},{"nr":4,"tekst":"Ik word vaak zo door iets in beslag genomen, dat ik andere zaken uit het oog verlies."},{"nr":5,"tekst":"Ik merk vaak geluidjes op die anderen niet opvallen."},{"nr":6,"tekst":"Mijn aandacht wordt vaak getrokken door nummerplaten van auto’s, of soortgelijke rijtjes."},{"nr":7,"tekst":"Andere mensen zeggen me vaak dat het onbeleefd is wat ik heb gezegd, terwijl ik zelf denk beleefd te zijn."},{"nr":8,"tekst":"Als ik een verhaal lees, kan ik me gemakkelijk voorstellen hoe de personages eruit zouden kunnen zien."},{"nr":9,"tekst":"Ik word gefascineerd door jaartallen en data."},{"nr":10,"tekst":"In een groep mensen kan ik gemakkelijk verschillende gesprekken tegelijk volgen."},{"nr":11,"tekst":"Ik vind sociale situaties gemakkelijk."},{"nr":12,"tekst":"Mij vallen vaak details op die anderen niet zien."},{"nr":13,"tekst":"Ik zou liever naar een bibliotheek gaan dan naar een feest."},{"nr":14,"tekst":"Ik vind het gemakkelijk om verhalen te verzinnen."},{"nr":15,"tekst":"Ik voel me meer aangetrokken tot mensen dan tot dingen."},{"nr":16,"tekst":"Ik neig ernaar zeer sterke interesses te hebben, en ik raak van streek als ik die niet kan naleven."},{"nr":17,"tekst":"Ik geniet van praten over koetjes en kalfjes."},{"nr":18,"tekst":"Als ik praat, is het voor anderen niet altijd gemakkelijk om er een woord tussen te krijgen."},{"nr":19,"tekst":"Ik word gefascineerd door getallen."},{"nr":20,"tekst":"Als ik een verhaal lees, vind ik het moeilijk om achter de bedoelingen van de personages te komen."},{"nr":21,"tekst":"Ik ben niet echt een liefhebber van het lezen van romans."},{"nr":22,"tekst":"Ik vind het moeilijk om nieuwe vrienden te maken."},{"nr":23,"tekst":"Ik merk steeds patronen op in dingen die ik zie."},{"nr":24,"tekst":"Ik zou liever naar het theater gaan dan naar een museum."},{"nr":25,"tekst":"Ik raak niet van streek als mijn dagelijkse routine wordt verstoord."},{"nr":26,"tekst":"Ik merk vaak dat ik niet weet hoe ik een conversatie gaande moet houden."},{"nr":27,"tekst":"Ik vind het gemakkelijk om ‘tussen de regels door te luisteren’ als iemand tegen mij praat."},{"nr":28,"tekst":"Gewoonlijk concentreer ik me meer op het hele beeld dan op de kleine details."},{"nr":29,"tekst":"Ik ben niet erg goed in het onthouden van telefoonnummers."},{"nr":30,"tekst":"Kleine veranderingen in situaties, of in hoe iemand eruit ziet, merk ik meestal niet op."},{"nr":31,"tekst":"Ik kan merken wanneer iemand die naar me luistert, verveeld raakt."},{"nr":32,"tekst":"Ik vind het gemakkelijk om meer dan één ding tegelijk te doen."},{"nr":33,"tekst":"Als ik telefoneer, ben ik er niet zeker van wanneer het mijn beurt is om iets te zeggen."},{"nr":34,"tekst":"Ik vind het leuk spontaan iets te ondernemen."},{"nr":35,"tekst":"Ik ben vaak de laatste die de clou van een grap begrijpt."},{"nr":36,"tekst":"Ik vind het gemakkelijk om erachter te komen wat iemand denkt of voelt, alleen door naar zijn of haar gezicht te kijken."},{"nr":37,"tekst":"Na een onderbreking kan ik heel snel terugschakelen naar waar ik mee bezig was."},{"nr":38,"tekst":"Ik ben goed in praten over koetjes en kalfjes."},{"nr":39,"tekst":"Mensen vertellen me vaak dat ik maar door blijf gaan over hetzelfde onderwerp."},{"nr":40,"tekst":"Toen ik klein was, vond ik het leuk om ‘doen-alsof’-spelletjes met andere kinderen te spelen."},{"nr":41,"tekst":"Ik vind het leuk om informatie te verzamelen over bepaalde categorieën van dingen (bijv. automerken, vogel-, trein-, plantensoorten, etc.)"},{"nr":42,"tekst":"Ik vind het moeilijk om me voor te stellen hoe het zou zijn als ik iemand anders was."},{"nr":43,"tekst":"Ik vind het prettig om alle activiteiten, waaraan ik deelneem, zorgvuldig te plannen."},{"nr":44,"tekst":"Ik geniet van sociale gebeurtenissen."},{"nr":45,"tekst":"Ik vind het moeilijk om achter de bedoelingen van anderen te komen."},{"nr":46,"tekst":"Nieuwe situaties maken me angstig."},{"nr":47,"tekst":"Ik vind het leuk om nieuwe mensen te ontmoeten."},{"nr":48,"tekst":"Ik ben een goede diplomaat."},{"nr":49,"tekst":"Ik ben er niet erg goed in de geboortedata van anderen te onthouden."},{"nr":50,"tekst":"Ik vind het erg gemakkelijk om ‘doen-alsof’-spelletjes met kinderen te spelen."}];
+const SQR_ITEMS=[{"nr":1,"tekst":"Ik gebruik de treindienstregelingen met veel gemak, ook als er meerdere aansluitingen zijn."},{"nr":2,"tekst":"Ik vind muziek- of boekwinkels prettig, omdat ze duidelijk gestructureerd zijn."},{"nr":3,"tekst":"Ik zou het niet leuk vinden om evenementen te organiseren, zoals liefdadigheidsavonden, festijnen, conferenties."},{"nr":4,"tekst":"Als ik iets lees, valt het me altijd op of het grammaticaal klopt."},{"nr":5,"tekst":"Ik categoriseer mensen (in mijn gedachten) vaak in types."},{"nr":6,"tekst":"Ik heb moeite met het lezen en begrijpen van kaarten."},{"nr":7,"tekst":"Als ik naar een berg kijk, dan denk ik na over hoe hij precies gevormd is."},{"nr":8,"tekst":"Ik ben niet geïnteresseerd in de details over wisselkoersen, rentekoersen, fondsen en aandelen."},{"nr":9,"tekst":"Als ik een auto zou kopen, dan zou ik eerst specifieke informatie uitzoeken over de capaciteit van de motor."},{"nr":10,"tekst":"Ik heb er moeite mee om te leren hoe ik een videorecorder moet instellen."},{"nr":11,"tekst":"Als ik iets leuk vind, dan wil ik graag veel verschillende exemplaren van dat type object verzamelen, zodat ik kan zien hoe ze van elkaar verschillen."},{"nr":12,"tekst":"Als ik een taal leer, dan raak ik geboeid door de grammaticale regels ervan."},{"nr":13,"tekst":"Ik wil graag weten hoe commissies in elkaar zitten in termen van wie de verschillende commissieleden vertegenwoordigen of wat hun functies zijn."},{"nr":14,"tekst":"Als ik een verzameling had (zoals CD’s, munten, postzegels), dan zou deze zeer goed georganiseerd zijn."},{"nr":15,"tekst":"Ik heb moeite met het begrijpen van handleidingen over het in elkaar zetten van toestellen."},{"nr":16,"tekst":"Als ik een gebouw zie, ben ik benieuwd hoe het precies gebouwd is."},{"nr":17,"tekst":"Ik ben niet geïnteresseerd in het begrijpen van de werking van draadloze communicatie (bijv. mobiele telefoons)."},{"nr":18,"tekst":"Als ik met de trein reis, dan vraag ik mij vaak af hoe het spoorwegsysteem gecoördineerd wordt."},{"nr":19,"tekst":"Ik blader graag door catalogi met producten om de details van elk product te bekijken en deze te vergelijken met andere."},{"nr":20,"tekst":"Als er thuis iets bijna op is, dan zet ik het altijd op een boodschappenlijstje."},{"nr":21,"tekst":"Ik weet redelijk accuraat hoeveel geld er deze maand in en uit is gegaan op mijn bankrekening."},{"nr":22,"tekst":"Toen ik jong was, hield ik niet van het verzamelen van dingen, zoals stickers, voetbalplaatjes, etc."},{"nr":23,"tekst":"Ik ben geïnteresseerd in mijn stamboom en wil weten hoe iedereen in de familie aan elkaar verwant is."},{"nr":24,"tekst":"Als ik over historische gebeurtenissen leer, dan let ik niet op de exacte details."},{"nr":25,"tekst":"Ik vind het gemakkelijk te begrijpen hoe kansen precies werken bij het gokken."},{"nr":26,"tekst":"Ik hou niet van spellen waar veel strategie in zit (bijv. schaken, Risk, Stratego)"},{"nr":27,"tekst":"Als ik een nieuwe categorie ontdek, dan vind ik het leuk om tot in de details kleine verschillen tussen de onderdelen van die categorie te begrijpen."},{"nr":28,"tekst":"Ik raak niet van streek als de mensen waarmee ik leef mijn routines verstoren."},{"nr":29,"tekst":"Als ik een dier zie, dan wil ik precies weten van welke soort het is."},{"nr":30,"tekst":"Ik kan grote hoeveelheden informatie onthouden over een onderwerp dat me interesseert, zoals de vlaggen van de wereld of logo’s van vliegtuigmaatschappijen."},{"nr":31,"tekst":"Ik berg thuis alle belangrijke documenten niet goed op, zoals garantiebewijzen, verzekeringspolissen."},{"nr":32,"tekst":"Ik ben geboeid door de werking van machines."},{"nr":33,"tekst":"Als ik een meubelstuk zie, dan vallen de details over hoe het gemaakt is me niet op."},{"nr":34,"tekst":"Ik weet erg weinig over de verschillende stadia in het wetgevingsproces in mijn land."},{"nr":35,"tekst":"Ik kijk niet vaak naar wetenschappelijke documentaires op televisie of lees niet vaak artikelen over wetenschap en natuur."},{"nr":36,"tekst":"Als iemand me aanhoudt om de weg te vragen, dan zou ik de weg kunnen wijzen naar iedere plek in mijn woonplaats."},{"nr":37,"tekst":"Als ik een schilderij zie, dan denk ik meestal niet na over de techniek waarmee het gemaakt is."},{"nr":38,"tekst":"Ik heb het liefst sociale interacties die gestructureerd zijn rondom een duidelijke activiteit, zoals een hobby."},{"nr":39,"tekst":"Ik controleer mijn bonnetjes etc. niet altijd met mijn bankafschrift."},{"nr":40,"tekst":"In ben er niet in geïnteresseerd hoe de overheid is georganiseerd in verschillende ministeries en afdelingen."},{"nr":41,"tekst":"Ik wil graag weten hoe een rivier loopt van zijn oorsprong naar de zee."},{"nr":42,"tekst":"Ik heb een grote verzameling, zoals van boeken, CD’s, video’s etc."},{"nr":43,"tekst":"Als ik in mijn huis een probleem had met de elektrische bedrading, dan zou ik het zelf kunnen oplossen."},{"nr":44,"tekst":"Mijn kleren zijn in mijn kast niet zorgvuldig georganiseerd in verschillende soorten."},{"nr":45,"tekst":"Ik lees zelden artikelen of internetpagina’s over nieuwe technologie."},{"nr":46,"tekst":"Ik kan gemakkelijk voor me zien hoe de autowegen in mijn regio met elkaar verbonden zijn."},{"nr":47,"tekst":"Als er een verkiezing is geweest, dan ben ik niet geïnteresseerd in de resultaten van elk kiesdistrict."},{"nr":48,"tekst":"Ik vind het niet echt leuk om feiten en personen uit de geschiedenis te bestuderen."},{"nr":49,"tekst":"Ik onthoud de verjaardag van anderen meestal niet (zoals op welke dag en maand deze valt)."},{"nr":50,"tekst":"Als ik door een landschap wandel, dan ben ik benieuwd hoe de verschillende soorten bomen van elkaar verschillen."},{"nr":51,"tekst":"Ik heb moeite om de informatie te begrijpen, die de bank mij stuurt over investeringen en spaarsystemen."},{"nr":52,"tekst":"Als ik een camera zou kopen, dan zou ik niet zorgvuldig de kwaliteit van de lens bestuderen."},{"nr":53,"tekst":"Als ik een computer zou kopen, dan zou ik eerst de precieze details over de capaciteit van de harde schijf en de snelheid van de “processor” willen weten."},{"nr":54,"tekst":"Ik lees officiële documenten niet erg zorgvuldig door."},{"nr":55,"tekst":"Als ik bij een supermarkt ga afrekenen, dan pak ik de verschillende categorieën producten in aparte tassen in."},{"nr":56,"tekst":"Als ik mijn huis schoonmaak, volg ik niet een bepaald systeem."},{"nr":57,"tekst":"Ik houd niet van diepgaande politieke discussies."},{"nr":58,"tekst":"Ik ben niet overdreven nauwgezet als ik aan het doe-het-zelven ben."},{"nr":59,"tekst":"Ik zou het niet leuk vinden om een bedrijf van de grond af aan op te bouwen."},{"nr":60,"tekst":"Als ik een stereo zou kopen, dan zou ik de precieze technische details ervan willen weten."},{"nr":61,"tekst":"Ik hou vaak dingen die anderen weg zouden gooien, voor het geval dat ze later nog ergens voor van pas komen."},{"nr":62,"tekst":"Ik vermijd situaties waar ik geen controle over heb."},{"nr":63,"tekst":"Ik hoef de namen van de planten die ik zie niet te weten."},{"nr":64,"tekst":"Als ik het weerbericht hoor, dan ben ik niet zo geïnteresseerd in de meteorologische patronen."},{"nr":65,"tekst":"Het stoort me niet als dingen in huis niet op de goede plek staan."},{"nr":66,"tekst":"Bij wiskunde ben ik geboeid door de regels en patronen waarmee de getallen zich gedragen."},{"nr":67,"tekst":"Ik vind het moeilijk om de weg te vinden in een nieuwe stad."},{"nr":68,"tekst":"Ik zou uit mijn geheugen mijn 10 favoriete boeken kunnen opnoemen, met daarbij de titels en de namen van de auteurs."},{"nr":69,"tekst":"Als ik de krant lees, word ik aangetrokken tot tabellen met informatie, zoals de voetbaluitslagen en beursberichten."},{"nr":70,"tekst":"Als ik in een vliegtuig zit, dan denk ik niet na over de aerodynamica."},{"nr":71,"tekst":"Ik houdt de rekeningen voor mijn huishouden niet precies bij."},{"nr":72,"tekst":"Als ik veel boodschappen moet doen, dan vind ik het fijn om te plannen naar welke winkels ik ga en in welke volgorde."},{"nr":73,"tekst":"Als ik kook, dan denk ik niet na over hoe de verschillende methoden en ingrediënten bijdragen aan het eindproduct."},{"nr":74,"tekst":"Als ik naar een muziekstuk luister, valt het me altijd op hoe het is opgebouwd."},{"nr":75,"tekst":"Ik zou uit mijn geheugen een lijst met mijn 10 favoriete liedjes kunnen opnoemen, met bij elk liedje de titel en de naam van de uitvoerende artiest."}];
+const SDQ={"ouder":{"titel":"Sterke Kanten en Moeilijkheden: Vragenlijst voor Ouders","instructie":"Wilt u alstublieft voor iedere vraag een kruisje zetten in het vierkantje voor “Niet waar”, “Een beetje waar” of “Zeker waar”. Het is van belang dat u alle vragen zo goed mogelijk beantwoordt, ook als u niet helemaal zeker bent. Wilt u alstublieft uw antwoorden baseren op het gedrag van het kind de laatste zes maanden.","items":["Houdt rekening met gevoelens van anderen","Rusteloos, overactief, kan niet lang stilzitten","Klaagt vaak over hoofdpijn, buikpijn, of misselijkheid","Deelt makkelijk met andere kinderen (bijvoorbeeld speelgoed, snoep, potloden, enz.)","Heeft vaak driftbuien of woede-uitbarstingen","Nogal op zichzelf, neigt er toe alleen te spelen","Doorgaans gehoorzaam, doet gewoonlijk wat volwassenen vragen","Heeft veel zorgen, lijkt vaak over dingen in te zitten","Behulpzaam als iemand zich heeft bezeerd, van streek is of zich ziek voelt","Constant aan het wiebelen of friemelen","Heeft minstens één goede vriend of vriendin","Vecht vaak met andere kinderen of pest ze","Vaak ongelukkig, in de put of in tranen","Wordt over het algemeen aardig gevonden door andere kinderen","Gemakkelijk afgeleid, heeft moeite om zich te concentreren","Zenuwachtig of zich vastklampend in nieuwe situaties, verliest makkelijk zelfvertrouwen","Aardig tegen jongere kinderen","Liegt of bedriegt vaak","Wordt getreiterd of gepest door andere kinderen","Biedt vaak vrijwillig hulp aan anderen (ouders, leerkrachten, andere kinderen)","Denkt na voor iets te doen","Pikt dingen thuis, op school of op andere plaatsen","Kan beter opschieten met volwassenen dan met andere kinderen","Voor heel veel bang, is snel angstig","Maakt opdrachten af, kan de aandacht goed vasthouden"],"impactVraag":"Denkt u over het geheel genomen dat uw kind moeilijkheden heeft op één of meer van de volgende gebieden: emoties, concentratie, gedrag of vermogen om met andere mensen op te schieten?","overstuur":"Maken de moeilijkheden uw kind overstuur of van slag?","belemmeren":"Belemmeren de moeilijkheden het dagelijks leven van uw kind op de volgende gebieden?","belasten":"Belasten de moeilijkheden u of het gezin als geheel?","gebieden":["THUIS","VRIENDSCHAPPEN","LEREN IN DE KLAS","ACTIVITEITEN IN DE VRIJE TIJD"]},"leerkracht":{"titel":"Sterke Kanten en Moeilijkheden: Vragenlijst voor Leerkracht","instructie":"Wilt u alstublieft voor iedere vraag een kruisje zetten in het vierkantje voor “Niet waar”, “Een beetje waar” of “Zeker waar”. Het is van belang dat u alle vragen zo goed mogelijk beantwoordt, ook als u niet helemaal zeker bent. Wilt u alstublieft uw antwoorden baseren op het gedrag van het kind de laatste zes maanden of het huidige schooljaar.","items":["Houdt rekening met gevoelens van anderen","Rusteloos, overactief, kan niet lang stilzitten","Klaagt vaak over hoofdpijn, buikpijn, of misselijkheid","Deelt makkelijk met andere kinderen (bijvoorbeeld speelgoed, snoep, potloden, enz.)","Heeft vaak driftbuien of woede-uitbarstingen","Nogal op zichzelf, neigt er toe alleen te spelen","Doorgaans gehoorzaam, doet gewoonlijk wat volwassenen vragen","Heeft veel zorgen, lijkt vaak over dingen in te zitten","Behulpzaam als iemand zich heeft bezeerd, van streek is of zich ziek voelt","Constant aan het wiebelen of friemelen","Heeft minstens één goede vriend of vriendin","Vecht vaak met andere kinderen of pest ze","Vaak ongelukkig, in de put of in tranen","Wordt over het algemeen aardig gevonden door andere kinderen","Gemakkelijk afgeleid, heeft moeite om zich te concentreren","Zenuwachtig of zich vastklampend in nieuwe situaties, verliest makkelijk zelfvertrouwen","Aardig tegen jongere kinderen","Liegt of bedriegt vaak","Wordt getreiterd of gepest door andere kinderen","Biedt vaak vrijwillig hulp aan anderen (ouders, leerkrachten, andere kinderen)","Denkt na voor iets te doen","Pikt dingen thuis, op school of op andere plaatsen","Kan beter opschieten met volwassenen dan met andere kinderen","Voor heel veel bang, is snel angstig","Maakt opdrachten af, kan de aandacht goed vasthouden"],"impactVraag":"Denkt u over het geheel genomen dat dit kind moeilijkheden heeft op één of meer van de volgende gebieden: emoties, concentratie, gedrag of vermogen om met andere mensen op te schieten?","overstuur":"Maken de moeilijkheden het kind overstuur of van slag?","belemmeren":"Belemmeren de moeilijkheden het dagelijks leven van het kind op de volgende gebieden?","belasten":"Belasten de moeilijkheden u of de klas als geheel?","gebieden":["CONTACTEN MET LEEFTIJDSGENOTEN","LEREN IN DE KLAS"]},"jongere":{"titel":"Sterke Kanten en Moeilijkheden: Vragenlijst voor Jongeren","instructie":"Wil je alsjeblieft bij iedere vraag een kruisje zetten in het vierkantje voor `Niet waar', `Een beetje waar' of `Zeker waar'. Het is belangrijk dat je alle vragen zo goed mogelijk beantwoordt, ook als je niet helemaal zeker bent. Wil je alsjeblieft bij je antwoorden denken hoe dat bij jou de laatste zes maanden is geweest.","items":["Ik probeer aardig te zijn tegen anderen. Ik houd rekening met hun gevoelens","Ik ben rusteloos, ik kan niet lang stilzitten","Ik heb vaak hoofdpijn, buikpijn, of ik ben misselijk","Ik deel gemakkelijk met anderen (snoep, speelgoed, potloden, enz.)","Ik word erg boos en ben vaak driftig","Ik ben nogal op mijzelf. Ik speel meestal alleen of bemoei mij niet met anderen","Ik doe meestal wat me wordt opgedragen","Ik pieker veel","Ik help iemand die zich heeft bezeerd, van streek is of zich ziek voelt","Ik zit constant te wiebelen of te friemelen","Ik heb minstens één goede vriend of vriendin","Ik vecht vaak. Het lukt mij andere mensen te laten doen wat ik wil","Ik ben vaak ongelukkig, in de put of in tranen","Andere jongeren van mijn leeftijd vinden mij over het algemeen aardig","Ik ben snel afgeleid, ik vind het moeilijk om me te concentreren","Ik ben zenuwachtig in nieuwe situaties. Ik verlies makkelijk mijn zelfvertrouwen","Ik ben aardig tegen jongere kinderen","Ik word er vaak van beschuldigd dat ik lieg of bedrieg","Andere kinderen of jongeren pesten of treiteren mij","Ik bied vaak anderen aan hun te helpen (ouders, leerkrachten, kinderen)","Ik denk na voor ik iets doe","Ik neem dingen weg die niet van mij zijn thuis, op school of op andere plaatsen","Ik kan beter met volwassenen opschieten dan met jongeren van mijn leeftijd","Ik ben voor heel veel dingen bang, ik ben snel angstig","Ik maak af waar ik mee bezig ben. Ik kan mijn aandacht er goed bij houden"],"impactVraag":"Denk je over het geheel genomen dat je moeilijkheden hebt op één of meer van de volgende gebieden: emoties, concentratie, gedrag of vermogen om met andere mensen op te schieten?","overstuur":"Maken de moeilijkheden je overstuur of van slag?","belemmeren":"Belemmeren de moeilijkheden jouw dagelijks leven op de volgende gebieden?","belasten":"Maken de moeilijkheden het lastiger voor de mensen in jouw omgeving (je gezin, vrienden, leerkrachten, enz.) ?","gebieden":["THUIS","VRIENDSCHAPPEN","LEREN IN DE KLAS","ACTIVITEITEN IN DE VRIJE TIJD"]}};
+const SDQ_GRENZEN={"ouder":{"totaal":{"band3":["0-13","14-16","17-40"],"band4":["0-13","14-16","17-19","20-40"]},"emotie":{"band3":["0-3","4","5-10"],"band4":["0-3","4","5-6","7-10"]},"gedrag":{"band3":["0-2","3","4-10"],"band4":["0-2","3","4-5","6-10"]},"hyperactiviteit":{"band3":["0-5","6","7-10"],"band4":["0-5","6-7","8","9-10"]},"leeftijdsgenoten":{"band3":["0-2","3","4-10"],"band4":["0-2","3","4","5-10"]},"prosociaal":{"band3":["6-10","5","0-4"],"band4":["8-10","7","6","0-5"]},"impact":{"band3":["0","1","2-10"],"band4":["0","1","2","3-10"]},"internaliserend":{"band3":["-","-","-"],"band4":["0-5","6-7","8-9","10-20"]},"externaliserend":{"band3":["-","-","-"],"band4":["0-8","9-10","11-12","13-20"]}},"leerkracht":{"totaal":{"band3":["0-11","12-15","16-40"],"band4":["0-11","12-15","16-18","19-40"]},"emotie":{"band3":["0-4","5","6-10"],"band4":["0-3","4","5","6-10"]},"gedrag":{"band3":["0-2","3","4-10"],"band4":["0-2","3","4","5-10"]},"hyperactiviteit":{"band3":["0-5","6","7-10"],"band4":["0-5","6-7","8","9-10"]},"leeftijdsgenoten":{"band3":["0-3","4","5-10"],"band4":["0-2","3-4","5","6-10"]},"prosociaal":{"band3":["6-10","5","0-4"],"band4":["6-10","5","4","0-3"]},"impact":{"band3":["0","1","2-6"],"band4":["0","1","2","3-6"]},"internaliserend":{"band3":["-","-","-"],"band4":["0-5","6-7","8-9","10-20"]},"externaliserend":{"band3":["-","-","-"],"band4":["0-6","7-9","10-12","13-20"]}},"jongere":{"totaal":{"band3":["0-15","16-19","20-40"],"band4":["0-14","15-17","18-19","20-40"]},"emotie":{"band3":["0-5","6","7-10"],"band4":["0-4","5","6","7-10"]},"gedrag":{"band3":["0-3","4","5-10"],"band4":["0-3","4","5","6-10"]},"hyperactiviteit":{"band3":["0-5","6","7-10"],"band4":["0-5","6","7","8-10"]},"leeftijdsgenoten":{"band3":["0-3","4-5","6-10"],"band4":["0-2","3","4","5-10"]},"prosociaal":{"band3":["6-10","5","0-4"],"band4":["7-10","6","5","0-4"]},"impact":{"band3":["0","1","2-10"],"band4":["0","1","2","3-10"]},"internaliserend":{"band3":["-","-","-"],"band4":["0-6","7-8","9-10","11-20"]},"externaliserend":{"band3":["-","-","-"],"band4":["0-8","9-10","11-12","13-20"]}}};
+/* =========================================================================================================== */
+
+const AQ_EENS=[2,4,5,6,7,9,12,13,16,18,19,20,21,22,23,26,33,35,39,41,42,43,45,46]; // AQ_Scoring_Key.doc (ARC) = Hoekstra 2008
+const SQR_VOORWAARTS=[1,2,4,5,7,9,11,12,13,14,16,18,19,20,21,23,25,27,29,30,32,36,38,41,42,43,46,50,53,55,60,61,62,66,68,69,72,74,75]; // SQ_Scoring_Key.doc (ARC)
+const SQR_OMGEKEERD=[3,6,8,10,15,17,22,24,26,28,31,33,34,35,37,39,40,44,45,47,48,49,51,52,54,56,57,58,59,63,64,65,67,70,71,73];
+const SDQ_SCHALEN=[
+  {id:'emotie',label:'Emotionele problemen',items:[3,8,13,16,24]},
+  {id:'gedrag',label:'Gedragsproblemen',items:[5,7,12,18,22]},
+  {id:'hyperactiviteit',label:'Hyperactiviteit/aandachtstekort',items:[2,10,15,21,25]},
+  {id:'leeftijdsgenoten',label:'Problemen met leeftijdsgenoten',items:[6,11,14,19,23]},
+  {id:'prosociaal',label:'Prosociaal gedrag',items:[1,4,9,17,20]}];
+const SDQ_OMGEKEERD=[7,11,14,21,25];
+const SDQ_IMPACT_OPTS=['Helemaal niet','Een beetje maar','Tamelijk','Heel erg'];
+const SDQ_IMPACT_SCORE=[0,0,1,2];
+const SDQ_Q1=['Nee','Ja, kleine moeilijkheden','Ja, duidelijke moeilijkheden','Ja, ernstige moeilijkheden'];
+const SDQ_DUUR=['Korter dan een maand','1-5 maanden','6-12 maanden','Meer dan een jaar'];
+
+const AQ_BRON='Autism Spectrum Quotient (AQ) — Nederlandse vertaling: R. Hoekstra. © Autism Research Centre, University of Cambridge (Baron-Cohen et al., 2001). Gebruikt voor zorg en onderzoek, niet-commercieel, met bronvermelding.';
+const SQR_BRON='Systemizing Quotient-Revised, Nederlandse versie SQ-R-NL (Groen, Fuermaier, Den Heijer, Tucha & Althaus, 2015). Origineel © Autism Research Centre, University of Cambridge (Wheelwright et al., 2006). Gebruikt voor zorg en onderzoek, niet-commercieel, met bronvermelding.';
+const SDQ_BRON='Strengths and Difficulties Questionnaire (SDQ-Dut) © Robert Goodman, 2005 — www.sdqinfo.org. Scoring volgens "Scoring the 4-17 year old or 18+ versions of the SDQ" (sdqinfo.org, september 2024).';
+const DISCLAIMER='Deze vragenlijst is een screenings- en hulpmiddel en volstaat nooit op zichzelf voor een diagnose. De interpretatie gebeurt door de behandelaar, samen met andere informatiebronnen.';
+
+function lijstMeta(){
+  const aqLbl=['geheel mee eens','enigszins mee eens','enigszins mee oneens','geheel mee oneens'];
+  const sqLbl=['Helemaal eens','Een beetje mee eens','Een beetje mee oneens','Helemaal mee oneens'];
+  const sdqLbl=['Niet waar','Een beetje waar','Zeker waar'];
+  return {
+    'aq50':{kort:'AQ-50',arts:'AQ-50 — Autismespectrumquotiënt (volwassenen)',titel:'Vragenlijst naar Gedrag en Persoonlijkheid',doelgroep:'Volwassenen (16+), zelfrapportage',
+      instructie:'Deze lijst bestaat uit een aantal uitspraken waarmee u het eens of oneens kunt zijn. Lees iedere uitspraak zorgvuldig en kruis dan het antwoord aan dat het meest op u van toepassing is. Voor iedere uitspraak is een viertal antwoordmogelijkheden gegeven:',
+      labels:aqLbl,items:AQ_ITEMS.map(x=>({nr:x.nr,tekst:x.tekst})),velden:'volw',bron:AQ_BRON},
+    'sqr':{kort:'SQ-R',arts:'SQ-R-NL — Systematiseringsquotiënt (volwassenen)',titel:'Systematiseren Quotiënt',doelgroep:'Volwassenen, zelfrapportage',
+      instructie:'Hieronder vindt u een lijst met stellingen. Lees elke stelling zorgvuldig door en geef aan hoe sterk u het met de stelling eens of oneens bent door het betreffende rondje in te kleuren. Er zijn geen goede of foute antwoorden, of strikvragen. Vult u alstublieft alle vragen in want anders is de uitslag onbruikbaar.',
+      labels:sqLbl,items:SQR_ITEMS.map(x=>({nr:x.nr,tekst:x.tekst})),velden:'volw',bron:SQR_BRON},
+    'sdq-ouder':{kort:'SDQ ouder',arts:'SDQ — ouderversie (4-17 jaar)',titel:SDQ.ouder.titel,doelgroep:'Kind/jongere 4-17 jaar, in te vullen door een ouder',
+      instructie:SDQ.ouder.instructie,labels:sdqLbl,items:SDQ.ouder.items.map((t,i)=>({nr:i+1,tekst:t})),velden:'sdq-ouder',sdq:'ouder',bron:SDQ_BRON,leeftijd:[4,17]},
+    'sdq-leerkracht':{kort:'SDQ leerkracht',arts:'SDQ — leerkrachtversie (4-17 jaar)',titel:SDQ.leerkracht.titel,doelgroep:'Kind/jongere 4-17 jaar, in te vullen door een leerkracht',
+      instructie:SDQ.leerkracht.instructie,labels:sdqLbl,items:SDQ.leerkracht.items.map((t,i)=>({nr:i+1,tekst:t})),velden:'sdq-leerkracht',sdq:'leerkracht',bron:SDQ_BRON,leeftijd:[4,17]},
+    'sdq-jongere':{kort:'SDQ jongere',arts:'SDQ — zelfrapportage jongere (11-17 jaar)',titel:SDQ.jongere.titel,doelgroep:'Jongere 11-17 jaar, zelfrapportage',
+      instructie:SDQ.jongere.instructie,labels:sdqLbl,items:SDQ.jongere.items.map((t,i)=>({nr:i+1,tekst:t})),velden:'sdq-jongere',sdq:'jongere',bron:SDQ_BRON,leeftijd:[11,17]}
+  };
+}
+const LIJSTEN=lijstMeta();
+
+const VELDEN={
+  'volw':[{id:'naam',label:'Naam',type:'text',req:true},{id:'geboortedatum',label:'Geboortedatum',type:'date',req:true},
+          {id:'geslacht',label:'Geslacht',type:'select',opts:['','Vrouw','Man','Anders / zeg ik liever niet'],req:false},{id:'datum',label:'Datum van vandaag',type:'date',req:true}],
+  'sdq-ouder':[{id:'naam',label:'Naam van het kind',type:'text',req:true},{id:'geslacht',label:'Jongen / Meisje',type:'select',opts:['','Jongen','Meisje'],req:false},
+          {id:'geboortedatum',label:'Geboortedatum',type:'date',req:true},{id:'invuller',label:'Ingevuld door (Moeder/Vader/Anders, nl:)',type:'text',req:true},{id:'datum',label:'Datum',type:'date',req:true}],
+  'sdq-leerkracht':[{id:'naam',label:'Naam van het kind',type:'text',req:true},{id:'geslacht',label:'Jongen / Meisje',type:'select',opts:['','Jongen','Meisje'],req:false},
+          {id:'geboortedatum',label:'Geboortedatum',type:'date',req:true},{id:'invuller',label:'Ingevuld door (Leerkracht/Anders, nl:)',type:'text',req:true},{id:'datum',label:'Datum',type:'date',req:true}],
+  'sdq-jongere':[{id:'naam',label:'Je naam',type:'text',req:true},{id:'geslacht',label:'Jongen / Meisje',type:'select',opts:['','Jongen','Meisje'],req:false},
+          {id:'geboortedatum',label:'Je geboortedatum',type:'date',req:true},{id:'datum',label:'Datum',type:'date',req:true}]
+};
+
+/* ===================== scoring (pure functies) ===================== */
+function scoreAQ(ant){
+  let dich=0,vier=0,blanco=[];
+  for(let nr=1;nr<=50;nr++){
+    const v=ant[nr]; // 1..4 (1 = geheel mee eens)
+    if(v===undefined){blanco.push(nr);continue;}
+    const eensItem=AQ_EENS.includes(nr);
+    if(eensItem){ if(v<=2)dich++; vier+=(5-v); } else { if(v>=3)dich++; vier+=v; }
+  }
+  return {dich,vier,blanco,volledig:blanco.length===0,onvolledigHoekstra:blanco.length>5};
+}
+function scoreSQR(ant){
+  let tot=0,blanco=[];
+  for(let nr=1;nr<=75;nr++){
+    const v=ant[nr]; // 1..4 (1 = helemaal eens)
+    if(v===undefined){blanco.push(nr);continue;}
+    if(SQR_VOORWAARTS.includes(nr)) tot+=(v===1?2:v===2?1:0);
+    else tot+=(v===4?2:v===3?1:0);
+  }
+  return {tot,blanco};
+}
+function sdqItemScore(nr,v){ // v: 0 niet waar, 1 een beetje waar, 2 zeker waar
+  return SDQ_OMGEKEERD.includes(nr)?2-v:v;
+}
+function bandVan(score,ranges){ // ranges: ["0-13","14-16",...]; geeft index
+  for(let i=0;i<ranges.length;i++){const r=ranges[i];if(r==='-')return -1;const [a,b]=r.split('-').map(Number);const hi=isNaN(b)?a:b;if(score>=a&&score<=hi)return i;}
+  return -1;
+}
+function scoreSDQ(versie,ant,impact){
+  const g=SDQ_GRENZEN[versie];
+  const schalen={};
+  SDQ_SCHALEN.forEach(s=>{
+    let som=0,n=0;
+    s.items.forEach(nr=>{if(ant[nr]!==undefined){som+=sdqItemScore(nr,ant[nr]);n++;}});
+    let score=null,prorata=false;
+    if(n===5)score=som; else if(n>=3){score=Math.round(som*5/n);prorata=true;}
+    schalen[s.id]={label:s.label,score,prorata,beantwoord:n};
+  });
+  const moeilijk=['emotie','gedrag','hyperactiviteit','leeftijdsgenoten'];
+  const totaal=moeilijk.every(k=>schalen[k].score!==null)?moeilijk.reduce((a,k)=>a+schalen[k].score,0):null;
+  const intern=(schalen.emotie.score!==null&&schalen.leeftijdsgenoten.score!==null)?schalen.emotie.score+schalen.leeftijdsgenoten.score:null;
+  const extern=(schalen.gedrag.score!==null&&schalen.hyperactiviteit.score!==null)?schalen.gedrag.score+schalen.hyperactiviteit.score:null;
+  // impact
+  let impactScore=null;
+  if(impact.q1===0) impactScore=0;
+  else if(impact.q1>0){
+    const vals=[impact.overstuur].concat(impact.gebieden||[]);
+    const nG=SDQ[versie].gebieden.length;
+    if(impact.overstuur!==undefined && (impact.gebieden||[]).filter(v=>v!==undefined).length===nG)
+      impactScore=vals.reduce((a,v)=>a+SDQ_IMPACT_SCORE[v],0);
+  }
+  const rijen=[];
+  const add=(id,label,score,max)=>{const gr=g[id];rijen.push({id,label,score,max,b3:score===null?-1:bandVan(score,gr.band3),b4:score===null?-1:bandVan(score,gr.band4),gr});};
+  add('totaal','Totale moeilijkhedenscore',totaal,40);
+  SDQ_SCHALEN.forEach(s=>add(s.id,s.label+(schalen[s.id].prorata?' (pro rata)':''),schalen[s.id].score,10));
+  add('impact','Impactscore',impactScore,versie==='leerkracht'?6:10);
+  add('internaliserend','Internaliserend (emotie + leeftijdsgenoten)',intern,20);
+  add('externaliserend','Externaliserend (gedrag + hyperactiviteit)',extern,20);
+  const blanco=[];for(let nr=1;nr<=25;nr++)if(ant[nr]===undefined)blanco.push(nr);
+  return {rijen,blanco};
+}
+const B3=['Normaal','Grensgebied','Afwijkend'];
+const B4=['Gemiddeld','Licht verhoogd','Hoog','Zeer hoog'];
+const B4P=['Gemiddeld','Licht verlaagd','Laag','Zeer laag'];
+if(typeof module!=='undefined'&&module.exports){module.exports={scoreAQ,scoreSQR,scoreSDQ,bandVan,LIJSTEN,SDQ_GRENZEN};}
+
+/* ===================== pagina ===================== */
+const params=new URLSearchParams(location.search);
+let sb=null,currentUser=null,state=null,laatsteRapport=null;
+const el=id=>document.getElementById(id);
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function vandaag(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtD(iso){if(!iso||!/^\d{4}-\d{2}-\d{2}/.test(iso))return iso||'';const [y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
+function leeftijd(geb,op){if(!geb)return null;const a=new Date(geb),b=new Date(op||vandaag());let j=b.getFullYear()-a.getFullYear();if(b.getMonth()<a.getMonth()||(b.getMonth()===a.getMonth()&&b.getDate()<a.getDate()))j--;return isNaN(j)?null:j;}
+function draftKey(code){return 'vl_draft_'+code;}
+function saveDraft(){try{sessionStorage.setItem(draftKey(state.code),JSON.stringify(state));}catch(_){}}
+function loadDraft(code){try{return JSON.parse(sessionStorage.getItem(draftKey(code))||'null');}catch(_){return null;}}
+function clearDraft(code){try{sessionStorage.removeItem(draftKey(code));}catch(_){}}
+
+function kop(){
+  return '<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
+    +'<span class="brand-sub">Vragenlijsten &middot; online invullen</span></div>'
+    +'<div class="top-right"><a class="back-link" href="vragenlijsten.html">&larr; Alle vragenlijsten</a>'
+    +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span></div></div>';
+}
+
+function renderOverzicht(){
+  let h=kop();
+  h+='<div class="banner info">Kies een vragenlijst. <b>Invullen</b> kan door jou tijdens de consultatie of door de cliënt zelf op dit toestel (zet dan &#8220;Cliënt vult zelf in&#8221; aan: de scores blijven verborgen tot jij ze opent). Na het afwerken wordt de volledige lijst met scoring automatisch gemaild naar <b>'+esc(currentUser.email)+'</b> — enkel naar jou. Er wordt niets op de server bewaard.</div>';
+  h+='<div class="cards">';
+  Object.entries(LIJSTEN).forEach(([code,L])=>{
+    h+='<div class="card"><h3>'+esc(L.arts)+'</h3><div class="card-sub">'+esc(L.doelgroep)+' &middot; '+L.items.length+' items</div>'
+      +'<div class="acts"><button class="btn btn-primary" onclick="renderForm(\''+code+'\')">Invullen</button>'
+      +'<button class="btn btn-ghost" onclick="printBlanco(\''+code+'\')">Blanco afdrukken</button></div></div>';
+  });
+  h+='</div>';
+  el('app').innerHTML=h;el('app').style.display='block';document.title='Vragenlijsten — online invullen';window.scrollTo(0,0);
+}
+
+function nieuwState(code){return {code,velden:{datum:vandaag()},ant:{},impact:{gebieden:[]},opm:'',client:false,start:Date.now()};}
+
+function renderForm(code,hervat){
+  const L=LIJSTEN[code];if(!L){renderOverzicht();return;}
+  const d=loadDraft(code);
+  state=(d&&hervat!==false)?d:nieuwState(code);
+  const nc=L.labels.length;
+  let h=kop();
+  if(d&&hervat!==false&&Object.keys(d.ant).length)h+='<div class="banner warn">Een eerder begonnen invulling werd hersteld. <a href="#" onclick="clearDraft(\''+code+'\');renderForm(\''+code+'\',false);return false;">Opnieuw beginnen</a></div>';
+  h+='<div class="fcard"><div class="f-title">'+esc(L.titel)+'</div><div class="f-sub">'+esc(L.doelgroep)+'</div>';
+  h+='<div class="kop-grid">';
+  VELDEN[L.velden].forEach(v=>{
+    const val=state.velden[v.id]||'';
+    h+='<div class="veld" id="veld-'+v.id+'"><label>'+esc(v.label)+(v.req?' <span class="req">*</span>':'')+'</label>';
+    if(v.type==='select')h+='<select onchange="zetVeld(\''+v.id+'\',this.value)">'+v.opts.map(o=>'<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
+    else h+='<input type="'+v.type+'" value="'+esc(val)+'" oninput="zetVeld(\''+v.id+'\',this.value)">';
+    h+='</div>';
+  });
+  h+='</div><div class="instructies">'+esc(L.instructie)+'</div></div>';
+  h+='<div class="kolomkop" style="--ncols:'+nc+'"><span></span>'+L.labels.map(l=>'<span>'+esc(l)+'</span>').join('')+'</div>';
+  L.items.forEach(it=>{
+    const v=state.ant[it.nr];
+    h+='<div class="item'+(v!==undefined?' beantwoord':'')+'" id="item-'+it.nr+'" style="--ncols:'+nc+'"><div class="itxt"><span class="inr">'+it.nr+'.</span>'+esc(it.tekst)+'</div>';
+    L.labels.forEach((l,i)=>{
+      const waarde=L.sdq?i:i+1;
+      h+='<label class="opt" title="'+esc(l)+'"><input type="radio" name="i'+it.nr+'" value="'+waarde+'"'+(v===waarde?' checked':'')+' onchange="zetAnt('+it.nr+','+waarde+')" aria-label="'+esc(it.nr+'. '+l)+'"><span class="olbl">'+esc(l)+'</span></label>';
+    });
+    h+='</div>';
+  });
+  if(L.sdq)h+=renderImpact(L.sdq);
+  h+='<div class="sectie-kop">'+(L.sdq==='jongere'?'Heb je opmerkingen?':'Opmerkingen')+'</div><textarea oninput="state.opm=this.value;saveDraft()">'+esc(state.opm)+'</textarea>';
+  h+='<div class="acties"><label class="toggle"><input type="checkbox" '+(state.client?'checked':'')+' onchange="state.client=this.checked;saveDraft()"> Cliënt vult zelf in (scores verbergen)</label></div>';
+  h+='<div id="valideer-msg" style="margin-top:12px"></div>';
+  h+='<div class="acties"><button class="btn btn-primary" id="btn-af" onclick="afwerken(false)">Vragenlijst afwerken</button>'
+    +'<button class="btn btn-ghost" onclick="renderOverzicht()">Annuleren</button></div>';
+  h+='<p class="klein">'+esc(L.bron)+'</p><p class="klein">'+esc(DISCLAIMER)+'</p>';
+  el('app').innerHTML=h;document.title=L.kort+' — invullen';window.scrollTo(0,0);
+}
+function renderImpact(versie){
+  const S=SDQ[versie],im=state.impact;
+  const radio=(naam,opts,val,cb)=>opts.map((o,i)=>'<label><input type="radio" name="'+naam+'" '+(val===i?'checked':'')+' onchange="'+cb+'('+i+')"> '+esc(o)+'</label>').join('');
+  let h='<div class="sectie-kop">Aanvullende vragen</div>';
+  h+='<div class="impact" id="imp-q1"><div class="iq">'+esc(S.impactVraag)+'</div><div class="iopts">'+radio('q1',SDQ_Q1,im.q1,'zetQ1')+'</div></div>';
+  if(im.q1>0){
+    h+='<div class="banner info" style="margin-bottom:8px">'+(versie==='jongere'?'Als je “Ja” hebt geantwoord, wil je dan alsjeblieft de volgende vragen over deze moeilijkheden beantwoorden?':'Als u “Ja” heeft geantwoord, wilt u dan alstublieft de volgende vragen over deze moeilijkheden beantwoorden?')+'</div>';
+    h+='<div class="impact"><div class="iq">Hoe lang bestaan deze moeilijkheden?</div><div class="iopts">'+radio('duur',SDQ_DUUR,im.duur,'zetImp.bind(null,\'duur\')')+'</div></div>';
+    h+='<div class="impact" id="imp-overstuur"><div class="iq">'+esc(S.overstuur)+'</div><div class="iopts">'+radio('ov',SDQ_IMPACT_OPTS,im.overstuur,'zetImp.bind(null,\'overstuur\')')+'</div></div>';
+    h+='<div class="impact" id="imp-gebieden"><div class="iq">'+esc(S.belemmeren)+'</div>';
+    S.gebieden.forEach((g,gi)=>{h+='<div class="sub-rij"><span style="font-size:12.5px;font-weight:600">'+esc(g)+'</span><div class="iopts">'+radio('g'+gi,SDQ_IMPACT_OPTS,im.gebieden[gi],'zetGebied.bind(null,'+gi+')')+'</div></div>';});
+    h+='</div>';
+    h+='<div class="impact"><div class="iq">'+esc(S.belasten)+'</div><div class="iopts">'+radio('bel',SDQ_IMPACT_OPTS,im.belasten,'zetImp.bind(null,\'belasten\')')+'</div></div>';
+  }
+  return h;
+}
+function zetVeld(id,v){state.velden[id]=v;saveDraft();const e=el('veld-'+id);if(e)e.classList.remove('missend');}
+function zetAnt(nr,v){state.ant[nr]=v;saveDraft();const e=el('item-'+nr);if(e){e.classList.add('beantwoord');e.classList.remove('missend');}}
+function zetQ1(i){state.impact.q1=i;saveDraft();const y=window.scrollY;renderForm(state.code);window.scrollTo(0,y);}
+function zetImp(k,i){state.impact[k]=i;saveDraft();}
+function zetGebied(gi,i){state.impact.gebieden[gi]=i;saveDraft();}
+
+function afwerken(forceer){
+  const L=LIJSTEN[state.code];
+  const missendV=VELDEN[L.velden].filter(v=>v.req&&!String(state.velden[v.id]||'').trim()).map(v=>v.id);
+  document.querySelectorAll('.veld.missend,.item.missend').forEach(e=>e.classList.remove('missend'));
+  missendV.forEach(id=>{const e=el('veld-'+id);if(e)e.classList.add('missend');});
+  if(missendV.length){el('valideer-msg').innerHTML='<div class="banner err">Vul eerst de verplichte gegevens bovenaan in.</div>';el('veld-'+missendV[0]).scrollIntoView({behavior:'smooth',block:'center'});return;}
+  const missendI=L.items.filter(it=>state.ant[it.nr]===undefined).map(it=>it.nr);
+  let impWaarsch='';
+  if(L.sdq&&state.impact.q1===undefined)impWaarsch=' De aanvullende vraag over moeilijkheden is niet beantwoord.';
+  if((missendI.length||impWaarsch)&&!forceer){
+    missendI.forEach(nr=>{const e=el('item-'+nr);if(e)e.classList.add('missend');});
+    el('valideer-msg').innerHTML='<div class="banner warn">'+(missendI.length?'Nog niet beantwoord: vraag '+missendI.join(', ')+'.':'')+impWaarsch
+      +'<div class="acties" style="margin-top:8px"><button class="btn btn-ghost" onclick="naarEersteMissend()">Terug en aanvullen</button><button class="btn btn-ghost" onclick="afwerken(true)">Toch afwerken</button></div></div>';
+    return;
+  }
+  const leeft=leeftijd(state.velden.geboortedatum,state.velden.datum);
+  const rap=bouwRapport(state,leeft);
+  laatsteRapport=rap;clearDraft(state.code);
+  verstuur(rap);
+  if(state.client) renderBedankt(); else renderResultaat();
+}
+function naarEersteMissend(){const e=document.querySelector('.item.missend');if(e)e.scrollIntoView({behavior:'smooth',block:'center'});}
+
+/* ===================== rapport ===================== */
+function bouwRapport(st,leeft){
+  const L=LIJSTEN[st.code];const V=st.velden;
+  const naam=(V.naam||'').trim();
+  const kopR=[['Vragenlijst',L.arts],['Naam',naam],['Geboortedatum',fmtD(V.geboortedatum)+(leeft!==null?' ('+leeft+' jaar)':'')]];
+  if(V.geslacht)kopR.push(['Geslacht',V.geslacht]);
+  if(V.invuller)kopR.push(['Ingevuld door',V.invuller]);
+  kopR.push(['Datum',fmtD(V.datum)],['Behandelaar (ontvanger)',currentUser.email],['Afname',st.client?'cliënt vulde zelf in op het toestel van de behandelaar':'ingevuld tijdens consultatie']);
+  let waarsch=[];
+  if(L.leeftijd&&leeft!==null&&(leeft<L.leeftijd[0]||leeft>L.leeftijd[1]))waarsch.push('Let op: leeftijd '+leeft+' jaar valt buiten het bereik van deze versie ('+L.leeftijd[0]+'-'+L.leeftijd[1]+' jaar).');
+  let score='';let tekstScore='';
+  if(st.code==='aq50'){
+    const r=scoreAQ(st.ant);
+    if(r.blanco.length)waarsch.push(r.blanco.length+' item(s) onbeantwoord: '+r.blanco.join(', ')+(r.onvolledigHoekstra?' — meer dan 5 blanco items: volgens Hoekstra et al. (2008) geldt de lijst dan als onvolledig.':'.'));
+    score+='<table><tr><th>Scoring</th><th>Score</th><th>Interpretatiehulp</th></tr>'
+      +'<tr><td>Standaardscoring (Baron-Cohen et al., 2001): 1 punt per antwoord in autistische richting</td><td><b>'+r.dich+' / 50</b></td><td>'
+      +(r.dich>=32?'&#9888; ≥ 32':'&lt; 32')+' — afkapwaarde 32 (Baron-Cohen et al., 2001).<br>'+(r.dich>=26?'&#9888; ≥ 26':'&lt; 26')+' — drempel 26 voor een klinische verwijspopulatie (Woodbury-Smith et al., 2005; sensitiviteit 0,95, specificiteit 0,52).</td></tr>'
+      +'<tr><td>Nederlandse 4-puntsscoring (Hoekstra et al., 2008): 1-4 per item</td><td><b>'+r.vier+'</b> (bereik 50-200)</td><td>Hoekstra et al. (2008): een totaalscore &gt; 145 bleek specifiek voor personen met ASS. De grens &#8220;110&#8221; uit het interne overzicht van de praktijk: bron niet teruggevonden.</td></tr></table>';
+    tekstScore='AQ standaard: '+r.dich+'/50 (afkap 32; klinisch 26)\nAQ 4-punts (Hoekstra): '+r.vier+' (50-200)\n';
+  }else if(st.code==='sqr'){
+    const r=scoreSQR(st.ant);
+    if(r.blanco.length)waarsch.push(r.blanco.length+' item(s) onbeantwoord: '+r.blanco.join(', ')+'. De instructie vermeldt dat de uitslag bij ontbrekende antwoorden onbruikbaar is.');
+    score+='<table><tr><th>Scoring</th><th>Score</th><th>Referentie</th></tr>'
+      +'<tr><td>SQ-R totaalscore (0/1/2 per item, scoringssleutel Autism Research Centre)</td><td><b>'+r.tot+' / 150</b></td><td>Gemiddelden (Wheelwright et al., 2006, tabel 2): ASS 77,2 (SD 23,8); typische mannen 61,2 (SD 19,2); typische vrouwen 51,7 (SD 19,2). Er is geen gepubliceerde afkapwaarde. Het interne overzicht vermeldt &#8220;vanaf 40&#8221;; het is niet duidelijk op welke versie of schaal dat slaat.</td></tr></table>';
+    tekstScore='SQ-R totaal: '+r.tot+'/150\n';
+  }else{
+    const r=scoreSDQ(L.sdq,st.ant,st.impact);
+    if(r.blanco.length)waarsch.push(r.blanco.length+' item(s) onbeantwoord: '+r.blanco.join(', ')+'. Een schaal wordt pro rata opgehoogd als minstens 3 van de 5 items beantwoord zijn.');
+    score+='<table><tr><th>Schaal</th><th>Score</th><th>4-bandenindeling</th><th>3-bandenindeling</th></tr>';
+    r.rijen.forEach(x=>{
+      const pro=x.id==='prosociaal';
+      const b4=x.b4<0?'—':(pro?B4P:B4)[x.b4];const b3=x.b3<0?'—':B3[x.b3];
+      const hl=(x.b4>=2)?' style="background:#fef3c7"':'';
+      score+='<tr'+hl+'><td>'+esc(x.label)+'</td><td><b>'+(x.score===null?'—':x.score)+'</b> / '+x.max+'</td><td>'+esc(b4)+'</td><td>'+esc(b3)+'</td></tr>';
+      tekstScore+=x.label+': '+(x.score===null?'-':x.score)+' ('+b4+')\n';
+    });
+    score+='</table><p class="klein">Grenswaarden volgens sdqinfo.org (sept. 2024), gebaseerd op Britse populatiegegevens; ruwe screening — combineer informanten. Niet gevalideerd voor 18+.</p>';
+  }
+  let ant='<table><tr><th>#</th><th>Item</th><th>Antwoord</th></tr>';let antTxt='';
+  L.items.forEach(it=>{const v=st.ant[it.nr];const lbl=v===undefined?'— onbeantwoord —':L.labels[L.sdq?v:v-1];ant+='<tr><td>'+it.nr+'.</td><td>'+esc(it.tekst)+'</td><td><b>'+esc(lbl)+'</b></td></tr>';antTxt+=it.nr+'. '+it.tekst+' -> '+lbl+'\n';});
+  ant+='</table>';
+  if(L.sdq){
+    const S=SDQ[L.sdq],im=st.impact;const o=(arr,i)=>i===undefined?'—':arr[i];
+    ant+='<table><tr><th colspan="2">Aanvullende vragen</th></tr><tr><td>'+esc(S.impactVraag)+'</td><td><b>'+esc(o(SDQ_Q1,im.q1))+'</b></td></tr>';
+    if(im.q1>0){
+      ant+='<tr><td>Hoe lang bestaan deze moeilijkheden?</td><td><b>'+esc(o(SDQ_DUUR,im.duur))+'</b></td></tr><tr><td>'+esc(S.overstuur)+'</td><td><b>'+esc(o(SDQ_IMPACT_OPTS,im.overstuur))+'</b></td></tr>';
+      S.gebieden.forEach((g,gi)=>{ant+='<tr><td>'+esc(S.belemmeren)+' — '+esc(g)+'</td><td><b>'+esc(o(SDQ_IMPACT_OPTS,im.gebieden[gi]))+'</b></td></tr>';});
+      ant+='<tr><td>'+esc(S.belasten)+'</td><td><b>'+esc(o(SDQ_IMPACT_OPTS,im.belasten))+'</b></td></tr>';
+    }
+    ant+='</table>';
+  }
+  let html='<div class="rap" style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:800px">';
+  html+='<h2 style="color:#312e81;margin:0 0 8px">'+esc(L.arts)+'</h2><table>';
+  kopR.forEach(([k,v])=>{html+='<tr><td><b>'+esc(k)+'</b></td><td>'+esc(v)+'</td></tr>';});
+  html+='</table>';
+  waarsch.forEach(w=>{html+='<p style="background:#fffbeb;border:1px solid #fcd34d;border-radius:7px;padding:7px 10px;font-size:12.5px;color:#92400e;margin:6px 0">'+esc(w)+'</p>';});
+  html+='<h3 style="color:#312e81;font-size:14.5px;margin:12px 0 6px">Scoring (enkel voor de behandelaar)</h3>'+score;
+  html+='<h3 style="color:#312e81;font-size:14.5px;margin:12px 0 6px">Antwoorden</h3>'+ant;
+  if(st.opm)html+='<p style="font-size:13px"><b>Opmerkingen:</b><br>'+esc(st.opm).replace(/\n/g,'<br>')+'</p>';
+  html+='<p style="font-size:10.5px;color:#6b7280;margin-top:12px">'+esc(DISCLAIMER)+'<br>'+esc(L.bron)+'<br>Automatisch verzonden via thefallacymachine.com — er wordt niets op de server bewaard.</p></div>';
+  const tekst=L.arts+'\n'+kopR.map(([k,v])=>k+': '+v).join('\n')+'\n\n'+(waarsch.length?waarsch.join('\n')+'\n\n':'')+'=== SCORING ===\n'+tekstScore+'\n=== ANTWOORDEN ===\n'+antTxt+(st.opm?'\nOpmerkingen: '+st.opm+'\n':'');
+  html=html.replace(/<table>/g,'<table style="border-collapse:collapse;width:100%;margin-bottom:12px">')
+    .replace(/<td>/g,'<td style="padding:4px 8px;border-bottom:1px solid #eee;vertical-align:top;font-size:13px">')
+    .replace(/<th>/g,'<th style="padding:4px 8px;border-bottom:2px solid #4f46e5;text-align:left;color:#4f46e5;font-size:12px">')
+    .replace(/<th colspan="2">/g,'<th colspan="2" style="padding:4px 8px;border-bottom:2px solid #4f46e5;text-align:left;color:#4f46e5;font-size:12px">');
+  const onderwerp=L.kort+' — '+(naam||'(naam ontbreekt)')+' — '+fmtD(V.datum);
+  return {code:st.code,html,tekst,onderwerp,mailStatus:'bezig'};
+}
+
+async function verstuur(rap){
+  rap.mailStatus='bezig';toonMailStatus();
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    const res=await fetch(FN_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+(session?session.access_token:'')},
+      body:JSON.stringify({lijst:rap.code,onderwerp:rap.onderwerp,html:rap.html,tekst:rap.tekst})});
+    const d=await res.json().catch(()=>({}));
+    if(!res.ok||d.error)throw new Error(d.error||('HTTP '+res.status));
+    rap.mailStatus='ok';rap.mailNaar=d.naar;
+  }catch(e){rap.mailStatus='fout';rap.mailFout=e.message||String(e);}
+  toonMailStatus();
+}
+function toonMailStatus(){
+  const m=el('mail-status');if(!m||!laatsteRapport)return;const r=laatsteRapport;
+  if(r.mailStatus==='bezig')m.innerHTML='<div class="banner info">Bezig met mailen naar '+esc(currentUser.email)+'…</div>';
+  else if(r.mailStatus==='ok')m.innerHTML='<div class="banner ok">&#10003; Gemaild naar <b>'+esc(r.mailNaar||currentUser.email)+'</b>.</div>';
+  else m.innerHTML='<div class="banner err"><b>Mailen is niet gelukt:</b> '+esc(r.mailFout)+'<br>Het resultaat staat hieronder nog; probeer opnieuw of druk het af. <button class="btn btn-ghost" style="margin-left:6px" onclick="verstuur(laatsteRapport)">Opnieuw mailen</button></div>';
+}
+function renderBedankt(){
+  el('app').innerHTML='<div class="bedankt"><h2>Bedankt!</h2><p style="font-size:15px;color:#374151;margin-bottom:22px">De vragenlijst is afgewerkt. Geef het toestel terug aan je behandelaar.</p>'
+    +'<button class="btn btn-ghost" onclick="renderResultaat()">Resultaat tonen (behandelaar)</button></div><div id="mail-status" style="margin-top:14px"></div>';
+  toonMailStatus();window.scrollTo(0,0);
+}
+function renderResultaat(){
+  let h=kop()+'<div id="mail-status"></div><div class="scoreblok">'+laatsteRapport.html+'</div>'
+    +'<div class="acties"><button class="btn btn-primary" onclick="printIngevuld()">Afdrukken / PDF</button><button class="btn btn-ghost" onclick="renderOverzicht()">Andere vragenlijst</button></div>';
+  el('app').innerHTML=h;toonMailStatus();window.scrollTo(0,0);
+}
+
+/* ===================== print ===================== */
+function doPrint(html){
+  el('print-area').innerHTML=html;document.body.classList.add('printing');
+  const klaar=()=>{document.body.classList.remove('printing');window.removeEventListener('afterprint',klaar);};
+  window.addEventListener('afterprint',klaar);window.print();setTimeout(klaar,1500);
+}
+function printIngevuld(){if(laatsteRapport)doPrint(laatsteRapport.html);}
+function printBlanco(code){
+  const L=LIJSTEN[code];
+  let h='<h1>'+esc(L.titel)+'</h1><div class="pmeta">'+VELDEN[L.velden].map(v=>esc(v.label)+': ______________________________').join('<br>')+'</div>';
+  h+='<div class="pinstr">'+esc(L.instructie)+'</div>';
+  h+='<table><tr><th style="text-align:left">Stelling</th>'+L.labels.map(l=>'<th>'+esc(l)+'</th>').join('')+'</tr>';
+  L.items.forEach(it=>{h+='<tr><td>'+it.nr+'. '+esc(it.tekst)+'</td>'+L.labels.map(()=>'<td class="c">&#9675;</td>').join('')+'</tr>';});
+  h+='</table>';
+  if(L.sdq){
+    const S=SDQ[L.sdq];const bx=a=>a.map(o=>'&#9744; '+esc(o)).join(' &nbsp; ');
+    h+='<div style="break-before:page"></div><p style="margin:8pt 0 4pt"><b>'+esc(S.impactVraag)+'</b><br>'+bx(SDQ_Q1)+'</p>';
+    h+='<p style="margin:6pt 0"><i>'+(L.sdq==='jongere'?'Als je “Ja” hebt geantwoord, wil je dan alsjeblieft de volgende vragen over deze moeilijkheden beantwoorden?':'Als u “Ja” heeft geantwoord, wilt u dan alstublieft de volgende vragen over deze moeilijkheden beantwoorden?')+'</i></p>';
+    h+='<p style="margin:6pt 0">&bull; Hoe lang bestaan deze moeilijkheden?<br>'+bx(SDQ_DUUR)+'</p>';
+    h+='<p style="margin:6pt 0">&bull; '+esc(S.overstuur)+'<br>'+bx(SDQ_IMPACT_OPTS)+'</p>';
+    h+='<p style="margin:6pt 0">&bull; '+esc(S.belemmeren)+'</p><table><tr><th></th>'+SDQ_IMPACT_OPTS.map(o=>'<th>'+esc(o)+'</th>').join('')+'</tr>'+S.gebieden.map(g=>'<tr><td>'+esc(g)+'</td>'+SDQ_IMPACT_OPTS.map(()=>'<td class="c">&#9744;</td>').join('')+'</tr>').join('')+'</table>';
+    h+='<p style="margin:6pt 0">&bull; '+esc(S.belasten)+'<br>'+bx(SDQ_IMPACT_OPTS)+'</p>';
+  }
+  h+='<p style="margin-top:10pt"><b>'+(L.sdq==='jongere'?'Heb je opmerkingen?':'Opmerkingen:')+'</b><br><br>_______________________________________________________________________________<br><br>_______________________________________________________________________________</p>';
+  h+='<div class="pvoet">'+esc(L.bron)+'</div>';
+  doPrint(h);
+}
+
+/* ===================== auth ===================== */
+async function doLogin(){
+  const email=el('auth-email').value.trim(),pw=el('auth-pw').value;
+  if(!email||!pw){el('auth-msg').innerHTML='<div class="msg">Vul email en wachtwoord in.</div>';return;}
+  const b=el('auth-btn');b.disabled=true;b.textContent='Bezig…';
+  const {error}=await sb.auth.signInWithPassword({email,password:pw});
+  b.disabled=false;b.textContent='Inloggen';
+  if(error){el('auth-msg').innerHTML='<div class="msg">'+esc(error.message)+'</div>';return;}
+  el('auth-msg').innerHTML='';onLoggedIn();
+}
+async function onLoggedIn(){
+  const {data:{user}}=await sb.auth.getUser();currentUser=user;
+  let ok=false;
+  try{const {data}=await sb.from('user_tool_access').select('tool_id').eq('user_id',user.id).eq('tool_id',TOOL_ID).maybeSingle();ok=!!data;}catch(_){}
+  el('auth-overlay').style.display='none';
+  if(!ok){el('app').innerHTML='<div class="banner err">Je hebt (nog) geen toegang tot de vragenlijsten. Vraag een beheerder om toegang.</div><a class="back-link" href="index.html">&larr; Hoofdpagina</a>';el('app').style.display='block';return;}
+  const code=params.get('lijst');
+  el('app').style.display='block';
+  if(code&&LIJSTEN[code])renderForm(code);else renderOverzicht();
+}
+(function init(){
+  if(!window.supabase){document.body.insertAdjacentHTML('afterbegin','<div class="wrap"><div class="banner err">De pagina kon niet laden. Controleer de internetverbinding.</div></div>');return;}
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+  sb.auth.getSession().then(({data:{session}})=>{if(session)onLoggedIn();else el('auth-overlay').style.display='flex';});
+})();
+</script>
+</body>
+</html>

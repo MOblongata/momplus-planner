@@ -297,6 +297,17 @@ if (typeof module !== "undefined" && module.exports) { module.exports = { vdbCom
 const params=new URLSearchParams(location.search);
 const VORM=params.get('vorm');
 const KIND_PREFILL=params.get('kind')||'';
+/* v3 (21/09/2026): inzendingen gaan naar de behandelaar die de invullink maakte (?arts=<user-id>). */
+const FRANK_ID='107fcf92-1034-4e82-9993-f9a8fb72e235';
+const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let ARTS_ID=params.get('arts');
+try{ if(ARTS_ID&&UUID_RE.test(ARTS_ID)) sessionStorage.setItem('vdb_arts',ARTS_ID); else ARTS_ID=sessionStorage.getItem('vdb_arts'); }catch(_){ if(!(ARTS_ID&&UUID_RE.test(ARTS_ID))) ARTS_ID=null; }
+if(ARTS_ID&&!UUID_RE.test(ARTS_ID)) ARTS_ID=null;
+function behandelaarId(){ return (typeof MODE!=='undefined'&&MODE==='arts'&&currentUser)?currentUser.id:ARTS_ID; }
+function isFrank(){ const id=behandelaarId(); return !id||id===FRANK_ID; }
+function privacyTekst(){ return isFrank()?BANK.teksten.privacy:BANK.teksten.privacy.replace('rechtstreeks naar Dr. Van Steenkiste gestuurd','rechtstreeks naar uw behandelaar gestuurd').replace(' Vragen? neurologie@drvansteenkiste.be',''); }
+function behNaam(){ return isFrank()?'Dr. Van Steenkiste':'uw behandelaar'; }
+function praktijkNaam(){ return isFrank()?'Praktijk Dr. F. Van Steenkiste — neurologie':'Praktijk — vragenlijsten'; }
 let sb=null,currentUser=null,IS_ARTS=false,MODE='invuller';
 let state={vorm:null,startedAt:Date.now(),antwoorden:{},functioneren:{},bijwerkingen:{},velden:{},medicatie:'',toelichting:'',opmerkingen:''};
 let laatsteInzending=null; // snapshot voor "Afdrukken (ingevulde versie)" na afwerken
@@ -336,7 +347,7 @@ function renderForm(vorm,modus){
   const sLbl=BANK.schalen.symptoom.labels,pLbl=BANK.schalen.functioneren.labels,bLbl=BANK.schalen.bijwerking.labels;
   let h='';
   h+='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
-    +'<span class="brand-sub">Praktijk Dr. F. Van Steenkiste — neurologie</span></div>';
+    +'<span class="brand-sub">'+praktijkNaam()+'</span></div>';
   if(artsMode){h+='<div class="top-right"><a class="back-link" onclick="renderDashboard()">&larr; Dashboard</a>'
     +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span></div>';}
   else{h+='<div class="top-right"><a class="back-link" onclick="renderInvullerDashboard()">&larr; Overzicht</a>'
@@ -344,7 +355,7 @@ function renderForm(vorm,modus){
   h+='</div>';
 
   h+='<div class="fcard"><div class="f-title">'+esc(F.titel)+'</div>'
-    +'<div class="f-praktijk">In te vullen voor de praktijk van Dr. Van Steenkiste. Alle vragen zijn in het Nederlands; kruis telkens het best passende antwoord aan.</div>'
+    +'<div class="f-praktijk">In te vullen voor '+(isFrank()?'de praktijk van Dr. Van Steenkiste':'uw behandelaar')+'. Alle vragen zijn in het Nederlands; kruis telkens het best passende antwoord aan.</div>'
     +'<div class="kop-grid">';
   F.velden.forEach(v=>{
     const val=state.velden[v.id]||'';
@@ -410,14 +421,14 @@ function renderForm(vorm,modus){
       +'<button class="btn btn-ghost" onclick="wisForm()">Wissen</button>';
   }else{
     h+='<button class="btn btn-primary btn-verzend" id="btn-verzend" onclick="verzend(\'invuller\')">Vragenlijst afwerken</button>'
-      +'<span class="klein">Bij het afwerken wordt uw ingevulde vragenlijst automatisch en beveiligd naar Dr. Van Steenkiste gestuurd.</span>';
+      +'<span class="klein">Bij het afwerken wordt uw ingevulde vragenlijst automatisch en beveiligd naar '+behNaam()+' gestuurd.</span>';
   }
   h+='</div>';
 
   // Voetteksten
   h+='<div class="footer-teksten">'
     +'<div class="klein">'+esc(BANK.teksten.disclaimer)+'</div>'
-    +(artsMode?'':'<div class="klein">'+esc(BANK.teksten.privacy)+'</div>')
+    +(artsMode?'':'<div class="klein">'+esc(privacyTekst())+'</div>')
     +'<div class="klein">'+esc(BANK.teksten.bron)+'</div>'
     +'</div>';
   h+='</div>'; // fcard
@@ -512,7 +523,8 @@ function bouwPayload(){
     toelichting:state.toelichting||'',
     opmerkingen:state.opmerkingen||'',
     hp:(el('hp-veld')&&el('hp-veld').value)||'',
-    verstrekenMs:Date.now()-state.startedAt
+    verstrekenMs:Date.now()-state.startedAt,
+    arts:(MODE==='arts'?null:ARTS_ID)
   };
 }
 
@@ -540,7 +552,7 @@ async function verzend(modus,forceer){
     }
   }catch(e){
     el('valideer-msg').innerHTML='<div class="banner err"><b>Verzenden is niet gelukt.</b> '+esc(e.message||'Onbekende fout')
-      +'<br>Uw antwoorden staan nog steeds in het formulier — probeer het zo dadelijk opnieuw. Blijft het misgaan, neem dan contact op met de praktijk: neurologie@drvansteenkiste.be</div>';
+      +'<br>Uw antwoorden staan nog steeds in het formulier — probeer het zo dadelijk opnieuw. Blijft het misgaan, neem dan contact op met '+(isFrank()?'de praktijk: neurologie@drvansteenkiste.be':'uw behandelaar')+'</div>';
     el('valideer-msg').scrollIntoView({behavior:'smooth',block:'center'});
     btn.disabled=false;btn.textContent=oud;
   }
@@ -686,8 +698,8 @@ function printHTML(F,modus){
 /* ===================== arts-dashboard ===================== */
 function renderDashboard(){
   let h='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
-    +'<span class="brand-sub">ADHD-vragenlijsten (Vanderbilt) &middot; praktijk Dr. Van Steenkiste</span></div>'
-    +'<div class="top-right"><a class="back-link" href="praktijk.html">&larr; Alle tools</a>'
+    +'<span class="brand-sub">ADHD-vragenlijsten (Vanderbilt) &middot; '+(isFrank()?'praktijk Dr. Van Steenkiste':'praktijk')+'</span></div>'
+    +'<div class="top-right"><a class="back-link" href="vragenlijsten.html">&larr; Vragenlijsten</a>'
     +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
     +'<button class="btn-logout" onclick="doLogout()">Uitloggen</button></div></div>';
   h+='<div class="banner info">Kies een vragenlijst: <b>nu invullen</b> (score meteen zichtbaar), <b>afdrukken</b> als blanco papieren versie, of <b>een invullink kopiëren</b> om naar een ouder of leerkracht te sturen. Ouders en leerkrachten melden zich op die pagina eerst aan met hun e-mailadres (aanmeldlink, geen wachtwoord) en zien enkel de invulblokjes — géén scores en niets anders van de site. Ingevulde lijsten komen automatisch in je mailbox, inclusief scoring en het geverifieerde e-mailadres van de invuller.</div>';
@@ -710,7 +722,7 @@ function renderDashboard(){
   });
   h+='</div>';
   h+='<div class="footer-teksten"><div class="klein">'+esc(BANK.teksten.bron)+'</div>'
-    +'<div class="klein">Beveiligd via Supabase &middot; inzendingen gaan rechtstreeks naar neurologie@drvansteenkiste.be &middot; er wordt niets op de server bewaard.</div></div>';
+    +'<div class="klein">Beveiligd via Supabase &middot; inzendingen via jouw invullinks gaan rechtstreeks naar '+esc(currentUser&&currentUser.email||'jouw e-mailadres')+' &middot; er wordt niets op de server bewaard.</div></div>';
   el('app').innerHTML=h;
   el('app').style.display='block';
   document.title='ADHD-vragenlijsten';
@@ -729,7 +741,7 @@ function printBlanco(code){
 function bouwLink(code){
   const kind=(el('link-kind')&&el('link-kind').value.trim())||'';
   const base=location.origin+location.pathname;
-  return base+'?vorm='+encodeURIComponent(code)+(kind?'&kind='+encodeURIComponent(kind):'');
+  return base+'?vorm='+encodeURIComponent(code)+(kind?'&kind='+encodeURIComponent(kind):'')+(currentUser&&currentUser.id?'&arts='+encodeURIComponent(currentUser.id):'');
 }
 function linknaamGewijzigd(){el('link-status').textContent='';}
 async function kopieerLink(code){
@@ -744,18 +756,18 @@ function mailLink(code){
   const isOuder=F.rol==='ouder';
   const aanhef=isOuder?'Beste ouder':'Beste leerkracht';
   const wie=isOuder?('uw kind'+(kind!=='uw kind'?' ('+kind+')':'')):kind;
-  const body=aanhef+',\n\nIn het kader van de begeleiding door de praktijk van Dr. Van Steenkiste willen wij u vragen een korte gedragsvragenlijst (ADHD-vragenlijst) in te vullen over '+wie+'.\n\nDat kan online via deze beveiligde pagina (5 à 10 minuten):\n'+url+'\n\nU meldt zich daar eerst eenmalig aan met uw e-mailadres — u ontvangt dan meteen een persoonlijke aanmeldlink, zonder wachtwoord. Daarna kiest u de gevraagde vragenlijst en vult u ze in.\n\nUw antwoorden komen rechtstreeks en vertrouwelijk bij Dr. Van Steenkiste terecht; er wordt niets op de website bewaard.\n\nAlvast hartelijk bedankt!\n\nMet vriendelijke groeten,\nPraktijk Dr. F. Van Steenkiste — neurologie';
-  location.href='mailto:?subject='+encodeURIComponent('ADHD-vragenlijst voor de praktijk van Dr. Van Steenkiste')+'&body='+encodeURIComponent(body);
+  const body=aanhef+',\n\nIn het kader van de begeleiding door '+(isFrank()?'de praktijk van Dr. Van Steenkiste':'onze praktijk')+' willen wij u vragen een korte gedragsvragenlijst (ADHD-vragenlijst) in te vullen over '+wie+'.\n\nDat kan online via deze beveiligde pagina (5 à 10 minuten):\n'+url+'\n\nU meldt zich daar eerst eenmalig aan met uw e-mailadres — u ontvangt dan meteen een persoonlijke aanmeldlink, zonder wachtwoord. Daarna kiest u de gevraagde vragenlijst en vult u ze in.\n\nUw antwoorden komen rechtstreeks en vertrouwelijk bij '+(isFrank()?'Dr. Van Steenkiste':'uw behandelaar')+' terecht; er wordt niets op de website bewaard.\n\nAlvast hartelijk bedankt!\n\nMet vriendelijke groeten,\n'+(isFrank()?'Praktijk Dr. F. Van Steenkiste — neurologie':'');
+  location.href='mailto:?subject='+encodeURIComponent(isFrank()?'ADHD-vragenlijst voor de praktijk van Dr. Van Steenkiste':'ADHD-vragenlijst')+'&body='+encodeURIComponent(body);
 }
 
 /* ===================== invuller-dashboard ===================== */
 function renderInvullerDashboard(){
   MODE='invuller';
   let h='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
-    +'<span class="brand-sub">ADHD-vragenlijsten &middot; praktijk Dr. F. Van Steenkiste — neurologie</span></div>'
+    +'<span class="brand-sub">ADHD-vragenlijsten &middot; '+praktijkNaam()+'</span></div>'
     +'<div class="top-right"><span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
     +'<button class="btn-logout" onclick="doLogout()">Afmelden</button></div></div>';
-  h+='<div class="banner info">Welkom! Kies hieronder de vragenlijst die de praktijk u vroeg in te vullen. Vul bovenaan de naam van het kind in, beantwoord alle vragen en klik onderaan op <b>&#8220;Vragenlijst afwerken&#8221;</b> — uw antwoorden worden dan automatisch en beveiligd naar Dr. Van Steenkiste gestuurd. Daarna kan u desgewenst nog een andere vragenlijst invullen, bv. voor een ander kind.</div>';
+  h+='<div class="banner info">Welkom! Kies hieronder de vragenlijst die de praktijk u vroeg in te vullen. Vul bovenaan de naam van het kind in, beantwoord alle vragen en klik onderaan op <b>&#8220;Vragenlijst afwerken&#8221;</b> — uw antwoorden worden dan automatisch en beveiligd naar '+behNaam()+' gestuurd. Daarna kan u desgewenst nog een andere vragenlijst invullen, bv. voor een ander kind.</div>';
   h+='<div class="cards">';
   Object.entries(BANK.formulieren).forEach(([code,F])=>{
     const wie=F.rol==='ouder'?'In te vullen door een ouder':'In te vullen door een leerkracht';
@@ -763,7 +775,7 @@ function renderInvullerDashboard(){
       +'<div class="acts"><button class="btn btn-primary" onclick="renderForm(\''+code+'\',\'invuller\')">Invullen</button></div></div>';
   });
   h+='</div>';
-  h+='<div class="footer-teksten"><div class="klein">'+esc(BANK.teksten.privacy)+'</div>'
+  h+='<div class="footer-teksten"><div class="klein">'+esc(privacyTekst())+'</div>'
     +'<div class="klein">'+esc(BANK.teksten.disclaimer)+'</div>'
     +'<div class="klein">'+esc(BANK.teksten.bron)+'</div></div>';
   el('app').innerHTML=h;
@@ -814,6 +826,7 @@ async function onLoggedIn(){
   else{renderInvullerDashboard();}
 }
 (function init(){
+  try{ if(!isFrank()){ const sub=document.querySelector('#auth-overlay .sub'); if(sub) sub.textContent='Praktijk — vragenlijsten'; } }catch(_){}
   if(!window.supabase){
     document.body.insertAdjacentHTML('afterbegin','<div class="wrap"><div class="banner err">De pagina kon niet volledig laden. Controleer uw internetverbinding en vernieuw de pagina.</div></div>');
     return;
