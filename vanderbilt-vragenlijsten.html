@@ -359,8 +359,8 @@ function renderForm(vorm,modus){
     +'<span class="brand-sub">'+praktijkNaam()+'</span></div>';
   if(artsMode){h+='<div class="top-right"><a class="back-link" onclick="renderDashboard()">&larr; Dashboard</a>'
     +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span></div>';}
-  else{h+='<div class="top-right"><a class="back-link" onclick="renderInvullerDashboard()">&larr; Overzicht</a>'
-    +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span></div>';}
+  else{h+='<div class="top-right"><span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
+    +'<button class="btn-logout" onclick="doLogout()">Afmelden</button></div>';}
   h+='</div>';
 
   h+='<div class="fcard"><div class="f-title">'+esc(F.titel)+'</div>'
@@ -568,11 +568,11 @@ async function verzend(modus,forceer){
 }
 function toonBevestiging(){
   el('app').innerHTML='<div class="done-card"><div class="big">&#9989;</div>'
-    +'<h2>Bedankt!</h2><p>Uw ingevulde vragenlijst werd automatisch en beveiligd naar Dr.&nbsp;Van&nbsp;Steenkiste gestuurd.<br>'
+    +'<h2>Bedankt!</h2><p>Uw ingevulde vragenlijst werd automatisch en beveiligd naar '+esc(behNaam())+' gestuurd.<br>'
     +'Er worden geen antwoorden op deze website bewaard.</p>'
     +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px">'
     +'<button class="btn btn-ghost" onclick="printAfwerking()">&#128424; Afdrukken (ingevulde versie)</button>'
-    +'<button class="btn btn-primary" onclick="renderInvullerDashboard()">Terug naar het overzicht</button>'
+    +'<button class="btn btn-primary" onclick="doLogout()">Afmelden</button>'
     +'</div></div>';
   window.scrollTo(0,0);
 }
@@ -817,26 +817,18 @@ async function verstuurUitnodiging(code){
 
 /* ===================== invuller-dashboard ===================== */
 function renderInvullerDashboard(){
+  /* v4 (23/09/2026): ouders/leerkrachten kunnen enkel de vragenlijst invullen waarvoor ze een link kregen.
+     Zonder geldige link (geen ?vorm=) is er geen keuzemenu meer. */
   MODE='invuller';
   let h='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
     +'<span class="brand-sub">ADHD-vragenlijsten &middot; '+praktijkNaam()+'</span></div>'
     +'<div class="top-right"><span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
     +'<button class="btn-logout" onclick="doLogout()">Afmelden</button></div></div>';
-  h+='<div class="banner info">Welkom! Kies hieronder de vragenlijst die de praktijk u vroeg in te vullen. Vul bovenaan de naam van het kind in, beantwoord alle vragen en klik onderaan op <b>&#8220;Vragenlijst afwerken&#8221;</b> — uw antwoorden worden dan automatisch en beveiligd naar '+behNaam()+' gestuurd. Daarna kan u desgewenst nog een andere vragenlijst invullen, bv. voor een ander kind.</div>';
-  h+='<div class="cards">';
-  Object.entries(BANK.formulieren).forEach(([code,F])=>{
-    const wie=F.rol==='ouder'?'In te vullen door een ouder':'In te vullen door een leerkracht';
-    h+='<div class="card"><h3>'+F.icoon+' '+esc(F.kort)+'</h3><div class="card-sub">'+esc(F.titel)+'<br>'+wie+'</div>'
-      +'<div class="acts"><button class="btn btn-primary" onclick="renderForm(\''+code+'\',\'invuller\')">Invullen</button></div></div>';
-  });
-  h+='</div>';
-  h+='<div class="footer-teksten"><div class="klein">'+esc(privacyTekst())+'</div>'
-    +'<div class="klein">'+esc(BANK.teksten.disclaimer)+'</div>'
-    +'<div class="klein">'+esc(BANK.teksten.bron)+'</div></div>';
-  el('app').innerHTML=h;
-  el('app').style.display='block';
-  document.title='ADHD-vragenlijsten';
-  window.scrollTo(0,0);
+  h+='<div class="banner info"><b>Deze pagina werkt enkel via de persoonlijke link die u van de praktijk kreeg.</b><br>'
+    +'Open de link uit de e-mail of het bericht van '+esc(behNaam())+' opnieuw; u komt dan rechtstreeks bij de gevraagde vragenlijst terecht. '
+    +'Hebt u geen link ontvangen, neem dan contact op met de praktijk.</div>';
+  h+='<div class="footer-teksten"><div class="klein">'+esc(privacyTekst())+'</div></div>';
+  el('app').innerHTML=h;el('app').style.display='block';window.scrollTo(0,0);
 }
 
 /* ===================== auth & init ===================== */
