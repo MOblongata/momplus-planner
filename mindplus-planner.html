@@ -246,19 +246,36 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
   <span class="save-status" id="save-status">Laden...</span>
   <button class="btn-sv primary" onclick="openScenariosModal()">📚 Scenario's</button>
   <button class="btn-sv danger" onclick="resetConfirm()">↺ Reset</button>
+  <button class="btn-sv" onclick="runZelftest()" title="Controleert of v1 en v2 dezelfde cijfers geven en of de inkomen-omrekeningen kloppen">⚙ Zelftest</button>
   <button class="btn-logout" id="btn-logout" onclick="doLogout()" style="display:none">⏻ Uitloggen</button>
 </div>
-<div class="tabs">
-  <button class="tab-btn active" onclick="showTab('fin',this)">📊 Financieel</button>
-  <button class="tab-btn" onclick="showTab('rooster',this)">📅 Rooster</button>
-  <button class="tab-btn" onclick="showTab('team',this)">👥 Team</button>
-  <button class="tab-btn" onclick="showTab('ific',this)">💰 IFIC</button>
-  <button class="tab-btn" onclick="showTab('kosten',this)">💶 Kosten</button>
-  <button class="tab-btn" onclick="showTab('overleg',this)">🗣 Overleg</button>
-  <button class="tab-btn" onclick="showTab('capp',this)">☕ Cappuccino</button>
-  <button class="tab-btn" onclick="showTab('mix',this)">📋 Mix</button>
-  <button class="tab-btn" onclick="showTab('cap',this)">📊 Capaciteit</button>
+<!-- ====== Versie-schakelaar (v1 klassiek / v2 inkomen) ====== -->
+<div class="card" id="versie-bar" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;margin-bottom:8px">
+  <div style="flex:1;min-width:240px">
+    <div style="font-weight:700;font-size:13.5px;color:#1f2937">🔀 Planner-versie</div>
+    <div style="font-size:11.5px;color:#6b7280;margin-top:2px" id="versie-uitleg"></div>
+  </div>
+  <div class="modus-switch" id="versie-switch">
+    <button data-versie="v1" onclick="setPlannerVersie('v1')">Klassiek (v1)</button>
+    <button data-versie="v2" onclick="setPlannerVersie('v2')">💶 Inkomen (v2)</button>
+  </div>
 </div>
+<div class="tabs">
+  <button class="tab-btn" data-tab="handleiding" data-v="v2" onclick="showTab('handleiding',this)">📖 Handleiding</button>
+  <button class="tab-btn active" data-tab="fin" onclick="showTab('fin',this)">📊 Financieel</button>
+  <button class="tab-btn" data-tab="rooster" onclick="showTab('rooster',this)">📅 Rooster</button>
+  <button class="tab-btn" data-tab="team" onclick="showTab('team',this)">👥 Team</button>
+  <button class="tab-btn" data-tab="inkomen" data-v="v2" onclick="showTab('inkomen',this)">💶 Inkomen</button>
+  <button class="tab-btn" data-tab="ific" onclick="showTab('ific',this)">💰 IFIC</button>
+  <button class="tab-btn" data-tab="kosten" onclick="showTab('kosten',this)">💶 Kosten</button>
+  <button class="tab-btn" data-tab="overleg" data-v="v1" onclick="showTab('overleg',this)">🗣 Overleg</button>
+  <button class="tab-btn" data-tab="capp" data-v="v1" onclick="showTab('capp',this)">☕ Cappuccino</button>
+  <button class="tab-btn" data-tab="mix" data-v="v1" onclick="showTab('mix',this)">📋 Mix</button>
+  <button class="tab-btn" data-tab="cap" data-v="v1" onclick="showTab('cap',this)">📊 Capaciteit</button>
+</div>
+
+<div id="tab-handleiding" class="tab-pane"><div id="handleiding-content"></div></div>
+<div id="tab-inkomen" class="tab-pane"><div id="inkomen-content"></div></div>
 
 <div id="tab-fin" class="tab-pane active">
   <div class="card" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -343,7 +360,14 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
     <div class="rooster-wrap"><table class="rt" id="rt"></table></div>
     <p class="note" id="rooster-note" style="margin-top:8px"></p>
   </div>
-  <div class="card">
+  <div class="card" id="rooster-blokduur-card" style="display:none">
+    <div class="card-title">⏱ Blokduur (v2)</div>
+    <p class="note" style="margin-bottom:8px">Hoeveel uur telt één rooster-blok? Deze uren bepalen in de Inkomen- en Financieel-tab hoeveel iemand per blok verdient (uurtarief × blokuren).</p>
+    <div class="param-row"><div class="param-label">Dagblok (VM / NM)</div><input type="number" class="param-input" id="blk-dag" min="1" max="12" step="0.25" oninput="setBlokUren('dag',+this.value)"><span class="param-unit">uur</span></div>
+    <div class="param-row"><div class="param-label">Avondblok (Av)</div><input type="number" class="param-input" id="blk-av" min="0.5" max="12" step="0.25" oninput="setBlokUren('av',+this.value)"><span class="param-unit">uur</span></div>
+    <p class="note" id="blk-info" style="margin-top:6px"></p>
+  </div>
+  <div class="card" id="rooster-mdo-config">
     <div class="card-title">🗣 MDO-blokken — configuratie</div>
     <div class="param-row"><div class="param-label">Blokduur<small>één MDO-blok</small></div><input type="number" class="param-input" id="mdo-blokUren" value="2" min="0.5" max="8" step="0.5" oninput="setMdoConfig('blokUren',+this.value)"><span class="param-unit">uur</span></div>
     <div class="param-row"><div class="param-label">MDO's per uur</div><input type="number" class="param-input" id="mdo-mdoPerUur" value="3" min="1" max="10" oninput="setMdoConfig('mdoPerUur',+this.value)"><span class="param-unit">/uur</span></div>
@@ -351,7 +375,7 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
     <div class="param-row"><div class="param-label">Tarief per MDO<small>uit Mix-tab (eerste MDO-act)</small></div><span id="mdo-tarief-info" style="font-weight:700;color:#7c3aed;flex:0">—</span><span class="param-unit"></span></div>
     <div id="mdo-overzicht" style="background:#f9fafb;border-radius:8px;padding:11px;margin-top:9px;font-size:12px"></div>
   </div>
-  <div class="card">
+  <div class="card" id="rooster-mdo-agenda">
     <div class="card-title">🗣 MDO-agenda</div>
     <p class="note" style="margin-bottom:8px">Klik op een tijdslot om een MDO-blok van <strong id="mdo-blkdur-info">2u</strong> in te plannen. Cellen tijdens consultatieblokken zonder vrij bureau zijn niet aanklikbaar. Onder de agenda zie je wie kan deelnemen.</p>
     <div id="mdo-agenda-wrap" style="overflow-x:auto"></div>
@@ -363,14 +387,14 @@ td input:focus{outline:none;border-color:#4f46e5;background:#fff;}
 <div id="tab-team" class="tab-pane">
   <div class="card">
     <div class="card-title">Teamleden &amp; planning</div>
-    <table><thead><tr><th>Naam</th><th style="width:56px">Type</th><th style="width:62px">Wk/jaar</th><th style="width:28px"></th></tr></thead><tbody id="team-tbody"></tbody></table>
+    <table><thead id="team-thead"><tr><th>Naam</th><th style="width:56px">Type</th><th style="width:62px">Wk/jaar</th><th style="width:28px"></th></tr></thead><tbody id="team-tbody"></tbody></table>
     <div class="add-row">
       <div><label>Naam</label><input type="text" id="nh-naam" placeholder="Naam" style="width:160px"></div>
       <div><label>Type</label><select id="nh-type"><option value="zelfstandige">Zelfstandige</option><option value="bediende">Bediende</option></select></div>
       <div><label>Wk/jaar</label><input type="number" id="nh-wkjr" placeholder="46" style="width:62px"></div>
       <button class="btn btn-primary" onclick="addPersoon()">+ Toevoegen</button>
     </div>
-    <div class="alert alert-info" style="margin-top:10px">Voor consultatiemix, tarieven en afdracht-%: gebruik de <strong>📋 Mix</strong>-tab en de <strong>📊 Financieel</strong>-tab.</div>
+    <div class="alert alert-info" style="margin-top:10px" id="team-hint">Voor consultatiemix, tarieven en afdracht-%: gebruik de <strong>📋 Mix</strong>-tab en de <strong>📊 Financieel</strong>-tab.</div>
   </div>
 </div>
 
@@ -572,7 +596,9 @@ const BLOK_MIN_DAG=330,BLOK_MIN_AV=270;
 const BLOK_MIN=BLOK_MIN_DAG; // backward compat
 function blokMinForBi(bi){return bi===2?BLOK_MIN_AV:BLOK_MIN_DAG;}
 // Aandeel avondblok t.o.v. dagblok (qua duur) — gebruikt voor pro rata bij niet-mix flow
-function avondShare(){return BLOK_MIN_AV/BLOK_MIN_DAG;}
+function avondShare(){return (typeof isV2==='function'&&isV2())?blokUren(2)/blokUren(0):BLOK_MIN_AV/BLOK_MIN_DAG;}
+// Tab-effect actief? In v2 bestaan Overleg/Mix/Cappuccino/MDO niet → altijd uit.
+function tabOn(name){return !isV2()&&!!tabsEnabled[name];}
 let idCtr=300,finChart=null,rChart=null;
 function recomputeIdCtr(){
   const num=s=>{if(typeof s!=='string')return 0;const m=s.match(/(\d+)$/);return m?+m[1]:0;};
@@ -690,6 +716,109 @@ function setPersonCappVastPerBlok(pid,v){personCappVastPerBlok[pid]=Math.max(0,+
 function tierGewicht(t){return t==='senior'?2:(t==='ervaren'?1.5:1);}
 function getPersonTier(p){return p&&(p.tier==='ervaren'||p.tier==='senior')?p.tier:'basis';}
 function setPersonTier(pid,t){const p=team.find(x=>x.id===pid);if(!p)return;p.tier=(t==='senior'||t==='ervaren')?t:'basis';renderFin();renderCapp();onAnyChange();}
+
+// ===== PLANNER v2 — INKOMEN-MODEL =====
+// v1 (klassiek): bruto per blok = tarief × cons × (1−overhead), of consultatiemix.
+// v2 (inkomen):  per teamlid één ingevoerd inkomen (uur/dagdeel/week/maand/jaar) gekoppeld aan referentie-uren
+//                → uurtarief → bruto per blok = uurtarief × blokuren. Rooster levert de uren.
+//                Overleg-, Mix-, Cappuccino- en Capaciteit-tab bestaan niet in v2; hun effecten staan op 0.
+let plannerVersie='v1';                 // 'v1' | 'v2' — bestaande states blijven v1 tot de gebruiker omschakelt
+let blokUrenCfg={dag:5.5,av:4.5};       // uren per dagblok / avondblok (instelbaar in Rooster-tab, v2)
+let personInkomen={};                   // {pid:{bedrag, periode:'uur'|'dagdeel'|'week'|'maand'|'jaar', maanden:[..], urenBasis:'manueel'|'rooster', urenWk, bron:'manueel'|'ific'}}
+let personIfic={};                      // {pid:{categorie, ancien, ftePct, sociaalMaribel, extralegaalMnd, fteUitRooster:bool}}
+const INKOMEN_PERIODES=[['uur','per uur'],['dagdeel','per dagdeel'],['week','per week'],['maand','per maand'],['jaar','per jaar']];
+function isV2(){return plannerVersie==='v2';}
+function blokUren(bi){return bi===2?(+blokUrenCfg.av||4.5):(+blokUrenCfg.dag||5.5);}
+function setBlokUren(k,v){v=+v;if(!isFinite(v)||v<=0)return;blokUrenCfg[k==='av'?'av':'dag']=v;refreshAll();onAnyChange();}
+function urenRooster(p){return dagBlokken(p)*blokUren(0)+avondDelen(p)*blokUren(2);}
+function getInkomen(p){const i=personInkomen[p.id];return i?i:null;}
+function ensureInkomen(pid){
+  if(!personInkomen[pid])personInkomen[pid]={bedrag:0,periode:'maand',maanden:[],urenBasis:'manueel',urenWk:0,bron:'manueel'};
+  const i=personInkomen[pid];
+  if(!Array.isArray(i.maanden))i.maanden=[];
+  if(!INKOMEN_PERIODES.some(x=>x[0]===i.periode))i.periode='maand';
+  if(i.urenBasis!=='rooster')i.urenBasis='manueel';
+  if(i.bron!=='ific')i.bron='manueel';
+  return i;
+}
+// Referentie-uren/week: waar het ingevoerde inkomen bij hoort (manueel of = rooster)
+function urenRef(p){const i=getInkomen(p);if(!i)return 0;return i.urenBasis==='rooster'?urenRooster(p):Math.max(0,+i.urenWk||0);}
+// Effectief ingevoerd bedrag: bij periode 'maand' met meerdere maanden → gemiddelde
+function inkomenBedrag(p){
+  const i=getInkomen(p);if(!i)return 0;
+  if(i.periode==='maand'){
+    const m=(i.maanden||[]).map(x=>+x).filter(x=>isFinite(x)&&x>0);
+    if(m.length)return m.reduce((s,x)=>s+x,0)/m.length;
+  }
+  return Math.max(0,+i.bedrag||0);
+}
+// Jaarbedrag-equivalent (voor weergave): op basis van referentie-uren
+function inkomenJaarEq(p){const r=uurtarief(p),U=urenRef(p),W=+p.wkjr||46;return r*U*W;}
+// Uurtarief in €/u — de spil van v2
+function uurtarief(p){
+  const i=getInkomen(p);if(!i)return 0;
+  const b=inkomenBedrag(p);if(!(b>0))return 0;
+  const W=+p.wkjr||46,U=urenRef(p);
+  switch(i.periode){
+    case 'uur':return b;
+    case 'dagdeel':return b/blokUren(0);
+    case 'week':return U>0?b/U:0;
+    case 'maand':return (W*U)>0?b*12/(W*U):0;
+    case 'jaar':return (W*U)>0?b/(W*U):0;
+  }
+  return 0;
+}
+// Heeft dit inkomen alles wat nodig is om een uurtarief te geven?
+function inkomenStatus(p){
+  const i=getInkomen(p);
+  if(p.type==='bediende'&&i&&i.bron==='ific'&&personIfic[p.id])return {ok:true,msg:'via IFIC'};
+  if(!i||!(inkomenBedrag(p)>0))return {ok:false,msg:'geen inkomen ingevuld'};
+  if(['week','maand','jaar'].includes(i.periode)&&!(urenRef(p)>0))return {ok:false,msg:i.urenBasis==='rooster'?'geen roosterblokken':'geen referentie-uren'};
+  return {ok:true,msg:''};
+}
+// Bruto omzet per maand volgens rooster (zelfstandigen, v2)
+function brutoMndV2(p){if(p.type==='bediende')return 0;return uurtarief(p)*urenRooster(p)*wkPerMaand(p);}
+// Loonkost per maand bediende (v2): IFIC-totaal/12, of ingevoerd inkomen op REFERENTIE-uren (contract, niet rooster)
+function loonkostMnd(p){
+  if(p.type!=='bediende')return 0;
+  const i=getInkomen(p);
+  if(i&&i.bron==='ific'&&personIfic[p.id])return calcIfic(personIficInputs(p.id)).totJr/12;
+  return uurtarief(p)*urenRef(p)*wkPerMaand(p);
+}
+// IFIC-inputs per bediende, met FTE optioneel uit rooster (uren/38)
+function personIficInputs(pid){
+  const p=team.find(x=>x.id===pid);
+  const base={categorie:16,ancien:0,ftePct:100,sociaalMaribel:false,extralegaalMnd:0,burgerlijke:'alleenstaande',kinderen:0,werkbonus:true,fteUitRooster:true};
+  const pi={...base,...(personIfic[pid]||{})};
+  if(pi.fteUitRooster&&p){pi.ftePct=Math.max(0.1,Math.min(100,urenRooster(p)/38*100));}
+  return pi;
+}
+function setPlannerVersie(v){
+  if(v!=='v1'&&v!=='v2')return;
+  plannerVersie=v;
+  refreshAll();onAnyChange();
+}
+function applyVersieUI(){
+  document.querySelectorAll('#versie-switch button').forEach(b=>b.classList.toggle('active',b.dataset.versie===plannerVersie));
+  document.querySelectorAll('.tab-btn[data-v]').forEach(b=>{b.style.display=(b.dataset.v===plannerVersie)?'':'none';});
+  const actB=document.querySelector('.tab-btn.active');
+  if(actB&&actB.dataset.v&&actB.dataset.v!==plannerVersie){const fin=document.querySelector('.tab-btn[data-tab="fin"]');document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-fin').classList.add('active');if(fin)fin.classList.add('active');}
+  const u=document.getElementById('versie-uitleg');
+  if(u)u.innerHTML=isV2()
+    ?'<strong>v2 — Inkomen:</strong> per teamlid vul je in de <strong>💶 Inkomen</strong>-tab één inkomen in (per uur, dagdeel, week, maand of jaar) bij een aantal uren. Het rooster bepaalt de effectieve uren; Financieel rekent er afdracht-% of huur op. Overleg, Mix en Cappuccino bestaan hier niet.'
+    :'<strong>v1 — Klassiek:</strong> bruto = tarief × consulten per blok (of consultatiemix), met optionele Overleg-overhead, Cappuccino-pools en Capaciteit. Schakel naar <strong>v2</strong> voor het inkomensmodel.';
+  const bc=document.getElementById('rooster-blokduur-card');if(bc)bc.style.display=isV2()?'':'none';
+  ['rooster-mdo-config','rooster-mdo-agenda'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=isV2()?'none':'';});
+  const th=document.getElementById('team-hint');
+  if(th)th.innerHTML=isV2()
+    ?'Inkomen, uren en weken/jaar per teamlid: zie de <strong>💶 Inkomen</strong>-tab. Afdracht-% of huur: <strong>📊 Financieel</strong>.'
+    :'Voor consultatiemix, tarieven en afdracht-%: gebruik de <strong>📋 Mix</strong>-tab en de <strong>📊 Financieel</strong>-tab.';
+  const bd=document.getElementById('blk-dag'),ba=document.getElementById('blk-av');
+  if(bd&&document.activeElement!==bd)bd.value=blokUrenCfg.dag;
+  if(ba&&document.activeElement!==ba)ba.value=blokUrenCfg.av;
+  const bi=document.getElementById('blk-info');
+  if(bi)bi.textContent='Een week met 10 dagblokken = '+(10*blokUren(0)).toFixed(1)+' u; een avondblok telt '+(blokUren(2)/blokUren(0)*100).toFixed(0)+'% van een dagblok.';
+}
 
 // ===== IFIC Loonkost-calculator =====
 // Disclaimer: indicatieve berekening. Geen vervanging voor sociaal secretariaat.
@@ -998,6 +1127,7 @@ function calcIfic(inp){
 }
 
 function setIficInput(key,v){
+  if(ificSelectedPid&&personIfic[ificSelectedPid]){setPersonIficInput(ificSelectedPid,key,v);return;}
   if(key==='categorie')ificInputs.categorie=Math.max(14,Math.min(20,+v||16));
   else if(key==='ancien')ificInputs.ancien=Math.max(0,Math.min(35,+v||0));
   else if(key==='ftePct')ificInputs.ftePct=Math.max(0.1,Math.min(100,+v||0));
@@ -1076,6 +1206,7 @@ let personAvond={};      // {pid:{actId:routing}}
 // Scenario's: primair via Supabase (gedeeld per tool), fallback naar localStorage
 const SCENARIOS_KEY='mindplus-planner-scenarios-v1';
 let scenariosCache=[];
+let scenariosToonAndere=false; // scenario-modal: ook scenario's van de andere planner-versie tonen
 function loadScenariosLS(){try{const r=localStorage.getItem(SCENARIOS_KEY);return r?JSON.parse(r):[];}catch(e){return[];}}
 function saveScenariosLS(arr){try{localStorage.setItem(SCENARIOS_KEY,JSON.stringify(arr));}catch(e){alert('Kan scenario niet opslaan: '+e.message);}}
 async function refreshScenariosCache(){
@@ -1103,9 +1234,9 @@ async function saveAsScenario(){
   const nEl=document.getElementById('scenario-naam'),naam=(nEl?.value||'').trim();
   if(!naam){alert('Geef het scenario een naam.');return;}
   if(sb&&currentUser){
-    const dup=scenariosCache.find(s=>s.naam.toLowerCase()===naam.toLowerCase());
+    const dup=scenariosCache.find(s=>s.naam.toLowerCase()===naam.toLowerCase()&&(((s.state&&s.state.plannerVersie==='v2')?'v2':'v1')===plannerVersie));
     if(dup){
-      if(!confirm('Scenario "'+naam+'" bestaat al. Overschrijven?'))return;
+      if(!confirm('Scenario "'+naam+'" bestaat al ('+plannerVersie+'). Overschrijven?'))return;
       const {error}=await sb.from('scenarios').update({state:buildState(),updated_at:new Date().toISOString()}).eq('id',dup.id);
       if(error){alert('Fout bij opslaan: '+error.message);return;}
     } else {
@@ -1115,8 +1246,8 @@ async function saveAsScenario(){
     await refreshScenariosCache();
   } else {
     const arr=loadScenariosLS();
-    const dup=arr.find(s=>s.naam.toLowerCase()===naam.toLowerCase());
-    if(dup){if(!confirm('Scenario "'+naam+'" bestaat al. Overschrijven?'))return;dup.savedAt=new Date().toISOString();dup.state=buildState();}
+    const dup=arr.find(s=>s.naam.toLowerCase()===naam.toLowerCase()&&(((s.state&&s.state.plannerVersie==='v2')?'v2':'v1')===plannerVersie));
+    if(dup){if(!confirm('Scenario "'+naam+'" bestaat al ('+plannerVersie+'). Overschrijven?'))return;dup.savedAt=new Date().toISOString();dup.state=buildState();}
     else{arr.push({id:'sc'+Date.now(),naam,savedAt:new Date().toISOString(),state:buildState()});}
     saveScenariosLS(arr);
     scenariosCache=arr.map(s=>({...s,created_by_name:'(lokaal)'}));
@@ -1128,7 +1259,8 @@ async function saveAsScenario(){
 async function loadScenarioFromLS(id){
   const sc=scenariosCache.find(s=>String(s.id)===String(id));
   if(!sc)return;
-  if(!confirm('Scenario "'+sc.naam+'" laden? Huidige instellingen worden vervangen (maar kan je nog opslaan als nieuw scenario).'))return;
+  const scV=(sc.state&&sc.state.plannerVersie==='v2')?'v2':'v1';
+  if(!confirm('Scenario "'+sc.naam+'" ('+scV+') laden? Huidige instellingen worden vervangen (maar kan je nog opslaan als nieuw scenario).'+(scV!==plannerVersie?'\n\nDe planner schakelt daarbij naar versie '+scV+'.':'')))return;
   applyState(sc.state);refreshAll();
   if(sb&&currentUser){cloudSaveDebounced();}else{lsAutoSave();}
   setStatus('✓ Scenario "'+sc.naam+'" geladen','saved');closeScenariosModal();
@@ -1150,17 +1282,23 @@ async function deleteScenario(id){
 function renderScenariosList(){
   const el=document.getElementById('scenarios-list');
   if(!el)return;
-  if(!scenariosCache.length){el.innerHTML='<p class="note" style="padding:8px;text-align:center">Nog geen scenario\'s opgeslagen. Geef hierboven een naam en klik "+ Bewaar huidige".</p>';return;}
-  const sorted=[...scenariosCache].sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+  const verOf=s=>(s.state&&s.state.plannerVersie==='v2')?'v2':'v1';
+  const eigen=scenariosCache.filter(s=>verOf(s)===plannerVersie),andere=scenariosCache.filter(s=>verOf(s)!==plannerVersie);
+  const lijst=scenariosToonAndere?scenariosCache:eigen;
+  const kop='<div style="display:flex;align-items:center;gap:8px;font-size:11px;color:#6b7280;padding:4px 6px 8px;border-bottom:1px solid #f3f4f6;margin-bottom:4px"><span>Scenario\'s van <strong>'+(isV2()?'v2 — Inkomen':'v1 — Klassiek')+'</strong> ('+eigen.length+')</span>'
+    +(andere.length?'<label style="margin-left:auto;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" '+(scenariosToonAndere?'checked':'')+' onchange="scenariosToonAndere=this.checked;renderScenariosList()" style="accent-color:#4f46e5"> toon ook '+andere.length+' van de andere versie</label>':'')+'</div>';
+  if(!lijst.length){el.innerHTML=kop+'<p class="note" style="padding:8px;text-align:center">Nog geen scenario\'s voor deze versie. Geef hierboven een naam en klik "+ Bewaar huidige".</p>';return;}
+  const sorted=[...lijst].sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
   const myId=currentUser?.id;
-  el.innerHTML=sorted.map(s=>{
+  el.innerHTML=kop+sorted.map(s=>{
     const d=new Date(s.savedAt);
+    const vBadge='<span style="font-size:9.5px;padding:1px 5px;border-radius:4px;background:'+(verOf(s)==='v2'?'#e0e7ff':'#f3f4f6')+';color:'+(verOf(s)==='v2'?'#3730a3':'#6b7280')+';font-weight:700;margin-right:4px">'+verOf(s)+'</span>';
     const dStr=d.toLocaleDateString('nl-BE')+' '+d.toLocaleTimeString('nl-BE',{hour:'2-digit',minute:'2-digit'});
     const teamN=(s.state?.team||[]).length;
     const isOwn=s.created_by&&s.created_by===myId;
     const auteur=s.created_by_name?'<span style="font-size:10px;color:'+(isOwn?'#059669':'#9ca3af')+'">'+(isOwn?'👤 jij':'👥 '+s.created_by_name)+'</span>':'';
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 9px;border-bottom:1px solid #f3f4f6">'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.naam)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:12.5px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+vBadge+esc(s.naam)+'</div>'
       +'<div style="font-size:10.5px;color:#9ca3af">'+teamN+' teamleden • '+dStr+' '+auteur+'</div></div>'
       +'<button class="btn-sv primary" style="padding:4px 10px" onclick="loadScenarioFromLS(\''+s.id+'\')">Laden</button>'
       +'<button class="btn-del" onclick="deleteScenario(\''+s.id+'\')" title="Verwijderen">×</button>'
@@ -1170,7 +1308,7 @@ function renderScenariosList(){
 
 function getOverlegFromDOM(){const g=id=>+(document.getElementById(id)?.value)||0;return{opstart:g('p-opstart')||15,ntraject:g('p-ntraject')||2,mintraject:g('p-mintraject')||15,mdofreq:g('p-mdofreq')||5,mdomin:g('p-mdomin')||15,trajlen:g('p-trajlen')||20,consdur:g('p-consdur')||60};}
 function getCappFromDOM(){return{pctL1:+cappData.pctL1||0,pctL2:+cappData.pctL2||0,pctL3:+cappData.pctL3||0,pctL4:+cappData.pctL4||0,pctL5:+cappData.pctL5||0,overschotManual:document.getElementById('capp-overschot-manual')?.value||''};}
-function buildState(){return{version:7,savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),cvActief:cvActief,cvVastgoedBijCv:cvVastgoedBijCv,cvParams:JSON.parse(JSON.stringify(cvParams)),personCvPct:JSON.parse(JSON.stringify(personCvPct)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok)),ificParams:JSON.parse(JSON.stringify(ificParams)),ificInputs:JSON.parse(JSON.stringify(ificInputs)),ificScenarios:JSON.parse(JSON.stringify(ificScenarios)),ificBaremaOverride:ificBaremaOverride?JSON.parse(JSON.stringify(ificBaremaOverride)):null,nettoParams:JSON.parse(JSON.stringify(nettoParams)),breakEvenInputs:JSON.parse(JSON.stringify(breakEvenInputs))};}
+function buildState(){return{version:8,plannerVersie:plannerVersie,blokUrenCfg:JSON.parse(JSON.stringify(blokUrenCfg)),personInkomen:JSON.parse(JSON.stringify(personInkomen)),personIfic:JSON.parse(JSON.stringify(personIfic)),savedAt:new Date().toISOString(),team:JSON.parse(JSON.stringify(team)),slots:JSON.parse(JSON.stringify(slots)),kostenData:JSON.parse(JSON.stringify(kostenData)),huisvesting:JSON.parse(JSON.stringify(huisvesting)),investeringen:JSON.parse(JSON.stringify(investeringen)),mandaten:JSON.parse(JSON.stringify(mandaten)),opleidingen:JSON.parse(JSON.stringify(opleidingen)),personMandaten:JSON.parse(JSON.stringify(personMandaten)),personOpleiding:JSON.parse(JSON.stringify(personOpleiding)),werkelijkeCons:JSON.parse(JSON.stringify(werkelijkeCons)),cappData:getCappFromDOM(),overleg:getOverlegFromDOM(),bureauLimit:bureauLim(),acts:JSON.parse(JSON.stringify(acts)),personMix:JSON.parse(JSON.stringify(personMix)),personTechnisch:JSON.parse(JSON.stringify(personTechnisch)),personMDO:JSON.parse(JSON.stringify(personMDO)),personAdmin:JSON.parse(JSON.stringify(personAdmin)),personAvond:JSON.parse(JSON.stringify(personAvond)),mdoConfig:JSON.parse(JSON.stringify(mdoConfig)),mdoBookings:JSON.parse(JSON.stringify(mdoBookings)),mdoBlokken:JSON.parse(JSON.stringify(mdoBlokken)),cappOptIn:JSON.parse(JSON.stringify(cappOptIn)),overlegOhActief:overlegOhActief,cappKostendekking:cappKostendekking,cappLockedLagen:[...cappLockedLagen],personActPct:JSON.parse(JSON.stringify(personActPct)),personMinAfdrachtPct:JSON.parse(JSON.stringify(personMinAfdrachtPct)),personAvondPct:JSON.parse(JSON.stringify(personAvondPct)),ruimtes:JSON.parse(JSON.stringify(ruimtes)),huurComponenten:JSON.parse(JSON.stringify(huurComponenten)),personHuur:JSON.parse(JSON.stringify(personHuur)),cvActief:cvActief,cvVastgoedBijCv:cvVastgoedBijCv,cvParams:JSON.parse(JSON.stringify(cvParams)),personCvPct:JSON.parse(JSON.stringify(personCvPct)),tabsEnabled:JSON.parse(JSON.stringify(tabsEnabled)),inkomstenModus:inkomstenModus,cappV5Active:cappV5Active,cappV5SliderWerk:cappV5SliderWerk,personCappVastPerBlok:JSON.parse(JSON.stringify(personCappVastPerBlok)),ificParams:JSON.parse(JSON.stringify(ificParams)),ificInputs:JSON.parse(JSON.stringify(ificInputs)),ificScenarios:JSON.parse(JSON.stringify(ificScenarios)),ificBaremaOverride:ificBaremaOverride?JSON.parse(JSON.stringify(ificBaremaOverride)):null,nettoParams:JSON.parse(JSON.stringify(nettoParams)),breakEvenInputs:JSON.parse(JSON.stringify(breakEvenInputs))};}
 function applyState(st){
   team=(st.team||DEFAULT_TEAM.map(p=>({...p}))).map(p=>({type:'zelfstandige',brutoJaar:0,ific:'',modus:'afdracht',tier:'basis',...p}));
   slots=st.slots||{};team.forEach(p=>{if(!slots[p.id])slots[p.id]=mkDef();});
@@ -1243,7 +1381,24 @@ function applyState(st){
   if(st.bureauLimit){const bl=document.getElementById('bureau-limit');if(bl)bl.value=st.bureauLimit;}
   const sc=(id,v)=>{const el=document.getElementById(id);if(el)el.value=v;};
   sc('capp-overschot-manual',cappData.overschotManual||'');
+  // ===== v2-velden + migratie =====
+  plannerVersie=(st.plannerVersie==='v2')?'v2':'v1';
+  blokUrenCfg={dag:5.5,av:4.5,...((st.blokUrenCfg&&typeof st.blokUrenCfg==='object')?st.blokUrenCfg:{})};
+  personInkomen=_clone(st.personInkomen);personIfic=_clone(st.personIfic);
+  migreerInkomen();
   recomputeIdCtr();
+}
+// Migratie: teamleden zonder personInkomen krijgen een equivalent van hun v1-gegevens,
+// zodat v2 voor bestaande leden exact dezelfde bruto per blok geeft (Overleg/Mix uit).
+function migreerInkomen(){
+  team.forEach(p=>{
+    if(personInkomen[p.id]){ensureInkomen(p.id);return;}
+    if(p.type==='bediende'){
+      if((+p.brutoJaar||0)>0)personInkomen[p.id]={bedrag:+p.brutoJaar,periode:'jaar',maanden:[],urenBasis:'manueel',urenWk:38,bron:'manueel'};
+    } else if((+p.tarief||0)>0&&(+p.cons||0)>0){
+      personInkomen[p.id]={bedrag:(+p.tarief)*(+p.cons),periode:'dagdeel',maanden:[],urenBasis:'rooster',urenWk:0,bron:'manueel'};
+    }
+  });
 }
 function lsAutoSave(){try{localStorage.setItem(LS_KEY,JSON.stringify(buildState()));}catch(e){}}
 function lsLoad(){try{const r=localStorage.getItem(LS_KEY);if(r){applyState(JSON.parse(r));return true;}}catch(e){}return false;}
@@ -1272,13 +1427,13 @@ function cloudSaveDebounced(){if(saveDebounceTimer)clearTimeout(saveDebounceTime
 function setSyncStatus(cls,txt){const el=document.getElementById('save-status');if(el){el.className='save-status sync-status '+cls;el.textContent=txt;}}
 function setStatus(t,c){const el=document.getElementById('save-status');if(el){el.textContent=t;el.className='save-status'+(c?' '+c:'');}}
 function onAnyChange(){lsAutoSave();if(sb&&currentUser){cloudSaveDebounced();}else{setStatus('✓ Lokaal opgeslagen','saved');}}
-function resetConfirm(){if(!confirm('Alles resetten naar standaard?'))return;team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));personMandaten={};personOpleiding={};werkelijkeCons={};cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};cappOptIn={};overlegOhActief=true;cappKostendekking=false;cappLockedLagen=[];personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};ruimtes=[];huurComponenten=[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}];personHuur={};cvActief=false;cvVastgoedBijCv=true;cvParams={dividendPct:3,horizonJaren:5};personCvPct={};tabsEnabled={mdo:false,mix:false,overleg:false,capp:false};inkomstenModus='afdracht';cappV5Active=true;cappV5SliderWerk=0.7;personCappVastPerBlok={};acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};Object.entries(DEFAULT_OVERLEG).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;const om=document.getElementById('capp-overschot-manual');if(om)om.value='';refreshAll();lsAutoSave();setStatus('↺ Reset','saved');}
+function resetConfirm(){if(!confirm('Alles resetten naar standaard?'))return;team=DEFAULT_TEAM.map(p=>({...p}));slots={};team.forEach(p=>slots[p.id]=mkDef());kostenData=DEFAULT_KOSTEN.map(k=>({...k}));huisvesting={...DEFAULT_HUISVESTING};investeringen=DEFAULT_INVESTERINGEN.map(i=>({...i}));mandaten=DEFAULT_MANDATEN.map(m=>({...m}));opleidingen=DEFAULT_OPLEIDINGEN.map(o=>({...o}));personMandaten={};personOpleiding={};werkelijkeCons={};cappData={...DEFAULT_CAPP};mdoConfig={...DEFAULT_MDO_CONFIG};mdoBookings=[];mdoBlokken={};cappOptIn={};overlegOhActief=true;cappKostendekking=false;cappLockedLagen=[];personActPct={};personMinAfdrachtPct={};personAvondPct={};finExpanded={};ruimtes=[];huurComponenten=[{id:'h1',naam:'Basishuur',bedragPerDagdeel:0},{id:'h2',naam:'Secretariaat',bedragPerDagdeel:0},{id:'h3',naam:'Verpleegkundige',bedragPerDagdeel:0}];personHuur={};cvActief=false;cvVastgoedBijCv=true;cvParams={dividendPct:3,horizonJaren:5};personCvPct={};tabsEnabled={mdo:false,mix:false,overleg:false,capp:false};inkomstenModus='afdracht';cappV5Active=true;cappV5SliderWerk=0.7;personCappVastPerBlok={};acts=DEFAULT_ACTS.map(a=>({...a}));personMix={};personTechnisch={};personMDO={};personAdmin={};personAvond={};blokUrenCfg={dag:5.5,av:4.5};personInkomen={};personIfic={};migreerInkomen();Object.entries(DEFAULT_OVERLEG).forEach(([k,v])=>{const el=document.getElementById('p-'+k);if(el)el.value=v;});const bl=document.getElementById('bureau-limit');if(bl)bl.value=8;const om=document.getElementById('capp-overschot-manual');if(om)om.value='';refreshAll();lsAutoSave();setStatus('↺ Reset','saved');}
 
 function clr(i){return COLORS[i%COLORS.length];}
 // XSS-bescherming: escape user-input vóór invoegen in innerHTML
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function fmt(n){return'€\u202F'+Math.round(n).toLocaleString('nl-BE');}
-function ohPct(){if(!tabsEnabled.overleg||!overlegOhActief)return 0;const g=id=>+(document.getElementById(id)?.value)||0;const op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60,oh=op+nt*mt+Math.floor(tl/mf)*mm;return oh/(oh+tl*cd);}
+function ohPct(){if(!tabOn('overleg')||!overlegOhActief)return 0;const g=id=>+(document.getElementById(id)?.value)||0;const op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60,oh=op+nt*mt+Math.floor(tl/mf)*mm;return oh/(oh+tl*cd);}
 function ohPctRaw(){const g=id=>+(document.getElementById(id)?.value)||0;const op=g('p-opstart')||15,nt=g('p-ntraject')||2,mt=g('p-mintraject')||15,mf=Math.max(1,g('p-mdofreq')||5),mm=g('p-mdomin')||15,tl=g('p-trajlen')||20,cd=g('p-consdur')||60,oh=op+nt*mt+Math.floor(tl/mf)*mm;return oh/(oh+tl*cd);}
 function wkPerMaand(p){return(p.wkjr||46)/12;}
 function slotOn(v){return!!v;} // truthy = aanwezig (true legacy, 'X' aanwezig zonder ruimte, of ruimte-id string)
@@ -1287,6 +1442,11 @@ function avondDelen(p){return(slots[p.id]||[]).reduce((s,d)=>s+(slotOn(d[2])?1:0
 function isRuimteConflict(di,bi,ruimteId){if(!ruimteId)return false;let n=0;for(const p of team){if(slots[p.id]?.[di]?.[bi]===ruimteId){n++;if(n>1)return true;}}return false;}
 function ruimteCountAll(di,bi){const m={};for(const p of team){const v=slots[p.id]?.[di]?.[bi];if(v&&v!==true&&v!=='X'){m[v]=(m[v]||0)+1;}}return m;}
 function vzwPerMaand(p){
+  if(isV2()){
+    if(p.type==='bediende')return 0;
+    const wk=wkPerMaand(p),pctDag=(+p.pct||0)/100,pctAv=(hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag);
+    return brutoEurPerBlok(p,0)*pctDag*dagBlokken(p)*wk+brutoEurPerBlok(p,2)*pctAv*avondDelen(p)*wk;
+  }
   // p.cons = consultaties per (dag-)blok. Avondblok = pro rata korter, en gebruikt evt. apart avond-pct.
   const oh=1-ohPct(),wk=wkPerMaand(p),tar=+p.tarief||0,cons=+p.cons||0;
   const dB=dagBlokken(p),avB=avondDelen(p);
@@ -1296,6 +1456,11 @@ function vzwPerMaand(p){
   return dag+av;
 }
 function persNettoPerMaand(p){
+  if(isV2()){
+    if(p.type==='bediende')return 0;
+    const wk=wkPerMaand(p),pctDag=(+p.pct||0)/100,pctAv=(hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag);
+    return brutoEurPerBlok(p,0)*(1-pctDag)*dagBlokken(p)*wk+brutoEurPerBlok(p,2)*(1-pctAv)*avondDelen(p)*wk;
+  }
   const oh=1-ohPct(),wk=wkPerMaand(p),tar=+p.tarief||0,cons=+p.cons||0;
   const dB=dagBlokken(p),avB=avondDelen(p);
   const pctDag=(+p.pct||0)/100,pctAv=(hasAvondOverride(p)?(+personAvondPct[p.id]||0)/100:pctDag);
@@ -1311,7 +1476,7 @@ function investeringMnd(inv){const b=+inv.bedrag||0,j=+inv.jaren||0;if(b<=0||j<=
 function totaleInvesteringMnd(){return investeringen.reduce((s,i)=>s+investeringMnd(i),0);}
 function hvMaandlast(){return hvBasisMnd();}
 function hvNotarisCash(){if(huisvesting.type!=='aankoop')return 0;return(+huisvesting.aankoopprijs||0)*((+huisvesting.registratie||0)/100);}
-function personeelKostenMnd(){return team.filter(p=>p.type==='bediende').reduce((s,p)=>s+(+p.brutoJaar||0)/12,0);}
+function personeelKostenMnd(){if(isV2())return team.filter(p=>p.type==='bediende').reduce((s,p)=>s+loonkostMnd(p),0);return team.filter(p=>p.type==='bediende').reduce((s,p)=>s+(+p.brutoJaar||0)/12,0);}
 function totalKosten(){return kostenData.reduce((s,k)=>s+maandBedrag(k),0)+hvMaandlast()+totaleInvesteringMnd()+personeelKostenMnd();}
 // ===== HUUR-MODEL helpers =====
 function huurPerDagdeelPersoon(p){
@@ -1358,7 +1523,7 @@ function setHuurComponentBestemming(id,v){const c=huurComponenten.find(x=>x.id==
 // Gegarandeerd consistent: bruto = vzw-deel + netto-deel in afdracht-modus. Bij gelijke huur = gelijke netto in huur-modus.
 function brutoConsultatiesMnd(p){
   if(p.type==='bediende')return 0;
-  if(tabsEnabled.mix&&(personMix[p.id]||[]).length>0){
+  if(tabOn('mix')&&(personMix[p.id]||[]).length>0){
     return vzwPerMaandMixed(p)+persNettoMixed(p);
   }
   return vzwPerMaand(p)+persNettoPerMaand(p);
@@ -1466,7 +1631,7 @@ function persNettoMixed(p){
   return tot;
 }
 function mixCappIncome(){
-  if(!tabsEnabled.mix)return 0;
+  if(!tabOn('mix'))return 0;
   // Bijdrage aan ☕ pool vanuit consultatie/technische acts met routing='cappuccino'
   let tot=0;
   const oh=1-ohPct();
@@ -1484,16 +1649,17 @@ function mixCappIncome(){
 function vzwActual(p){
   if(getPersonModus(p)==='huur')return huurPerPersoonMnd(p);
   // Afdracht-modus: mix-flow als personMix bestaat én Mix-tab actief, anders simpele flow
-  if(tabsEnabled.mix&&(personMix[p.id]||[]).length>0)return vzwPerMaandMixed(p);
+  if(tabOn('mix')&&(personMix[p.id]||[]).length>0)return vzwPerMaandMixed(p);
   return vzwPerMaand(p);
 }
 function nettoActual(p){
   if(getPersonModus(p)==='huur')return brutoConsultatiesMnd(p)-huurPerPersoonMnd(p);
-  if(tabsEnabled.mix&&(personMix[p.id]||[]).length>0)return persNettoMixed(p);
+  if(tabOn('mix')&&(personMix[p.id]||[]).length>0)return persNettoMixed(p);
   return persNettoPerMaand(p);
 }
 function brutoEurPerBlok(p,bi){
   // Bruto-tariefopbrengst per blok (default = dagblok, bi=2 voor avond) van acts met routing='afdracht' (vóór afdracht-%, ná overhead).
+  if(isV2()){if(p.type==='bediende')return 0;return uurtarief(p)*blokUren(bi);}
   const oh=1-ohPct(),isAv=bi===2;
   const mix=personMix[p.id]||[];
   if(mix.length>0){
@@ -1525,11 +1691,11 @@ function isCappOptIn(p){
 // ===== Pot 1: directe extras per persoon (v5 model) =====
 // MDO-blokken + MDO-acts + admin + avond (route capp) + mix-acts (route capp) → direct naar uitvoerder
 function pot1PerPersoon(p){
-  if(p.type==='bediende')return 0;
+  if(p.type==='bediende'||isV2())return 0;
   let tot=0;
   const wk=wkPerMaand(p);
   // MDO-blokken per persoon (eenvoudige input)
-  if(tabsEnabled.mdo){
+  if(tabOn('mdo')){
     const mdos=+mdoBlokken[p.id]||0;
     if(mdos>0)tot+=mdos*mdoTariefAct()*wk;
     // Losse MDO-acts (oude flow)
@@ -1543,7 +1709,7 @@ function pot1PerPersoon(p){
   const avObj=personAvond[p.id]||{};
   for(const aId in avObj){if(avObj[aId]!=='cappuccino')continue;const act=acts.find(a=>a.id===aId);if(act)tot+=avondDelen(p)*wk*(+act.tarief||0);}
   // Mix-acts (consultatie + technisch) met routing='cappuccino'
-  if(tabsEnabled.mix){
+  if(tabOn('mix')){
     const dB=dagBlokken(p),avB=avondDelen(p),oh=1-ohPct();
     const mix=personMix[p.id]||[],tech=personTechnisch[p.id]||{};
     for(const m of mix){const act=acts.find(a=>a.id===m.actId&&a.familie==='consultatie');if(!act||(act.routing||'afdracht')!=='cappuccino')continue;const mp=(+m.pct||0)/100,tar=+act.tarief||0;tot+=dB*mp*cpbForAct(act,0)*tar*oh*wk;tot+=avB*mp*cpbForAct(act,2)*tar*oh*wk;}
@@ -1554,7 +1720,7 @@ function pot1PerPersoon(p){
 function totalPot1(){return team.reduce((s,p)=>s+pot1PerPersoon(p),0);}
 // ===== Pot 2: overschotpool (v5 model) =====
 function cappPoolV5(){
-  if(!tabsEnabled.capp)return 0;
+  if(!tabOn('capp'))return 0;
   // Pool = strikt overschot: alleen MINDplus-afdrachten minus kosten (pot 1 zit niet meer in de pool)
   // CV actief: aandelen-inleg is kapitaal van de CV, geen verdeelbaar overschot; vastgoedkost verhuist mee naar CV.
   return Math.max(0,vzwLopendMnd()-kostenLopendMnd());
@@ -1620,11 +1786,11 @@ function actueelGewogenPct(){
   return totBruto>0?(totAfd/totBruto)*100:0;
 }
 function totalVzw(){return team.reduce((s,p)=>s+vzwActual(p),0);}
-function mdoCappIncome(){if(!tabsEnabled.mdo)return 0;let t=0;for(const[pid,m]of Object.entries(personMDO)){const p=team.find(x=>x.id===pid);if(!p)continue;for(const[aId,pw]of Object.entries(m)){const act=acts.find(a=>a.id===aId);if(act&&pw)t+=pw*act.tarief*wkPerMaand(p);}}return t;}
+function mdoCappIncome(){if(!tabOn('mdo'))return 0;let t=0;for(const[pid,m]of Object.entries(personMDO)){const p=team.find(x=>x.id===pid);if(!p)continue;for(const[aId,pw]of Object.entries(m)){const act=acts.find(a=>a.id===aId);if(act&&pw)t+=pw*act.tarief*wkPerMaand(p);}}return t;}
 function mdoSessiesPerBlok(){return(+mdoConfig.blokUren||0)*(+mdoConfig.mdoPerUur||0);}
 function mdoTariefAct(){const a=acts.find(x=>x.familie==='mdo');return a?+a.tarief||0:75;}
 function mdoBlokIncome(){
-  if(!tabsEnabled.mdo)return 0;
+  if(!tabOn('mdo'))return 0;
   // Inkomsten = som per teamlid van (MDO's per week × tarief × wk/maand). Eén MDO = 1 cliëntbespreking.
   const tarief=mdoTariefAct();
   if(tarief<=0)return 0;
@@ -1667,7 +1833,7 @@ function mdoSlotInBooking(day,h){return mdoBookings.find(b=>b.day===day&&h>=b.st
 function adminCappIncome(){let t=0;for(const[,am]of Object.entries(personAdmin)){for(const[aId,pm]of Object.entries(am)){const act=acts.find(a=>a.id===aId);if(act&&pm)t+=act.tarief*pm;}}return t;}
 function avondCappIncome(){let t=0;for(const p of team){const av=personAvond[p.id]||{};for(const[aId,r]of Object.entries(av)){if(r!=='cappuccino')continue;const act=acts.find(a=>a.id===aId);if(act)t+=avondDelen(p)*wkPerMaand(p)*act.tarief;}}return t;}
 function cappPool(){
-  if(!tabsEnabled.capp)return 0; // Cappuccino-tab uit = geen pool
+  if(!tabOn('capp'))return 0; // Cappuccino-tab uit = geen pool
   const om=document.getElementById('capp-overschot-manual')?.value;
   if(om&&om!=='')return Math.max(0,+om||0);
   const vzwOverschot=vzwLopendMnd()-kostenLopendMnd();
@@ -1932,7 +2098,7 @@ function renderFin(){
     }
   }
   renderCv();
-  document.getElementById('fin-note').innerHTML='Per teamlid kies je <strong>afdracht-%</strong> of <strong>huur per dagdeel</strong> via de modus-knop. '+(tabsEnabled.overleg?'Overhead: '+(ohPct()*100).toFixed(1)+'% niet-factureerbaar.':'Overlegoverhead UIT — geen aftrek op bruto.')+' ☕ pool-payout uit cappuccino-verdeling.';
+  document.getElementById('fin-note').innerHTML=isV2()?'Per teamlid kies je <strong>afdracht-%</strong> of <strong>huur per dagdeel</strong> via de modus-knop. Bruto per blok = uurtarief (Inkomen-tab) × blokuren (Rooster-tab). Bedienden tellen als loonkost.':'Per teamlid kies je <strong>afdracht-%</strong> of <strong>huur per dagdeel</strong> via de modus-knop. '+(tabOn('overleg')?'Overhead: '+(ohPct()*100).toFixed(1)+'% niet-factureerbaar.':'Overlegoverhead UIT — geen aftrek op bruto.')+' ☕ pool-payout uit cappuccino-verdeling.';
   // Break-even indicator: totaal inkomst tov kosten
   const beEl=document.getElementById('fin-breakeven');
   if(beEl){
@@ -1945,12 +2111,18 @@ function renderFin(){
     }
   }
   // Afdracht-leden met pct=0
-  const vpkW=team.filter(p=>getPersonModus(p)==='afdracht'&&p.pct===0&&dagdelen(p)>0);
-  document.getElementById('fin-alerts').innerHTML=vpkW.map(p=>'<div class="alert alert-warn">⚠️ <strong>'+esc(p.naam)+'</strong> heeft afdracht 0%.</div>').join('');
+  const vpkW=team.filter(p=>p.type!=='bediende'&&getPersonModus(p)==='afdracht'&&p.pct===0&&dagdelen(p)>0);
+  let alertsHtml=vpkW.map(p=>'<div class="alert alert-warn">⚠️ <strong>'+esc(p.naam)+'</strong> heeft afdracht 0%.</div>').join('');
+  if(isV2()){
+    const geenInk=team.filter(p=>!inkomenStatus(p).ok&&(dagdelen(p)>0||p.type==='bediende'));
+    alertsHtml+=geenInk.map(p=>'<div class="alert alert-warn">⚠️ <strong>'+esc(p.naam)+'</strong>: '+esc(inkomenStatus(p).msg)+' → <a href="#" onclick="goToInkomen(\''+p.id+'\');return false" style="color:#4f46e5;font-weight:600">Inkomen-tab</a></div>').join('');
+  }
+  document.getElementById('fin-alerts').innerHTML=alertsHtml;
   // Cappuccino payouts per persoon ophalen
   // Cappuccino payouts per persoon — v5 = pot 2 payouts (en pot 1 als aparte regel), v4 = oude pool
   const cappMap={},pot1Map={};
-  if(cappV5Active){
+  if(isV2()){/* geen pools in v2 */}
+  else if(cappV5Active){
     team.forEach(p=>{pot1Map[p.id]=pot1PerPersoon(p);});
     const r=calcCappV5();r.dln.forEach((p,i)=>{cappMap[p.id]=r.payouts[i];});
   } else {
@@ -1958,9 +2130,11 @@ function renderFin(){
   }
   // Header voor unified tabel (per-rij modus-keuze)
   const thead=document.getElementById('fin-thead');
-  const showCappCol=!!tabsEnabled.capp;
+  const showCappCol=!!tabOn('capp');
   if(thead){
-    thead.innerHTML='<tr><th>Naam</th><th style="width:75px;text-align:center">Modus</th><th style="width:220px">Parameters</th><th style="width:48px;text-align:right">Blok/wk</th><th style="width:90px;text-align:right">MINDplus/mnd</th><th style="width:85px;text-align:right">Netto persoon</th>'+(showCappCol?'<th style="width:115px;text-align:right">☕ pool</th>':'')+'<th style="width:90px;text-align:right">Totaal netto</th></tr>';
+    thead.innerHTML=isV2()
+      ?'<tr><th>Naam</th><th style="width:75px;text-align:center">Modus</th><th style="width:230px">Afdracht / huur</th><th style="width:70px;text-align:right">Blok · u/wk</th><th style="width:90px;text-align:right">Bruto/mnd</th><th style="width:90px;text-align:right">MINDplus/mnd</th><th style="width:85px;text-align:right">Netto persoon</th><th style="width:90px;text-align:right">Totaal netto</th></tr>'
+      :'<tr><th>Naam</th><th style="width:75px;text-align:center">Modus</th><th style="width:220px">Parameters</th><th style="width:48px;text-align:right">Blok/wk</th><th style="width:90px;text-align:right">MINDplus/mnd</th><th style="width:85px;text-align:right">Netto persoon</th>'+(showCappCol?'<th style="width:115px;text-align:right">☕ pool</th>':'')+'<th style="width:90px;text-align:right">Totaal netto</th></tr>';
   }
   document.getElementById('fin-tbody').innerHTML=team.map((p,pi)=>{
     const dd=dagdelen(p),vzwM=vzwActual(p),persM=nettoActual(p),isBed=p.type==='bediende';
@@ -1977,9 +2151,11 @@ function renderFin(){
     const lockColor=hasOver?'#7c3aed':'#4f46e5';
     const lockStyle=hasOver?'opacity:.55;cursor:not-allowed':'cursor:pointer';
     const lockTitle=hasOver?'title="🔒 Vergrendeld — per-act overrides actief. Verwijder overrides (↺ in sub-rij) om weer algemeen in te kunnen stellen."':'';
+    const v2Bron=(isV2()&&!isBed)?'<div style="font-size:10px;color:#6b7280;margin-top:1px">'+(inkomenStatus(p).ok?fmt2(uurtarief(p))+'/u · bruto '+fmt(bruto)+'/blok':'<span style="color:#dc2626">⚠ '+esc(inkomenStatus(p).msg)+'</span>')+'</div>':'';
+    const v2Avond=(isV2()&&!isBed&&avondDelen(p)>0)?'<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:'+(hasAvondOverride(p)?'#7c3aed':'#9ca3af')+'">🌙 avond-%: <input type="number" min="0" max="100" step="0.5" value="'+(personAvondPct[p.id]??'')+'" placeholder="= dag" style="width:56px;text-align:right;font-size:10px;padding:1px 4px" onchange="setAvondPct(\''+p.id+'\',this.value)" title="Leeg = zelfde % als overdag"></div>':'';
     const prof=isBed
-      ?'<span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span>'
-      :'<div style="display:flex;flex-direction:column;gap:3px;min-width:200px">'
+      ?(isV2()?'<div><span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span><div style="font-size:10.5px;color:#b91c1c;margin-top:3px">loonkost '+fmt(loonkostMnd(p))+'/mnd</div></div>':'<span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span>')
+      :'<div style="display:flex;flex-direction:column;gap:3px;min-width:200px">'+v2Bron
         +'<div style="display:flex;align-items:center;gap:6px" '+lockTitle+'>'
           +'<input type="range" data-fin-pct="'+p.id+'" min="0" max="100" step="0.1" value="'+displayPct.toFixed(1)+'" style="flex:1;'+lockStyle+';accent-color:'+lockColor+'" '
           +(hasOver?'disabled ':'')
@@ -1995,6 +2171,7 @@ function renderFin(){
           +'<span id="fin-eur-lbl-'+p.id+'" style="font-weight:600;color:#059669;font-size:10.5px;min-width:62px;text-align:right">€'+Math.round(eurBlok)+'/blok</span>'
         +'</div>'
         +'<div id="fin-week-lbl-'+p.id+'" style="font-size:10px;color:'+(hasOver?'#7c3aed':'#9ca3af')+';text-align:right;margin-top:-1px">'+(dd?(hasOver?'gewogen gemiddelde · ':'')+'= €'+Math.round(eurWeek)+'/wk':'—')+'</div>'
+        +v2Avond
       +'</div>';
     const pers=isBed?'<span style="color:#d1d5db">—</span>':(dd?'<span style="color:#6b7280">'+fmt(persM)+'</span>':'—');
     const optIn=isCappOptIn(p);
@@ -2018,7 +2195,7 @@ function renderFin(){
       ?'<div style="font-size:9.5px;color:#059669;margin-top:2px;line-height:1.3">+ Directe extras: <strong>'+fmt(pot1M)+'</strong></div>'
       :'';
     const totaal=isBed?'<span style="color:#d1d5db">—</span>':(dd?'<div><span class="netto-pill">'+fmt(totaalIncl)+'</span>'+pot1Line+trueAfdrLine+'</div>':'—');
-    const afdActs=isBed?[]:getActsForPersonAfdracht(p);
+    const afdActs=(isBed||isV2())?[]:getActsForPersonAfdracht(p);
     const isExp=!!finExpanded[p.id];
     const overrideCount=afdActs.filter(x=>hasActOverride(p,x.act.id)).length;
     const expandBtn=afdActs.length>0
@@ -2042,7 +2219,8 @@ function renderFin(){
     let mainRow='<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span>'+esc(p.naam)+(huurMode||isBed?'':expandBtn)+'</td>';
     mainRow+='<td style="text-align:center">'+modusCell+'</td>';
     mainRow+='<td>'+paramsCell+'</td>';
-    mainRow+='<td style="text-align:right;font-weight:600;color:'+(dd?'#4f46e5':'#d1d5db')+'">'+dd+'</td>';
+    mainRow+='<td style="text-align:right;font-weight:600;color:'+(dd?'#4f46e5':'#d1d5db')+'">'+dd+(isV2()?'<div style="font-size:10px;color:#9ca3af;font-weight:400">'+urenRooster(p).toFixed(1)+' u</div>':'')+'</td>';
+    if(isV2()){mainRow+='<td style="text-align:right;font-size:11.5px">'+(isBed?'<span style="color:#b91c1c;font-weight:600">−'+fmt(loonkostMnd(p))+'</span>':(dd?'<span style="color:#059669;font-weight:600">'+fmt(brutoMndV2(p))+'</span>':'—'))+'</td>';}
     const cvM=cvPerPersoonMnd(p);
     const cvSubLine=(cvActief&&dd&&cvM>0)?'<div style="font-size:9.5px;color:#b45309;font-weight:600;line-height:1.3">waarvan 🏛 CV: '+fmt(cvM)+'</div>':'';
     mainRow+='<td style="text-align:right;font-weight:600">'+(dd?fmt(vzwM)+cvSubLine:'—')+'</td>';
@@ -2110,11 +2288,12 @@ function renderRuimtes(){
 }
 function renderRooster(){
   renderRuimtes();
-  let h='<thead><tr><th class="name-corner" rowspan="2"></th>';DAYS.forEach(d=>{h+='<th class="day-th" colspan="3">'+d+'</th>';});h+='</tr><tr>';for(let di=0;di<5;di++)BLK.forEach((b,bi)=>{h+='<th class="blk-th'+(bi===0?' fd':'')+'">'+b+'</th>';});h+='</tr></thead><tbody>';
+  let h='<thead><tr><th class="name-corner" rowspan="2"'+(isV2()?' style="width:150px;max-width:150px;min-width:150px"':'')+'></th>';DAYS.forEach(d=>{h+='<th class="day-th" colspan="3">'+d+'</th>';});h+='</tr><tr>';for(let di=0;di<5;di++)BLK.forEach((b,bi)=>{h+='<th class="blk-th'+(bi===0?' fd':'')+'">'+b+'</th>';});h+='</tr></thead><tbody>';
   const baseOpts='<option value="">—</option><option value="X">✓</option>'+ruimtes.map((r,ri)=>'<option value="'+r.id+'">'+(ri+1)+'</option>').join('');
   team.forEach((p,pi)=>{
     const c=clr(pi);
-    h+='<tr class="prow"><td class="nm-cell"><div class="color-dot" style="background:'+c+'"></div><span title="'+esc(p.naam)+'">'+esc(p.naam)+'</span><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td>';
+    const v2lbl=isV2()?'<div style="text-align:left;padding-left:15px;font-size:9.5px;color:'+(inkomenStatus(p).ok?'#6b7280':'#dc2626')+';line-height:1.2;margin-top:1px">'+urenRooster(p).toFixed(1)+' u · '+(p.type==='bediende'?(inkomenStatus(p).ok?'−'+fmt(loonkostMnd(p)):'⚠ geen inkomen'):(inkomenStatus(p).ok?fmt(brutoMndV2(p)):'⚠ geen inkomen'))+'</div>':'';
+    h+='<tr class="prow"><td class="nm-cell"'+(isV2()?' style="flex-direction:column;align-items:stretch;width:150px;max-width:150px;min-width:150px"':'')+'><div style="display:flex;align-items:center;gap:5px;text-align:left"><div class="color-dot" style="background:'+c+'"></div><span title="'+esc(p.naam)+'" style="text-align:left">'+esc(p.naam)+'</span><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></div>'+v2lbl+'</td>';
     for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){
       const v=slots[p.id]?.[di]?.[bi];
       let valStr='',cls='slot-sel',bg='',title='Niet aanwezig';
@@ -2130,7 +2309,7 @@ function renderRooster(){
     h+='</tr>';
   });
   h+='<tr class="brow"><td class="name-corner" style="font-size:10px;font-weight:700;color:#6b7280;padding:4px 7px;text-align:left">Aanwezig</td>';for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){const n=slotCount(di,bi);h+='<td class="bureau-td'+(bi===0?' fd':'')+'"><div class="bbadge '+badgeCls(n)+'">'+(n||'—')+'</div></td>';}h+='</tr></tbody>';
-  document.getElementById('rt').innerHTML=h;document.getElementById('rooster-note').textContent='Overhead: '+(ohPct()*100).toFixed(1)+'% niet-factureerbaar.';
+  document.getElementById('rt').innerHTML=h;document.getElementById('rooster-note').textContent=isV2()?'Totaal '+team.reduce((s,p)=>s+urenRooster(p),0).toFixed(1)+' u/week ingepland ('+blokUren(0)+' u per dagblok, '+blokUren(2)+' u per avondblok).':'Overhead: '+(ohPct()*100).toFixed(1)+'% niet-factureerbaar.';
   renderMdoConfig();
   renderMdoAgenda();
   const counts=[],lbs=[];for(let di=0;di<5;di++)for(let bi=0;bi<3;bi++){counts.push(slotCount(di,bi));lbs.push(DS[di]+' '+BLK[bi]);}
@@ -2142,7 +2321,7 @@ function renderRooster(){
     for(const rid in rc){ruimteUse[rid]=(ruimteUse[rid]||0)+1;if(rc[rid]>1)conflicten++;}
     for(const p of team){if(slots[p.id]?.[di]?.[bi]==='X'||slots[p.id]?.[di]?.[bi]===true)zonderRuimte++;}
   }
-  let bstatHtml='<div class="stat-card"><div class="stat-label">Piekbezetting</div><div class="stat-val" style="color:'+(peak>lim?'#dc2626':peak>=lim*.75?'#d97706':'#059669')+'">'+peak+'</div></div>'
+  let bstatHtml=(isV2()?'<div class="stat-card"><div class="stat-label">Uren/week</div><div class="stat-val" style="color:#4f46e5">'+team.reduce((s,p)=>s+urenRooster(p),0).toFixed(1)+'</div></div>':'')+'<div class="stat-card"><div class="stat-label">Piekbezetting</div><div class="stat-val" style="color:'+(peak>lim?'#dc2626':peak>=lim*.75?'#d97706':'#059669')+'">'+peak+'</div></div>'
     +'<div class="stat-card"><div class="stat-label">Gem. bezetting</div><div class="stat-val">'+avg.toFixed(1)+'</div></div>'
     +'<div class="stat-card"><div class="stat-label">Blokken >limiet</div><div class="stat-val" style="color:'+(over?'#dc2626':'#059669')+'">'+over+'</div></div>'
     +'<div class="stat-card"><div class="stat-label">Conflicten<small>2+ in 1 ruimte</small></div><div class="stat-val" style="color:'+(conflicten?'#dc2626':'#059669')+'">'+conflicten+'</div></div>';
@@ -2252,12 +2431,18 @@ function renderMdoAgenda(){
 }
 
 function renderTeam(){
+  const th=document.getElementById('team-thead');
+  if(th)th.innerHTML=isV2()
+    ?'<tr><th>Naam</th><th style="width:56px">Type</th><th style="width:62px">Wk/jaar</th><th style="min-width:220px">Inkomen (v2)</th><th style="width:28px"></th></tr>'
+    :'<tr><th>Naam</th><th style="width:56px">Type</th><th style="width:62px">Wk/jaar</th><th style="width:28px"></th></tr>';
   document.getElementById('team-tbody').innerHTML=team.map((p,pi)=>{
     const isZ=p.type!=='bediende';
+    const inkCell=isV2()?'<td style="font-size:11.5px">'+inkomenSamenvatting(p)+' <button class="btn-sv" style="padding:1px 7px;font-size:10px;margin-left:4px" onclick="goToInkomen(\''+p.id+'\')">✎</button></td>':'';
     return'<tr>'
       +'<td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px;vertical-align:middle"></span><input type="text" value="'+esc(p.naam)+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:140px"></td>'
       +'<td><button class="type-badge '+(isZ?'type-z':'type-b')+'" onclick="toggleType(\''+p.id+'\')">'+(isZ?'Z':'B')+'</button></td>'
       +'<td><input type="number" value="'+p.wkjr+'" min="1" max="52" oninput="hv_v(\''+p.id+'\',\'wkjr\',+this.value)"></td>'
+      +inkCell
       +'<td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')">×</button></td>'
     +'</tr>';
   }).join('');
@@ -2290,7 +2475,7 @@ function renderPersoneel(){
   const tb=document.getElementById('personeel-tbody');if(!tb)return;
   const beds=team.filter(p=>p.type==='bediende');
   if(!beds.length)tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:#9ca3af;font-size:11px;padding:10px">Nog geen bedienden — voeg er hieronder een toe (komt ook in Team-tab).</td></tr>';
-  else tb.innerHTML=beds.map(p=>{const mnd=(+p.brutoJaar||0)/12;return'<tr><td><input type="text" value="'+(p.naam||'').replace(/"/g,'&quot;')+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:160px"></td><td><input type="text" value="'+(p.ific||'').replace(/"/g,'&quot;')+'" placeholder="—" oninput="setBedIfic(\''+p.id+'\',this.value)" style="width:95px;text-align:center"></td><td><input type="number" value="'+(+p.brutoJaar||0)+'" placeholder="0" min="0" step="100" style="width:110px" oninput="setBedJaar(\''+p.id+'\',+this.value)"></td><td style="text-align:right;color:#dc2626;font-weight:600">'+fmt(mnd)+'</td><td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')" title="Verwijder bediende (ook uit Team)">×</button></td></tr>';}).join('');
+  else tb.innerHTML=beds.map(p=>{const mnd=isV2()?loonkostMnd(p):(+p.brutoJaar||0)/12;const ific=isV2()&&getInkomen(p)&&getInkomen(p).bron==='ific';const jr=isV2()?Math.round(mnd*12):(+p.brutoJaar||0);return'<tr><td><input type="text" value="'+(p.naam||'').replace(/"/g,'&quot;')+'" oninput="hv_naam(\''+p.id+'\',this.value)" style="min-width:160px"></td><td>'+(ific?'<span style="font-size:11px;color:#b91c1c">IFIC cat. '+personIficInputs(p.id).categorie+' <button class="btn-sv" style="padding:1px 6px;font-size:10px" onclick="ificSelectPerson(\''+p.id+'\')">✎</button></span>':'<input type="text" value="'+(p.ific||'').replace(/"/g,'&quot;')+'" placeholder="—" oninput="setBedIfic(\''+p.id+'\',this.value)" style="width:95px;text-align:center">')+'</td><td>'+(ific?'<span style="font-weight:600">'+fmt(jr)+'</span><div style="font-size:10px;color:#9ca3af">uit IFIC-tab</div>':'<input type="number" value="'+jr+'" placeholder="0" min="0" step="100" style="width:110px" oninput="setBedJaar(\''+p.id+'\',+this.value)">'+(isV2()?'<div style="font-size:10px;color:#9ca3af">= Inkomen-tab <button class="btn-sv" style="padding:0 5px;font-size:10px" onclick="goToInkomen(\''+p.id+'\')">✎</button></div>':''))+'</td><td style="text-align:right;color:#dc2626;font-weight:600">'+fmt(mnd)+'</td><td><button class="btn-del" onclick="delPersoon(\''+p.id+'\')" title="Verwijder bediende (ook uit Team)">×</button></td></tr>';}).join('');
   const tot=personeelKostenMnd();
   const totEl=document.getElementById('personeel-totaal');
   if(totEl)totEl.innerHTML='Totaal personeelskost: <strong style="color:#dc2626">'+fmt(tot)+'</strong> / maand &nbsp;<span style="color:#9ca3af;font-size:11px">('+beds.length+' bediende'+(beds.length===1?'':'n')+')</span>';
@@ -2300,15 +2485,15 @@ function renderKosten(){
   renderInvesteringen();
   renderPersoneel();
   const invRows=investeringen.map(i=>{const mnd=investeringMnd(i);return'<tr style="background:#faf5ff"><td><span style="color:#7c3aed;font-weight:600">🛠 '+(i.naam||'(naamloos)')+'</span><span style="font-size:10px;color:#9ca3af;margin-left:5px">€'+(+i.bedrag||0).toLocaleString('nl-BE')+' / '+(+i.jaren||0)+'j</span></td><td style="color:#9ca3af;font-size:10.5px;font-style:italic">auto uit investering</td><td style="color:#7c3aed;font-weight:600;text-align:right">'+fmt(mnd)+'/mnd</td></tr>';}).join('');
-  const persRows=team.filter(p=>p.type==='bediende').map(p=>{const mnd=(+p.brutoJaar||0)/12;if(mnd<=0)return '';return'<tr style="background:#fef2f2"><td><span style="color:#dc2626;font-weight:600">👤 '+(p.naam||'(naamloos)')+'</span>'+(p.ific?'<span style="font-size:10px;color:#9ca3af;margin-left:5px">IFIC '+p.ific+'</span>':'')+'<span style="font-size:10px;color:#9ca3af;margin-left:5px">€'+(+p.brutoJaar||0).toLocaleString('nl-BE')+'/jr bruto</span></td><td style="color:#9ca3af;font-size:10.5px;font-style:italic">auto uit personeel</td><td style="color:#dc2626;font-weight:600;text-align:right">'+fmt(mnd)+'/mnd</td></tr>';}).filter(Boolean).join('');
+  const persRows=team.filter(p=>p.type==='bediende').map(p=>{const mnd=isV2()?loonkostMnd(p):(+p.brutoJaar||0)/12;if(mnd<=0)return '';return'<tr style="background:#fef2f2"><td><span style="color:#dc2626;font-weight:600">👤 '+(p.naam||'(naamloos)')+'</span>'+(p.ific?'<span style="font-size:10px;color:#9ca3af;margin-left:5px">IFIC '+p.ific+'</span>':'')+'<span style="font-size:10px;color:#9ca3af;margin-left:5px">€'+(+p.brutoJaar||0).toLocaleString('nl-BE')+'/jr bruto</span></td><td style="color:#9ca3af;font-size:10.5px;font-style:italic">auto uit personeel</td><td style="color:#dc2626;font-weight:600;text-align:right">'+fmt(mnd)+'/mnd</td></tr>';}).filter(Boolean).join('');
   const handRows=kostenData.map(k=>{const isJr=k.periode==='jr',mnd=maandBedrag(k),hint=isJr&&k.bedrag?'<span style="font-size:10px;color:#9ca3af;margin-left:4px">= '+fmt(mnd)+'/mnd</span>':'';return'<tr><td><input type="text" value="'+esc(k.naam)+'" oninput="kn(\''+k.id+'\',this.value)"></td><td style="white-space:nowrap"><input type="number" value="'+k.bedrag+'" style="width:90px" oninput="kb(\''+k.id+'\',+this.value)"><button onclick="kp(\''+k.id+'\')" style="margin-left:4px;padding:2px 7px;border:1px solid #e5e7eb;border-radius:5px;cursor:pointer;font-size:10.5px;font-weight:600;background:'+(isJr?'#4f46e5':'#f9fafb')+';color:'+(isJr?'#fff':'#6b7280')+'">'+(isJr?'jr':'mnd')+'</button>'+hint+'</td><td><button class="btn-del" onclick="delKost(\''+k.id+'\')">×</button></td></tr>';}).join('');
   document.getElementById('kosten-tbody').innerHTML=invRows+persRows+handRows;
   const ov=kostenData.reduce((s,k)=>s+maandBedrag(k),0),hv=hvMaandlast(),inv=totaleInvesteringMnd(),pers=personeelKostenMnd(),tot=ov+hv+inv+pers;
   const cvHv=cvActief&&cvVastgoedBijCv;
   document.getElementById('kosten-totaal').innerHTML='Huisvesting: <strong'+(cvHv?' style="color:#b45309"':'')+'>'+fmt(hv)+(cvHv?' 🏛→CV':'')+'</strong> + investeringen: <strong style="color:#7c3aed">'+fmt(inv)+'</strong> + personeel: <strong style="color:#dc2626">'+fmt(pers)+'</strong> + overige: <strong>'+fmt(ov)+'</strong> = <strong style="color:#4f46e5">'+fmt(tot)+'</strong> / maand'
     +(cvHv?'<div style="font-size:11px;color:#b45309;margin-top:4px">🏛 CV actief: de huisvestingskost ('+fmt(hv)+'/mnd) wordt gedragen door de CV. Lopende kosten MIND+: <strong>'+fmt(tot-hv)+'</strong>/mnd (zie tab Financieel).</div>':'');
-  const vpk=team.filter(p=>p.pct===0&&dagdelen(p)>0&&!(+p.brutoJaar)),ne=document.getElementById('kosten-vpk-note');
-  if(vpk.length){ne.innerHTML='⚠️ <strong>'+vpk.map(p=>p.naam).join(', ')+'</strong> afdracht 0% en geen brutoloon ingevuld in personeelskost.';ne.style.display='block';}else ne.style.display='none';
+  const vpk=isV2()?team.filter(p=>p.type==='bediende'&&!inkomenStatus(p).ok):team.filter(p=>p.pct===0&&dagdelen(p)>0&&!(+p.brutoJaar)),ne=document.getElementById('kosten-vpk-note');
+  if(vpk.length){ne.innerHTML=isV2()?'⚠️ <strong>'+vpk.map(p=>esc(p.naam)).join(', ')+'</strong>: geen loonkost ingevuld (Inkomen-tab).':'⚠️ <strong>'+vpk.map(p=>p.naam).join(', ')+'</strong> afdracht 0% en geen brutoloon ingevuld in personeelskost.';ne.style.display='block';}else ne.style.display='none';
 }
 
 function renderInvesteringen(){
@@ -2742,6 +2927,26 @@ function renderCap(){
 function renderIfic(){
   const c=document.getElementById('ific-content');
   if(!c)return;
+  // v2: kies voor welke bediende je rekent (personIfic) of een los scenario (globale ificInputs)
+  let selBar='';
+  if(isV2()){
+    const beds=team.filter(p=>p.type==='bediende');
+    if(ificSelectedPid&&!beds.some(p=>p.id===ificSelectedPid))ificSelectedPid='';
+    const opts='<option value=""'+(ificSelectedPid?'':' selected')+'>— los scenario (niet gekoppeld) —</option>'+beds.map(p=>'<option value="'+p.id+'"'+(p.id===ificSelectedPid?' selected':'')+'>'+esc(p.naam)+(personIfic[p.id]?' ✓':'')+'</option>').join('');
+    let extra='';
+    if(ificSelectedPid){
+      const p=team.find(x=>x.id===ificSelectedPid),pi=personIficInputs(ificSelectedPid),gek=!!(getInkomen(p)&&getInkomen(p).bron==='ific');
+      extra='<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" '+(pi.fteUitRooster?'checked':'')+' onchange="setPersonIficInput(\''+ificSelectedPid+'\',\'fteUitRooster\',this.checked)" style="accent-color:#4f46e5"> FTE uit rooster ('+urenRooster(p).toFixed(1)+' u / 38 u = '+(urenRooster(p)/38*100).toFixed(1)+'%'+(urenRooster(p)>38?', begrensd op 100%':'')+')</label>'
+        +(gek?'<span style="font-size:11.5px;color:#059669;font-weight:600">✓ loonkost gekoppeld aan Inkomen-tab: '+fmt(calcIfic(pi).totJr)+'/jaar</span>':'<button class="btn btn-primary" onclick="ificKoppel(\''+ificSelectedPid+'\')">Gebruik als loonkost in Inkomen-tab</button>');
+    }
+    selBar='<div class="card" style="border-left:3px solid #4f46e5;display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div><div style="font-weight:700;font-size:13px">👤 Bereken voor</div><select onchange="ificSelectedPid=this.value;renderIfic();" style="margin-top:4px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12.5px">'+opts+'</select></div>'+extra+'</div>';
+  } else { ificSelectedPid=''; }
+  const savedInputs=ificInputs;
+  if(ificSelectedPid&&personIfic[ificSelectedPid])ificInputs=personIficInputs(ificSelectedPid);
+  try{renderIficInner(c);}finally{ificInputs=savedInputs;}
+  if(selBar)c.innerHTML=selBar+c.innerHTML;
+}
+function renderIficInner(c){
   const out=calcIfic(ificInputs);
   const baremaNaam=ificBaremaOverride&&ificBaremaOverride.meta&&ificBaremaOverride.meta.naam
     ? ('aangepast: '+esc(ificBaremaOverride.meta.naam))
@@ -3039,7 +3244,7 @@ function renderIfic(){
 function eur(n){return (Math.round((+n||0)*100)/100).toLocaleString('nl-BE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 function hv_naam(id,v){const p=team.find(x=>x.id===id);if(p){p.naam=v;refreshAll();onAnyChange();}}
-function hv_v(id,f,v){const p=team.find(x=>x.id===id);if(p){p[f]=v;renderFin();renderCapp();onAnyChange();}}
+function hv_v(id,f,v){const p=team.find(x=>x.id===id);if(p){p[f]=v;renderFin();renderCapp();if(document.getElementById('tab-inkomen').classList.contains('active'))renderInkomen();onAnyChange();}}
 function setPctSlider(pid,v){
   const p=team.find(x=>x.id===pid);
   if(!p)return;
@@ -3089,7 +3294,7 @@ function updateFinLabels(pid,val,type){
   if(type==='pct'){const slE=document.querySelector('input[data-fin-eur="'+pid+'"]');if(slE)slE.value=eur.toFixed(1);}
   else{const slP=document.querySelector('input[data-fin-pct="'+pid+'"]');if(slP)slP.value=pct.toFixed(1);}
 }
-function toggleType(id){const p=team.find(x=>x.id===id);if(p){p.type=p.type==='bediende'?'zelfstandige':'bediende';renderTeam();renderCapp();renderMix();onAnyChange();}}
+function toggleType(id){const p=team.find(x=>x.id===id);if(p){p.type=p.type==='bediende'?'zelfstandige':'bediende';ensureInkomen(id);refreshAll();onAnyChange();}}
 function kn(id,v){const k=kostenData.find(x=>x.id===id);if(k){k.naam=v;onAnyChange();}}
 function kb(id,v){const k=kostenData.find(x=>x.id===id);if(k){k.bedrag=v;renderKosten();renderFin();renderCapp();onAnyChange();}}
 function kp(id){const k=kostenData.find(x=>x.id===id);if(k){k.periode=k.periode==='jr'?'mnd':'jr';renderKosten();renderFin();renderCapp();onAnyChange();}}
@@ -3103,10 +3308,11 @@ function addBediende(){
   const pid=nextId('t');
   team.push({id:pid,naam:n,tarief:0,cons:0,pct:0,wkjr:46,type:'bediende',brutoJaar:bj,ific:ific});
   slots[pid]=mkDef();
+  personInkomen[pid]={bedrag:bj,periode:'jaar',maanden:[],urenBasis:'manueel',urenWk:38,bron:'manueel'};
   ['np-naam','np-ific','np-bruto'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   refreshAll();onAnyChange();
 }
-function setBedJaar(pid,v){const p=team.find(x=>x.id===pid);if(!p)return;p.brutoJaar=Math.max(0,+v||0);renderKosten();renderFin();renderCapp();onAnyChange();}
+function setBedJaar(pid,v){const p=team.find(x=>x.id===pid);if(!p)return;p.brutoJaar=Math.max(0,+v||0);const i=ensureInkomen(pid);if(i.bron!=='ific'){i.bedrag=p.brutoJaar;i.periode='jaar';i.maanden=[];if(!(i.urenWk>0))i.urenWk=38;}renderKosten();renderFin();renderCapp();onAnyChange();}
 function setBedIfic(pid,v){const p=team.find(x=>x.id===pid);if(!p)return;p.ific=(v||'').toString().trim();renderKosten();onAnyChange();}
 const PUNTEN_MAX=20;
 function setMandaatPunten(id,newVal){const m=mandaten.find(x=>x.id===id);if(!m)return;m.punten=Math.max(0,Math.min(PUNTEN_MAX,+newVal||0));renderCapp();onAnyChange();}
@@ -3186,8 +3392,8 @@ function delRuimte(id){
 }
 function renameRuimte(id,v){const r=ruimtes.find(x=>x.id===id);if(!r)return;r.naam=(v||'').toString();onAnyChange();const sels=document.querySelectorAll('.slot-sel');sels.forEach(s=>{if(s.value===id)s.setAttribute('title',r.naam);});}
 function recolorRuimte(id,v){const r=ruimtes.find(x=>x.id===id);if(!r)return;r.kleur=v||'#4f46e5';renderRooster();onAnyChange();}
-function addPersoon(){const n=document.getElementById('nh-naam').value.trim();if(!n)return;const id=nextId('tp'),t=document.getElementById('nh-type').value||'zelfstandige';team.push({id,naam:n,type:t,tarief:0,cons:0,pct:t==='bediende'?0:20,wkjr:+document.getElementById('nh-wkjr').value||46,brutoJaar:0,ific:'',modus:inkomstenModus});slots[id]=mkDef();['nh-naam','nh-wkjr'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});refreshAll();onAnyChange();}
-function delPersoon(id){team=team.filter(p=>p.id!==id);delete slots[id];delete personMandaten[id];delete personOpleiding[id];delete werkelijkeCons[id];delete personMix[id];delete personTechnisch[id];delete personMDO[id];delete personAdmin[id];delete personAvond[id];delete mdoBlokken[id];delete cappOptIn[id];delete personActPct[id];delete personMinAfdrachtPct[id];delete personAvondPct[id];delete personHuur[id];delete personCappVastPerBlok[id];delete finExpanded[id];refreshAll();onAnyChange();}
+function addPersoon(){const n=document.getElementById('nh-naam').value.trim();if(!n)return;const id=nextId('tp'),t=document.getElementById('nh-type').value||'zelfstandige';team.push({id,naam:n,type:t,tarief:0,cons:0,pct:t==='bediende'?0:20,wkjr:+document.getElementById('nh-wkjr').value||46,brutoJaar:0,ific:'',modus:inkomstenModus});slots[id]=mkDef();ensureInkomen(id);['nh-naam','nh-wkjr'].forEach(x=>{const el=document.getElementById(x);if(el)el.value='';});refreshAll();onAnyChange();}
+function delPersoon(id){team=team.filter(p=>p.id!==id);delete slots[id];delete personMandaten[id];delete personOpleiding[id];delete werkelijkeCons[id];delete personMix[id];delete personTechnisch[id];delete personMDO[id];delete personAdmin[id];delete personAvond[id];delete mdoBlokken[id];delete cappOptIn[id];delete personActPct[id];delete personMinAfdrachtPct[id];delete personAvondPct[id];delete personHuur[id];delete personCappVastPerBlok[id];delete finExpanded[id];delete personInkomen[id];delete personIfic[id];refreshAll();onAnyChange();}
 function onOverleg(){renderOverleg();renderFin();renderRooster();renderCap();renderCapp();if(document.getElementById('tab-mix').classList.contains('active'))renderMix();onAnyChange();}
 function toggleOverlegOh(active){
   overlegOhActief=!!active;
@@ -3233,10 +3439,233 @@ function addMdoBooking(day,startHour){
 function delMdoBooking(id){mdoBookings=mdoBookings.filter(b=>b.id!==id);renderRooster();renderCapp();renderFin();onAnyChange();}
 
 function refreshFin(){const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('fin'))renderFin();if(a('kosten'))renderKosten();}
-function refreshAll(){renderTeam();renderRooster();renderFin();renderKosten();const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('overleg'))renderOverleg();if(a('capp'))renderCapp();if(a('mix'))renderMix();if(a('cap'))renderCap();}
-function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='overleg')renderOverleg();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();else if(id==='ific')renderIfic();}
+function refreshAll(){applyVersieUI();renderTeam();renderRooster();renderFin();renderKosten();const a=id=>document.getElementById('tab-'+id).classList.contains('active');if(a('overleg'))renderOverleg();if(a('capp'))renderCapp();if(a('mix'))renderMix();if(a('cap'))renderCap();if(a('inkomen'))renderInkomen();if(a('handleiding'))renderHandleiding();if(a('ific'))renderIfic();}
+function showTab(id,btn){document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+id).classList.add('active');btn.classList.add('active');if(id==='fin')renderFin();else if(id==='rooster')renderRooster();else if(id==='team')renderTeam();else if(id==='kosten')renderKosten();else if(id==='overleg')renderOverleg();else if(id==='capp')renderCapp();else if(id==='mix')renderMix();else if(id==='cap')renderCap();else if(id==='ific')renderIfic();else if(id==='inkomen')renderInkomen();else if(id==='handleiding')renderHandleiding();}
 
 document.getElementById('scenarios-modal').addEventListener('click',function(e){if(e.target===this)closeScenariosModal();});
+
+// ===== INKOMEN-TAB (v2) =====
+function fmt2(n){return'€ '+(Math.round(n*100)/100).toLocaleString('nl-BE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function setInkomen(pid,k,v){
+  const i=ensureInkomen(pid);
+  if(k==='bedrag')i.bedrag=Math.max(0,+v||0);
+  else if(k==='periode'){if(INKOMEN_PERIODES.some(x=>x[0]===v))i.periode=v;}
+  else if(k==='urenBasis')i.urenBasis=(v==='rooster'?'rooster':'manueel');
+  else if(k==='urenWk')i.urenWk=Math.max(0,+v||0);
+  else if(k==='bron')i.bron=(v==='ific'?'ific':'manueel');
+  // Bediende: brutoJaar (v1-veld) mee synchroniseren zodat Kosten-tab in v1 ook klopt
+  const p=team.find(x=>x.id===pid);
+  if(p&&p.type==='bediende'&&i.bron!=='ific'){p.brutoJaar=Math.round(uurtarief(p)*urenRef(p)*(+p.wkjr||46));}
+  renderInkomen();onAnyChange();
+}
+function setInkomenWkjr(pid,v){const p=team.find(x=>x.id===pid);if(!p)return;p.wkjr=Math.max(1,Math.min(52,+v||46));renderInkomen();onAnyChange();}
+function setInkomenMaand(pid,idx,v){const i=ensureInkomen(pid);i.maanden[idx]=Math.max(0,+v||0);if(i.maanden.length)i.bedrag=inkomenBedrag(team.find(x=>x.id===pid));renderInkomen();onAnyChange();}
+function addInkomenMaand(pid){const i=ensureInkomen(pid);if(!i.maanden.length&&i.bedrag>0)i.maanden.push(i.bedrag);i.maanden.push(0);renderInkomen();onAnyChange();}
+function delInkomenMaand(pid,idx){const i=ensureInkomen(pid);i.maanden.splice(idx,1);renderInkomen();onAnyChange();}
+function goToInkomen(pid){const b=document.querySelector('.tab-btn[data-tab="inkomen"]');if(b)showTab('inkomen',b);setTimeout(()=>{const r=document.getElementById('ink-row-'+pid);if(r){r.scrollIntoView({behavior:'smooth',block:'center'});r.style.background='#fef9c3';setTimeout(()=>r.style.background='',1500);}},60);}
+function goToTab(id){const b=document.querySelector('.tab-btn[data-tab="'+id+'"]');if(b)showTab(id,b);}
+function inkomenSamenvatting(p){
+  // Korte tekst voor Team-tab / Rooster-tab
+  const i=getInkomen(p),st=inkomenStatus(p);
+  if(!st.ok)return '<span style="color:#dc2626">⚠ '+esc(st.msg)+'</span>';
+  if(p.type==='bediende'&&i&&i.bron==='ific')return '<span style="color:#b91c1c">IFIC · '+fmt(loonkostMnd(p))+'/mnd</span>';
+  const per=INKOMEN_PERIODES.find(x=>x[0]===i.periode);
+  const uren=['week','maand','jaar'].includes(i.periode)?' @ '+urenRef(p).toFixed(1)+' u':'';
+  return '<span>'+fmt(inkomenBedrag(p))+' '+(per?per[1]:'')+uren+'</span> <span style="color:#9ca3af">→ '+fmt2(uurtarief(p))+'/u</span>';
+}
+function renderInkomen(){
+  const c=document.getElementById('inkomen-content');if(!c)return;
+  if(!isV2()){c.innerHTML='<div class="card alert alert-warn">De Inkomen-tab hoort bij <strong>v2</strong>. Schakel bovenaan naar "Inkomen (v2)".</div>';return;}
+  let h='';
+  h+='<div class="card" style="border-left:3px solid #4f46e5"><div class="card-title">💶 Inkomen per teamlid</div>'
+    +'<p class="note">Vul per persoon <strong>één inkomen</strong> in. Voor een <strong>zelfstandige</strong> is dat de <strong>bruto omzet vóór afdracht</strong> (wat die persoon factureert); voor een <strong>bediende</strong> de <strong>totale loonkost voor de werkgever</strong> (bruto + patronale lasten), of laat de IFIC-tab dat berekenen.</p>'
+    +'<p class="note" style="margin-top:4px">Kies de periode. Bij <em>per week / maand / jaar</em> geef je ook op <strong>bij hoeveel uur per week</strong> dat inkomen hoort (of koppel het aan het rooster). Daaruit volgt een <strong>uurtarief</strong>; het rooster bepaalt daarna de effectieve uren en dus het bruto per maand. Bij <em>per maand</em> kan je meerdere maanden ingeven — dan telt het gemiddelde. Weken per jaar zijn per persoon instelbaar (zelfde veld als in Team).</p>'
+    +'<p class="note" style="margin-top:4px;color:#9ca3af">Blokduur (nu '+blokUren(0)+' u dag / '+blokUren(2)+' u avond) stel je in de <a href="#" onclick="goToTab(\'rooster\');return false" style="color:#4f46e5">Rooster-tab</a> in.</p></div>';
+  if(!team.length){c.innerHTML=h+'<div class="card"><p class="note">Nog geen teamleden — voeg ze toe in de Team-tab.</p></div>';return;}
+  const periodeOpts=(sel)=>INKOMEN_PERIODES.map(([k,l])=>'<option value="'+k+'"'+(k===sel?' selected':'')+'>'+l+'</option>').join('');
+  let rows='',totBrutoZ=0,totLoon=0;
+  team.forEach((p,pi)=>{
+    const i=ensureInkomen(p.id),isBed=p.type==='bediende',st=inkomenStatus(p);
+    const ur=urenRooster(p),uref=urenRef(p),r=uurtarief(p),W=+p.wkjr||46;
+    const needsUren=['week','maand','jaar'].includes(i.periode);
+    const ificMode=isBed&&i.bron==='ific';
+    // Bedrag-cel
+    let bedragCell='';
+    if(ificMode){
+      const pi2=personIficInputs(p.id),out=calcIfic(pi2);
+      bedragCell='<div style="font-size:11.5px"><strong style="color:#b91c1c">'+fmt(out.totJr)+'/jaar</strong><div style="font-size:10.5px;color:#6b7280">IFIC cat. '+pi2.categorie+' · '+pi2.ancien+' j · '+pi2.ftePct.toFixed(1)+'% FTE'+(pi2.fteUitRooster?' (uit rooster)':'')+'</div>'
+        +'<div style="margin-top:3px"><button class="btn-sv" style="padding:2px 7px;font-size:10px" onclick="ificSelectPerson(\''+p.id+'\')">✎ in IFIC-tab</button> <button class="btn-sv" style="padding:2px 7px;font-size:10px" onclick="setInkomen(\''+p.id+'\',\'bron\',\'manueel\')" title="Terug naar manueel bedrag">manueel</button></div></div>';
+    } else if(i.periode==='maand'&&i.maanden.length){
+      bedragCell='<div style="display:flex;flex-direction:column;gap:2px">'+i.maanden.map((m,mi)=>'<div style="display:flex;align-items:center;gap:4px"><span style="font-size:10px;color:#9ca3af;width:16px">m'+(mi+1)+'</span><input type="number" min="0" step="50" value="'+(+m||'')+'" placeholder="0" style="width:90px;text-align:right" onchange="setInkomenMaand(\''+p.id+'\','+mi+',this.value)"><button class="btn-del" onclick="delInkomenMaand(\''+p.id+'\','+mi+')">×</button></div>').join('')
+        +'<div style="display:flex;align-items:center;gap:6px;margin-top:2px"><button class="btn-sv" style="padding:2px 7px;font-size:10px" onclick="addInkomenMaand(\''+p.id+'\')">+ maand</button><span style="font-size:10.5px;color:#4f46e5;font-weight:600">gem. '+fmt(inkomenBedrag(p))+'</span></div></div>';
+    } else {
+      bedragCell='<input type="number" min="0" step="50" value="'+(+i.bedrag||'')+'" placeholder="0" style="width:100px;text-align:right;font-weight:600" onchange="setInkomen(\''+p.id+'\',\'bedrag\',this.value)">'
+        +(i.periode==='maand'?'<div><button class="btn-sv" style="padding:2px 7px;font-size:10px;margin-top:3px" onclick="addInkomenMaand(\''+p.id+'\')" title="Meerdere maanden ingeven → gemiddelde">+ meerdere maanden</button></div>':'');
+    }
+    const periodeCell=ificMode?'<span style="font-size:11px;color:#9ca3af">per jaar</span>':'<select onchange="setInkomen(\''+p.id+'\',\'periode\',this.value)" style="font-size:11.5px;padding:3px 5px;border:1px solid #e5e7eb;border-radius:5px">'+periodeOpts(i.periode)+'</select>';
+    // Uren-cel
+    let urenCell;
+    if(ificMode){urenCell='<span style="font-size:11px;color:#6b7280">FTE '+(personIficInputs(p.id).ftePct).toFixed(1)+'% = '+(personIficInputs(p.id).ftePct/100*38).toFixed(1)+' u/wk</span>';}
+    else if(!needsUren){urenCell='<span style="font-size:11px;color:#9ca3af">n.v.t. ('+(i.periode==='uur'?'al per uur':'per dagblok van '+blokUren(0)+' u')+')</span>';}
+    else{
+      urenCell='<div style="display:flex;flex-direction:column;gap:3px;font-size:11.5px">'
+        +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="ub-'+p.id+'" '+(i.urenBasis==='manueel'?'checked':'')+' onchange="setInkomen(\''+p.id+'\',\'urenBasis\',\'manueel\')" style="accent-color:#4f46e5"> bij <input type="number" min="0" max="80" step="0.5" value="'+(i.urenWk||'')+'" placeholder="u/wk" style="width:58px;text-align:right" onchange="setInkomen(\''+p.id+'\',\'urenWk\',this.value)" onclick="setInkomen(\''+p.id+'\',\'urenBasis\',\'manueel\')"> u/week</label>'
+        +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="ub-'+p.id+'" '+(i.urenBasis==='rooster'?'checked':'')+' onchange="setInkomen(\''+p.id+'\',\'urenBasis\',\'rooster\')" style="accent-color:#4f46e5"> volgens rooster (<strong>'+ur.toFixed(1)+' u</strong>)</label>'
+        +'</div>';
+    }
+    // Afgeleiden
+    let afgeleid;
+    if(!st.ok){afgeleid='<span style="color:#dc2626;font-size:11px">⚠ '+esc(st.msg)+'</span>';}
+    else if(isBed){
+      const lk=loonkostMnd(p);totLoon+=lk;
+      afgeleid='<div style="font-size:11.5px"><strong style="color:#b91c1c">'+fmt(lk)+'/mnd</strong> loonkost<div style="font-size:10.5px;color:#9ca3af">= '+fmt(lk*12)+'/jaar · '+(r>0?fmt2(r)+'/u':'')+'</div></div>';
+    } else {
+      const bm=brutoMndV2(p);totBrutoZ+=bm;
+      const ratio=(needsUren&&uref>0&&i.urenBasis==='manueel')?ur/uref:null;
+      afgeleid='<div style="font-size:11.5px"><strong style="color:#4f46e5">'+fmt2(r)+'/u</strong> · '+fmt(brutoEurPerBlok(p,0))+'/dagblok'+(avondDelen(p)?' · '+fmt(brutoEurPerBlok(p,2))+'/avond':'')
+        +'<div style="margin-top:2px">Rooster <strong>'+dagdelen(p)+' blk = '+ur.toFixed(1)+' u/wk</strong> → bruto <strong style="color:#059669">'+fmt(bm)+'/mnd</strong></div>'
+        +(ratio!==null&&Math.abs(ratio-1)>0.01?'<div style="font-size:10.5px;color:'+(ratio>1?'#b45309':'#6b7280')+'">rooster = '+(ratio*100).toFixed(0)+'% van de referentie-uren ('+uref.toFixed(1)+' u)</div>':'')
+        +'</div>';
+    }
+    const soortBadge=isBed?'<span style="font-size:9.5px;background:#fee2e2;color:#b91c1c;padding:1px 6px;border-radius:4px;font-weight:600">loonkost</span>':'<span style="font-size:9.5px;background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:4px;font-weight:600">bruto omzet</span>';
+    const ificBtn=(isBed&&!ificMode)?'<div style="margin-top:3px"><button class="btn-sv" style="padding:2px 7px;font-size:10px" onclick="ificKoppel(\''+p.id+'\')" title="Loonkost laten berekenen door de IFIC-tab">💰 via IFIC</button></div>':'';
+    rows+='<tr id="ink-row-'+p.id+'" style="transition:background .4s"><td style="vertical-align:top"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+clr(pi)+';margin-right:5px"></span><strong>'+esc(p.naam)+'</strong><div style="margin-top:3px">'+soortBadge+'</div>'+ificBtn+'</td>'
+      +'<td style="vertical-align:top">'+bedragCell+'</td>'
+      +'<td style="vertical-align:top">'+periodeCell+'</td>'
+      +'<td style="vertical-align:top">'+urenCell+'</td>'
+      +'<td style="vertical-align:top;text-align:center"><input type="number" min="1" max="52" value="'+W+'" style="width:52px;text-align:center" onchange="setInkomenWkjr(\''+p.id+'\',this.value)"></td>'
+      +'<td style="vertical-align:top">'+afgeleid+'</td></tr>';
+  });
+  h+='<div class="card"><table style="font-size:12.5px"><thead><tr><th style="min-width:150px">Teamlid</th><th style="min-width:130px">Bedrag (€)</th><th style="width:110px">Periode</th><th style="min-width:190px">Bij hoeveel uur/week?</th><th style="width:60px;text-align:center">Wk/jaar</th><th style="min-width:230px">→ Uurtarief & bruto volgens rooster</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<div class="totaal-row" style="margin-top:9px">Bruto omzet zelfstandigen (rooster): <strong style="color:#059669">'+fmt(totBrutoZ)+'</strong>/mnd &nbsp;·&nbsp; Loonkost bedienden: <strong style="color:#b91c1c">'+fmt(totLoon)+'</strong>/mnd &nbsp;·&nbsp; Totaal uren rooster: <strong>'+team.reduce((s,p)=>s+urenRooster(p),0).toFixed(1)+' u/wk</strong></div>'
+    +'<p class="note" style="margin-top:6px">Zelfstandigen: het rooster bepaalt de omzet (meer blokken = meer bruto). Bedienden: de loonkost volgt het contract (referentie-uren of IFIC-FTE), niet het aantal roosterblokken.</p></div>';
+  c.innerHTML=h;
+}
+// IFIC-koppeling per bediende
+function ificKoppel(pid){
+  const p=team.find(x=>x.id===pid);if(!p||p.type!=='bediende')return;
+  if(!personIfic[pid])personIfic[pid]={categorie:+ificInputs.categorie||16,ancien:+ificInputs.ancien||0,ftePct:100,sociaalMaribel:!!ificInputs.sociaalMaribel,extralegaalMnd:+ificInputs.extralegaalMnd||0,burgerlijke:ificInputs.burgerlijke||'alleenstaande',kinderen:+ificInputs.kinderen||0,werkbonus:ificInputs.werkbonus!==false,fteUitRooster:true};
+  const i=ensureInkomen(pid);i.bron='ific';i.periode='jaar';
+  p.brutoJaar=Math.round(calcIfic(personIficInputs(pid)).totJr);
+  ificSelectPerson(pid);
+}
+let ificSelectedPid='';// '' = los scenario (globale ificInputs)
+function ificSelectPerson(pid){ificSelectedPid=pid||'';const b=document.querySelector('.tab-btn[data-tab="ific"]');if(b)showTab('ific',b);}
+function setPersonIficInput(pid,key,v){
+  if(!personIfic[pid])ificKoppel(pid);
+  const pi=personIfic[pid];
+  if(key==='categorie')pi.categorie=Math.max(14,Math.min(20,+v||16));
+  else if(key==='ancien')pi.ancien=Math.max(0,Math.min(35,+v||0));
+  else if(key==='ftePct'){pi.ftePct=Math.max(0.1,Math.min(100,+v||0));pi.fteUitRooster=false;}
+  else if(key==='fteUitRooster')pi.fteUitRooster=!!v;
+  else if(key==='sociaalMaribel')pi.sociaalMaribel=!!v;
+  else if(key==='extralegaalMnd')pi.extralegaalMnd=Math.max(0,+v||0);
+  else if(key==='burgerlijke')pi.burgerlijke=['alleenstaande','gehuwd_2v','gehuwd_1v'].includes(v)?v:'alleenstaande';
+  else if(key==='kinderen')pi.kinderen=Math.max(0,Math.min(10,+v||0));
+  else if(key==='werkbonus')pi.werkbonus=!!v;
+  const p=team.find(x=>x.id===pid);if(p)p.brutoJaar=Math.round(calcIfic(personIficInputs(pid)).totJr);
+  renderIfic();onAnyChange();
+}
+
+// ===== HANDLEIDING (v2) =====
+function renderHandleiding(){
+  const c=document.getElementById('handleiding-content');if(!c)return;
+  const bl='<span style="font-weight:600;color:#4f46e5">';
+  c.innerHTML=
+   '<div class="card" style="border-left:3px solid #4f46e5"><div class="card-title">📖 Handleiding — MINDplus Planner v2 (inkomensmodel)</div>'
+  +'<p class="note">Deze planner simuleert wat het centrum maandelijks binnenkrijgt, wat elk teamlid overhoudt en of de kosten gedekt zijn. In <strong>v2</strong> vertrekt alles van één eenvoudig gegeven per persoon: <strong>wat verdient die persoon, en bij hoeveel uur</strong>. De rest volgt uit het rooster.</p></div>'
+  +'<div class="card"><div class="card-title">Stappenplan</div><ol style="font-size:12.5px;line-height:1.7;padding-left:20px;color:#374151">'
+  +'<li>'+bl+'👥 Team</span> — voeg teamleden toe: naam, type (Z = zelfstandige, B = bediende), weken per jaar.</li>'
+  +'<li>'+bl+'📅 Rooster</span> — vink per persoon de blokken aan (VM, NM, Av) en eventueel de ruimte. Stel bovenaan de <em>blokduur</em> in (standaard 5,5 u dag, 4,5 u avond).</li>'
+  +'<li>'+bl+'💶 Inkomen</span> — geef per persoon één inkomen: per uur, dagdeel, week, maand of jaar. Bij week/maand/jaar: zeg bij hoeveel uur per week dat hoort, of koppel aan het rooster. Meerdere maandbedragen? Klik "+ meerdere maanden" en het gemiddelde wordt gebruikt. Bedienden: vul de loonkost in of klik "via IFIC".</li>'
+  +'<li>'+bl+'💰 IFIC</span> — berekent de loonkost van een bediende uit categorie, anciënniteit en FTE (FTE kan automatisch uit het rooster). Kies bovenaan voor welke bediende je rekent.</li>'
+  +'<li>'+bl+'💶 Kosten</span> — huisvesting (huur of lening), investeringen, werkingskosten. De personeelskost komt automatisch uit de Inkomen-tab.</li>'
+  +'<li>'+bl+'📊 Financieel</span> — kies per zelfstandige <em>afdracht-%</em> of <em>huur per dagdeel</em>. Met de schuifbalkjes zet je het % of het bedrag per blok; je ziet meteen wat MINDplus ontvangt, wat de persoon netto overhoudt en of het centrum break-even draait. Is er een coöperatieve vennootschap? Activeer de CV-kaart.</li>'
+  +'</ol></div>'
+  +'<div class="card"><div class="card-title">Hoe wordt er gerekend?</div><table style="font-size:12px"><tbody>'
+  +'<tr><td style="width:180px;font-weight:600">Uurtarief</td><td>ingevoerd inkomen herleid naar € per uur. Per maand: bedrag × 12 ÷ (weken/jaar × uren/week). Per jaar: bedrag ÷ (weken/jaar × uren/week). Per week: bedrag ÷ uren/week. Per dagdeel: bedrag ÷ blokuren dag.</td></tr>'
+  +'<tr><td style="font-weight:600">Bruto per blok</td><td>uurtarief × blokuren (dagblok of avondblok).</td></tr>'
+  +'<tr><td style="font-weight:600">Bruto per maand</td><td>uurtarief × roosteruren per week × weken/jaar ÷ 12.</td></tr>'
+  +'<tr><td style="font-weight:600">MINDplus-inkomst</td><td>afdracht-%: bruto × %. Huur: som van de aangevinkte huur-componenten × blokken. Optioneel apart % voor avondblokken.</td></tr>'
+  +'<tr><td style="font-weight:600">Netto persoon</td><td>bruto − MINDplus-inkomst.</td></tr>'
+  +'<tr><td style="font-weight:600">Loonkost bediende</td><td>ingevoerde loonkost (of IFIC-totaal), herleid naar per maand. Volgt het contract, niet het aantal roosterblokken.</td></tr>'
+  +'<tr><td style="font-weight:600">Resultaat MINDplus</td><td>som van alle MINDplus-inkomsten − maandkosten (huisvesting + investeringen + personeel + werking).</td></tr>'
+  +'</tbody></table></div>'
+  +'<div class="card"><div class="card-title">Begrippen</div><table style="font-size:12px"><tbody>'
+  +'<tr><td style="width:180px;font-weight:600">Blok / dagdeel</td><td>een halve werkdag in het rooster: VM, NM of Av.</td></tr>'
+  +'<tr><td style="font-weight:600">Referentie-uren</td><td>het aantal uur per week waarbij het ingevoerde inkomen hoort. Het rooster mag daarvan afwijken: dan schaalt het bruto mee.</td></tr>'
+  +'<tr><td style="font-weight:600">Afdracht</td><td>het deel van de omzet dat naar MINDplus gaat, als % of als vast bedrag per blok.</td></tr>'
+  +'<tr><td style="font-weight:600">Huur per dagdeel</td><td>alternatief voor afdracht: vaste huur per blok, samengesteld uit componenten (basishuur, secretariaat, ...).</td></tr>'
+  +'<tr><td style="font-weight:600">CV</td><td>coöperatieve vennootschap die het vastgoed beheert; een deel van huur of afdracht kan als aandelen-inleg geboekt worden.</td></tr>'
+  +'<tr><td style="font-weight:600">Scenario</td><td>een bewaarde volledige configuratie. Scenario\'s van v1 en v2 staan apart; bij het laden schakelt de planner naar de juiste versie.</td></tr>'
+  +'</tbody></table></div>'
+  +'<div class="card alert alert-info" style="font-size:12px">💡 <strong>Klassiek (v1)</strong> blijft beschikbaar via de schakelaar bovenaan: daar rekent de planner met tarief × consulten per blok, consultatiemix, overlegoverhead en cappuccino-pools. Team, rooster en kosten zijn in beide versies dezelfde.</div>';
+}
+
+// ===== ZELFTEST (v1 ↔ v2 gelijkwaardigheid + rondritten) =====
+function runZelftest(){
+  const snapshot=buildState();
+  const res=[];
+  const near=(a,b,tol)=>Math.abs(a-b)<=(tol==null?0.01:tol);
+  const T=(naam,ok,detail)=>res.push({naam,ok,detail});
+  try{
+    // 1. Standaardteam: v1 (overleg/mix uit) vs v2 na migratie
+    applyState({version:8,team:DEFAULT_TEAM.map(p=>({...p})),tabsEnabled:{mdo:false,mix:false,overleg:false,capp:false},plannerVersie:'v1'});
+    plannerVersie='v1';
+    const v1={};team.forEach(p=>{v1[p.id]=[vzwActual(p),nettoActual(p),totalKosten()];});
+    const v1Tot=[totalVzw(),totalKosten()];
+    plannerVersie='v2';
+    let okAll=true,det=[];
+    team.forEach(p=>{if(p.type==='bediende')return;const a=vzwActual(p),b=nettoActual(p);if(!near(a,v1[p.id][0])||!near(b,v1[p.id][1])){okAll=false;det.push(p.naam+': v1 '+Math.round(v1[p.id][0])+'/'+Math.round(v1[p.id][1])+' vs v2 '+Math.round(a)+'/'+Math.round(b));}});
+    T('Standaardteam: MIND+ en netto per persoon identiek in v1 en v2',okAll,det.join('; ')||'alle '+team.length+' leden gelijk');
+    T('Standaardteam: totale inkomst en kosten identiek',near(totalVzw(),v1Tot[0])&&near(totalKosten(),v1Tot[1]),fmt(totalVzw())+' / '+fmt(totalKosten()));
+    // 2. Rondritten per periode: 4.500/mnd @ 20u, rooster op 20u → bruto/mnd = 4.500
+    const p=team.find(x=>x.type!=='bediende');
+    p.wkjr=46;slots[p.id]=[[true,false,false],[true,false,false],[true,false,false],[false,false,false],[false,false,false]]; // 3 dagblokken = 16,5u
+    blokUrenCfg={dag:20/3,av:4.5}; // 3 blokken × 6,667 = 20u
+    personInkomen[p.id]={bedrag:4500,periode:'maand',maanden:[],urenBasis:'manueel',urenWk:20,bron:'manueel'};
+    T('Rondrit maand: 4.500/mnd @ 20 u, rooster 20 u → bruto/mnd',near(brutoMndV2(p),4500),fmt2(brutoMndV2(p)));
+    personInkomen[p.id]={bedrag:54000,periode:'jaar',maanden:[],urenBasis:'manueel',urenWk:20,bron:'manueel'};
+    T('Rondrit jaar: 54.000/jr @ 20 u → 4.500/mnd',near(brutoMndV2(p),4500),fmt2(brutoMndV2(p)));
+    personInkomen[p.id]={bedrag:1000,periode:'week',maanden:[],urenBasis:'manueel',urenWk:20,bron:'manueel'};
+    T('Rondrit week: 1.000/wk @ 20 u → 1.000 × 46/12',near(brutoMndV2(p),1000*46/12),fmt2(brutoMndV2(p)));
+    personInkomen[p.id]={bedrag:50,periode:'uur',maanden:[],urenBasis:'manueel',urenWk:0,bron:'manueel'};
+    T('Rondrit uur: 50/u × 20 u × 46/12',near(brutoMndV2(p),50*20*46/12),fmt2(brutoMndV2(p)));
+    personInkomen[p.id]={bedrag:400,periode:'dagdeel',maanden:[],urenBasis:'rooster',urenWk:0,bron:'manueel'};
+    T('Rondrit dagdeel: 400/blok × 3 blokken × 46/12',near(brutoMndV2(p),400*3*46/12),fmt2(brutoMndV2(p)));
+    personInkomen[p.id]={bedrag:0,periode:'maand',maanden:[4000,5000,3000],urenBasis:'rooster',urenWk:0,bron:'manueel'};
+    T('Gemiddelde van 3 maanden (4000/5000/3000) = 4.000, rooster-uren',near(brutoMndV2(p),4000),fmt2(brutoMndV2(p)));
+    // 3. Slider-rondrit: € → % → €
+    personInkomen[p.id]={bedrag:4500,periode:'maand',maanden:[],urenBasis:'manueel',urenWk:20,bron:'manueel'};
+    p.pct=20;const eur=afdrachtEurPerBlok(p);const pctBack=eur/brutoEurPerBlok(p,0)*100;
+    T('Slider-rondrit: 20 % → €/blok → %',near(pctBack,20,0.001),eur.toFixed(2)+' €/blok → '+pctBack.toFixed(3)+' %');
+    // 4. Avond: v2 verhouding = blokuren
+    blokUrenCfg={dag:5.5,av:4.5};slots[p.id][0][2]=true;
+    T('Avondblok telt 4,5/5,5 van een dagblok',near(brutoEurPerBlok(p,2)/brutoEurPerBlok(p,0),4.5/5.5,1e-9),(brutoEurPerBlok(p,2)/brutoEurPerBlok(p,0)).toFixed(4));
+    // 5. Bediende: jaarloon 38u → /12 ; IFIC-koppeling = calcIfic/12
+    const b=team.find(x=>x.type==='bediende')||p;
+    b.type='bediende';personInkomen[b.id]={bedrag:42000,periode:'jaar',maanden:[],urenBasis:'manueel',urenWk:38,bron:'manueel'};
+    T('Bediende 42.000/jr @ 38 u → loonkost 3.500/mnd, onafhankelijk van rooster',near(loonkostMnd(b),3500),fmt2(loonkostMnd(b)));
+    personIfic[b.id]={categorie:14,ancien:5,ftePct:50,fteUitRooster:false,sociaalMaribel:false,extralegaalMnd:0};personInkomen[b.id].bron='ific';
+    T('Bediende via IFIC: loonkost = calcIfic(...).totJr / 12',near(loonkostMnd(b),calcIfic(personIficInputs(b.id)).totJr/12),fmt2(loonkostMnd(b)));
+    T('personeelKostenMnd bevat alle bedienden',near(personeelKostenMnd(),team.filter(x=>x.type==='bediende').reduce((s2,x)=>s2+loonkostMnd(x),0)),fmt2(personeelKostenMnd()));
+    // 6. Verwijderen ruimt op
+    const pid=p.id;team=team.filter(x=>x.id!==pid);delete slots[pid];delete personInkomen[pid];delete personIfic[pid];
+    T('Teamlid verwijderen laat geen inkomen-sleutels achter',!personInkomen[pid]&&!personIfic[pid],'');
+    // 7. Oude state (v7) laden
+    applyState({version:7,team:DEFAULT_TEAM.map(q=>({...q}))});
+    T('Oude state v7 → plannerVersie v1 + inkomen gemigreerd',plannerVersie==='v1'&&Object.keys(personInkomen).length===DEFAULT_TEAM.filter(q=>q.type!=='bediende'&&q.tarief>0&&q.cons>0).length,Object.keys(personInkomen).length+' leden gemigreerd');
+  }catch(e){T('Onverwachte fout',false,String(e&&e.message||e));console.error(e);}
+  // Herstel
+  applyState(snapshot);refreshAll();
+  const ok=res.filter(r=>r.ok).length;
+  const html='<div class="modal-bg open" id="zelftest-modal" onclick="if(event.target===this)this.remove()"><div class="modal" style="max-width:640px"><h3>⚙ Zelftest — '+ok+'/'+res.length+' geslaagd</h3>'
+    +'<table style="font-size:12px"><tbody>'+res.map(r=>'<tr><td style="width:24px;font-size:14px">'+(r.ok?'✅':'❌')+'</td><td>'+esc(r.naam)+(r.detail?'<div style="font-size:10.5px;color:#9ca3af">'+esc(r.detail)+'</div>':'')+'</td></tr>').join('')+'</tbody></table>'
+    +'<p class="note" style="margin-top:8px">De test draait op een tijdelijke kopie; je eigen gegevens zijn ongewijzigd hersteld.</p>'
+    +'<div class="modal-btns"><button class="btn-sv" onclick="document.getElementById(\'zelftest-modal\').remove()">Sluiten</button></div></div></div>';
+  document.body.insertAdjacentHTML('beforeend',html);
+  return res;
+}
 
 // ===== Auth UI handlers =====
 function showAuthMsg(txt,type){const el=document.getElementById('auth-msg');if(!el)return;el.innerHTML=txt?'<div class="msg '+(type||'err')+'">'+txt+'</div>':'';}
@@ -3302,6 +3731,7 @@ async function afterLogin(session){
 
 // ===== Init bij page load =====
 (async function(){
+  migreerInkomen(); // standaardteam → inkomen-equivalent (wordt overschreven zodra een opgeslagen state laadt)
   try{
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
   }catch(e){
