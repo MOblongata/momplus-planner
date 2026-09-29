@@ -956,24 +956,35 @@ let breakEvenInputs={
   bufferPct:0
 };
 
+// v2: per bediende eigen break-even-parameters (omzet die die persoon genereert) in personIfic[pid].be
+function personBe(pid){const pi=personIfic[pid];if(!pi)return null;if(!pi.be||typeof pi.be!=='object')pi.be=JSON.parse(JSON.stringify(breakEvenInputs));return pi.be;}
+// Omzet per maand van een bediende (v2, enkel bij IFIC-koppeling): effectieve consulten/wk × werkweken × tarief / 12
+function bediendeOmzetMnd(p){
+  if(!isV2()||p.type!=='bediende')return 0;
+  const i=getInkomen(p);if(!i||i.bron!=='ific'||!personIfic[p.id])return 0;
+  const be=personBe(p.id);
+  return Math.max(0,+be.consultenWk||0)*Math.max(0,+be.werkweken||0)*Math.max(0,+be.tarief||0)/12;
+}
 function setBreakEvenInput(key,v){
+  const target=(ificSelectedPid&&personIfic[ificSelectedPid])?personBe(ificSelectedPid):breakEvenInputs;
   const numKeys=['tarief','consultenWk','werkweken','duurDirect','duurIndirect','mdoUrenWk','supervisieUrenWk','adminUrenWk','contractUrenWk','noShowPct','cancelPct','verlofDg','extraVerlofDg','feestdagenDg','ziekteverzuimPct','werkdagenWk','bufferPct'];
   if(numKeys.includes(key)){
     const n=+v;
-    breakEvenInputs[key]=Math.max(0, isFinite(n)?n:0);
+    target[key]=Math.max(0, isFinite(n)?n:0);
   }
-  renderIfic();onAnyChange();
+  renderIfic();renderFin();onAnyChange();
 }
 
 // Bereken werkweken automatisch uit verlof/feestdagen/ziekte → vul werkweken in
 function autoBerekenWerkweken(){
-  const werkdagen=Math.max(1,Math.min(7,+breakEvenInputs.werkdagenWk||5));
-  const verlofTotDg=(+breakEvenInputs.verlofDg||0)+(+breakEvenInputs.extraVerlofDg||0)+(+breakEvenInputs.feestdagenDg||0);
+  const target=(ificSelectedPid&&personIfic[ificSelectedPid])?personBe(ificSelectedPid):breakEvenInputs;
+  const werkdagen=Math.max(1,Math.min(7,+target.werkdagenWk||5));
+  const verlofTotDg=(+target.verlofDg||0)+(+target.extraVerlofDg||0)+(+target.feestdagenDg||0);
   const verlofWk=verlofTotDg/werkdagen;
-  const ziekteWk=52*((+breakEvenInputs.ziekteverzuimPct||0)/100);
+  const ziekteWk=52*((+target.ziekteverzuimPct||0)/100);
   const ww=Math.max(0, 52 - verlofWk - ziekteWk);
-  breakEvenInputs.werkweken=Math.round(ww*10)/10;
-  renderIfic();onAnyChange();
+  target.werkweken=Math.round(ww*10)/10;
+  renderIfic();renderFin();onAnyChange();
 }
 
 function calcBreakEven(ificOut, inp){
@@ -1647,12 +1658,14 @@ function mixCappIncome(){
 }
 // vzwActual = wat MINDplus binnenkrijgt van deze persoon. Hangt af van persoonlijke modus.
 function vzwActual(p){
+  if(isV2()&&p.type==='bediende')return bediendeOmzetMnd(p); // omzet van een bediende gaat volledig naar MIND+
   if(getPersonModus(p)==='huur')return huurPerPersoonMnd(p);
   // Afdracht-modus: mix-flow als personMix bestaat én Mix-tab actief, anders simpele flow
   if(tabOn('mix')&&(personMix[p.id]||[]).length>0)return vzwPerMaandMixed(p);
   return vzwPerMaand(p);
 }
 function nettoActual(p){
+  if(isV2()&&p.type==='bediende')return 0;
   if(getPersonModus(p)==='huur')return brutoConsultatiesMnd(p)-huurPerPersoonMnd(p);
   if(tabOn('mix')&&(personMix[p.id]||[]).length>0)return persNettoMixed(p);
   return persNettoPerMaand(p);
@@ -2154,7 +2167,7 @@ function renderFin(){
     const v2Bron=(isV2()&&!isBed)?'<div style="font-size:10px;color:#6b7280;margin-top:1px">'+(inkomenStatus(p).ok?fmt2(uurtarief(p))+'/u · bruto '+fmt(bruto)+'/blok':'<span style="color:#dc2626">⚠ '+esc(inkomenStatus(p).msg)+'</span>')+'</div>':'';
     const v2Avond=(isV2()&&!isBed&&avondDelen(p)>0)?'<div style="display:flex;align-items:center;gap:5px;font-size:10px;color:'+(hasAvondOverride(p)?'#7c3aed':'#9ca3af')+'">🌙 avond-%: <input type="number" min="0" max="100" step="0.5" value="'+(personAvondPct[p.id]??'')+'" placeholder="= dag" style="width:56px;text-align:right;font-size:10px;padding:1px 4px" onchange="setAvondPct(\''+p.id+'\',this.value)" title="Leeg = zelfde % als overdag"></div>':'';
     const prof=isBed
-      ?(isV2()?'<div><span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span><div style="font-size:10.5px;color:#b91c1c;margin-top:3px">loonkost '+fmt(loonkostMnd(p))+'/mnd</div></div>':'<span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span>')
+      ?(isV2()?'<div><span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span><div style="font-size:10.5px;color:#b91c1c;margin-top:3px">loonkost '+fmt(loonkostMnd(p))+'/mnd</div>'+(bediendeOmzetMnd(p)>0?'<div style="font-size:10.5px;color:#059669">opbrengst '+fmt(bediendeOmzetMnd(p))+'/mnd → MIND+</div>':'')+'</div>':'<span style="font-size:10px;background:#fee2e2;color:#b91c1c;padding:2px 7px;border-radius:4px;font-weight:600">Bediende</span>')
       :'<div style="display:flex;flex-direction:column;gap:3px;min-width:200px">'+v2Bron
         +'<div style="display:flex;align-items:center;gap:6px" '+lockTitle+'>'
           +'<input type="range" data-fin-pct="'+p.id+'" min="0" max="100" step="0.1" value="'+displayPct.toFixed(1)+'" style="flex:1;'+lockStyle+';accent-color:'+lockColor+'" '
@@ -2220,10 +2233,10 @@ function renderFin(){
     mainRow+='<td style="text-align:center">'+modusCell+'</td>';
     mainRow+='<td>'+paramsCell+'</td>';
     mainRow+='<td style="text-align:right;font-weight:600;color:'+(dd?'#4f46e5':'#d1d5db')+'">'+dd+(isV2()?'<div style="font-size:10px;color:#9ca3af;font-weight:400">'+urenRooster(p).toFixed(1)+' u</div>':'')+'</td>';
-    if(isV2()){mainRow+='<td style="text-align:right;font-size:11.5px">'+(isBed?'<span style="color:#b91c1c;font-weight:600">−'+fmt(loonkostMnd(p))+'</span>':(dd?'<span style="color:#059669;font-weight:600">'+fmt(brutoMndV2(p))+'</span>':'—'))+'</td>';}
+    if(isV2()){mainRow+='<td style="text-align:right;font-size:11.5px">'+(isBed?((bediendeOmzetMnd(p)>0?'<span style="color:#059669;font-weight:600">'+fmt(bediendeOmzetMnd(p))+'</span><br>':'')+'<span style="color:#b91c1c;font-weight:600">−'+fmt(loonkostMnd(p))+'</span>'):(dd?'<span style="color:#059669;font-weight:600">'+fmt(brutoMndV2(p))+'</span>':'—'))+'</td>';}
     const cvM=cvPerPersoonMnd(p);
     const cvSubLine=(cvActief&&dd&&cvM>0)?'<div style="font-size:9.5px;color:#b45309;font-weight:600;line-height:1.3">waarvan 🏛 CV: '+fmt(cvM)+'</div>':'';
-    mainRow+='<td style="text-align:right;font-weight:600">'+(dd?fmt(vzwM)+cvSubLine:'—')+'</td>';
+    mainRow+='<td style="text-align:right;font-weight:600">'+((dd||(isBed&&vzwM>0))?fmt(vzwM)+cvSubLine+(isBed&&isV2()&&vzwM>0?'<div style="font-size:9.5px;color:#9ca3af;font-weight:400">omzet bediende (IFIC)</div>':''):'—')+'</td>';
     mainRow+='<td style="text-align:right;font-size:11px">'+pers+'</td>';
     if(showCappCol)mainRow+='<td style="text-align:right;font-size:11px">'+capp+'</td>';
     mainRow+='<td style="text-align:right;font-weight:600">'+totaal+'</td></tr>';
@@ -2937,13 +2950,13 @@ function renderIfic(){
     if(ificSelectedPid){
       const p=team.find(x=>x.id===ificSelectedPid),pi=personIficInputs(ificSelectedPid),gek=!!(getInkomen(p)&&getInkomen(p).bron==='ific');
       extra='<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer"><input type="checkbox" '+(pi.fteUitRooster?'checked':'')+' onchange="setPersonIficInput(\''+ificSelectedPid+'\',\'fteUitRooster\',this.checked)" style="accent-color:#4f46e5"> FTE uit rooster ('+urenRooster(p).toFixed(1)+' u / 38 u = '+(urenRooster(p)/38*100).toFixed(1)+'%'+(urenRooster(p)>38?', begrensd op 100%':'')+')</label>'
-        +(gek?'<span style="font-size:11.5px;color:#059669;font-weight:600">✓ loonkost gekoppeld aan Inkomen-tab: '+fmt(calcIfic(pi).totJr)+'/jaar</span>':'<button class="btn btn-primary" onclick="ificKoppel(\''+ificSelectedPid+'\')">Gebruik als loonkost in Inkomen-tab</button>');
+        +(gek?'<span style="font-size:11.5px;color:#059669;font-weight:600">✓ gekoppeld aan Inkomen-tab: loonkost '+fmt(calcIfic(pi).totJr/12)+'/mnd · opbrengst '+fmt(bediendeOmzetMnd(p))+'/mnd <span style="font-weight:400;color:#6b7280">(tarief × consulten/wk × werkweken uit de simulator hieronder)</span></span>':'<button class="btn btn-primary" onclick="ificKoppel(\''+ificSelectedPid+'\')">Gebruik als loonkost in Inkomen-tab</button>');
     }
     selBar='<div class="card" style="border-left:3px solid #4f46e5;display:flex;align-items:center;gap:14px;flex-wrap:wrap"><div><div style="font-weight:700;font-size:13px">👤 Bereken voor</div><select onchange="ificSelectedPid=this.value;renderIfic();" style="margin-top:4px;padding:4px 8px;border:1px solid #e5e7eb;border-radius:6px;font-size:12.5px">'+opts+'</select></div>'+extra+'</div>';
   } else { ificSelectedPid=''; }
-  const savedInputs=ificInputs;
-  if(ificSelectedPid&&personIfic[ificSelectedPid])ificInputs=personIficInputs(ificSelectedPid);
-  try{renderIficInner(c);}finally{ificInputs=savedInputs;}
+  const savedInputs=ificInputs,savedBe=breakEvenInputs;
+  if(ificSelectedPid&&personIfic[ificSelectedPid]){ificInputs=personIficInputs(ificSelectedPid);breakEvenInputs=personBe(ificSelectedPid);}
+  try{renderIficInner(c);}finally{ificInputs=savedInputs;breakEvenInputs=savedBe;}
   if(selBar)c.innerHTML=selBar+c.innerHTML;
 }
 function renderIficInner(c){
@@ -3517,8 +3530,10 @@ function renderInkomen(){
     let afgeleid;
     if(!st.ok){afgeleid='<span style="color:#dc2626;font-size:11px">⚠ '+esc(st.msg)+'</span>';}
     else if(isBed){
-      const lk=loonkostMnd(p);totLoon+=lk;
-      afgeleid='<div style="font-size:11.5px"><strong style="color:#b91c1c">'+fmt(lk)+'/mnd</strong> loonkost<div style="font-size:10.5px;color:#9ca3af">= '+fmt(lk*12)+'/jaar · '+(r>0?fmt2(r)+'/u':'')+'</div></div>';
+      const lk=loonkostMnd(p);totLoon+=lk;const om=bediendeOmzetMnd(p);totBrutoZ+=om;
+      afgeleid='<div style="font-size:11.5px"><strong style="color:#b91c1c">'+fmt(lk)+'/mnd</strong> loonkost<div style="font-size:10.5px;color:#9ca3af">= '+fmt(lk*12)+'/jaar · '+(r>0?fmt2(r)+'/u':'')+'</div>'
+        +(ificMode?'<div style="margin-top:3px"><strong style="color:#059669">'+fmt(om)+'/mnd</strong> opbrengst voor MIND+<div style="font-size:10.5px;color:#9ca3af">'+(+personBe(p.id).consultenWk||0)+' cons/wk × '+(+personBe(p.id).werkweken||0)+' wk × '+fmt(+personBe(p.id).tarief||0)+' (IFIC-simulator) · saldo '+(om-lk>=0?'+':'')+fmt(om-lk)+'/mnd</div></div>':'')
+        +'</div>';
     } else {
       const bm=brutoMndV2(p);totBrutoZ+=bm;
       const ratio=(needsUren&&uref>0&&i.urenBasis==='manueel')?ur/uref:null;
@@ -3537,7 +3552,7 @@ function renderInkomen(){
       +'<td style="vertical-align:top">'+afgeleid+'</td></tr>';
   });
   h+='<div class="card"><table style="font-size:12.5px"><thead><tr><th style="min-width:150px">Teamlid</th><th style="min-width:130px">Bedrag (€)</th><th style="width:110px">Periode</th><th style="min-width:190px">Bij hoeveel uur/week?</th><th style="width:60px;text-align:center">Wk/jaar</th><th style="min-width:230px">→ Uurtarief & bruto volgens rooster</th></tr></thead><tbody>'+rows+'</tbody></table>'
-    +'<div class="totaal-row" style="margin-top:9px">Bruto omzet zelfstandigen (rooster): <strong style="color:#059669">'+fmt(totBrutoZ)+'</strong>/mnd &nbsp;·&nbsp; Loonkost bedienden: <strong style="color:#b91c1c">'+fmt(totLoon)+'</strong>/mnd &nbsp;·&nbsp; Totaal uren rooster: <strong>'+team.reduce((s,p)=>s+urenRooster(p),0).toFixed(1)+' u/wk</strong></div>'
+    +'<div class="totaal-row" style="margin-top:9px">Bruto omzet (zelfstandigen via rooster + bedienden via IFIC-simulator): <strong style="color:#059669">'+fmt(totBrutoZ)+'</strong>/mnd &nbsp;·&nbsp; Loonkost bedienden: <strong style="color:#b91c1c">'+fmt(totLoon)+'</strong>/mnd &nbsp;·&nbsp; Totaal uren rooster: <strong>'+team.reduce((s,p)=>s+urenRooster(p),0).toFixed(1)+' u/wk</strong></div>'
     +'<p class="note" style="margin-top:6px">Zelfstandigen: het rooster bepaalt de omzet (meer blokken = meer bruto). Bedienden: de loonkost volgt het contract (referentie-uren of IFIC-FTE), niet het aantal roosterblokken.</p></div>';
   c.innerHTML=h;
 }
@@ -3589,6 +3604,7 @@ function renderHandleiding(){
   +'<tr><td style="font-weight:600">MINDplus-inkomst</td><td>afdracht-%: bruto × %. Huur: som van de aangevinkte huur-componenten × blokken. Optioneel apart % voor avondblokken.</td></tr>'
   +'<tr><td style="font-weight:600">Netto persoon</td><td>bruto − MINDplus-inkomst.</td></tr>'
   +'<tr><td style="font-weight:600">Loonkost bediende</td><td>ingevoerde loonkost (of IFIC-totaal), herleid naar per maand. Volgt het contract, niet het aantal roosterblokken.</td></tr>'
+  +'<tr><td style="font-weight:600">Opbrengst bediende</td><td>enkel bij IFIC-koppeling: tarief × consulten/week × werkweken ÷ 12 uit de break-even-simulator in de IFIC-tab. Telt volledig als MINDplus-inkomst.</td></tr>'
   +'<tr><td style="font-weight:600">Resultaat MINDplus</td><td>som van alle MINDplus-inkomsten − maandkosten (huisvesting + investeringen + personeel + werking).</td></tr>'
   +'</tbody></table></div>'
   +'<div class="card"><div class="card-title">Begrippen</div><table style="font-size:12px"><tbody>'
@@ -3648,6 +3664,8 @@ function runZelftest(){
     T('Bediende 42.000/jr @ 38 u → loonkost 3.500/mnd, onafhankelijk van rooster',near(loonkostMnd(b),3500),fmt2(loonkostMnd(b)));
     personIfic[b.id]={categorie:14,ancien:5,ftePct:50,fteUitRooster:false,sociaalMaribel:false,extralegaalMnd:0};personInkomen[b.id].bron='ific';
     T('Bediende via IFIC: loonkost = calcIfic(...).totJr / 12',near(loonkostMnd(b),calcIfic(personIficInputs(b.id)).totJr/12),fmt2(loonkostMnd(b)));
+    personBe(b.id).tarief=80;personBe(b.id).consultenWk=10;personBe(b.id).werkweken=45;
+    T('Bediende via IFIC: opbrengst = 10 cons/wk × 45 wk × €80 / 12 en telt als MIND+-inkomst',near(bediendeOmzetMnd(b),80*10*45/12)&&near(vzwActual(b),80*10*45/12),fmt2(vzwActual(b)));
     T('personeelKostenMnd bevat alle bedienden',near(personeelKostenMnd(),team.filter(x=>x.type==='bediende').reduce((s2,x)=>s2+loonkostMnd(x),0)),fmt2(personeelKostenMnd()));
     // 6. Verwijderen ruimt op
     const pid=p.id;team=team.filter(x=>x.id!==pid);delete slots[pid];delete personInkomen[pid];delete personIfic[pid];
