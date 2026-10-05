@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Vragenlijsten functioneren</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:light;--ind:#4f46e5;--ind-d:#4338ca;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;color:#1a1a1a;background:#f0f2f5;min-height:100vh;}
+button{font-family:inherit;}
+/* ===== Auth overlay (arts-modus) ===== */
+.auth-overlay{position:fixed;inset:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;}
+.auth-card{background:#fff;border-radius:14px;padding:30px;max-width:380px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.2);}
+.auth-card h1{font-size:22px;font-weight:700;color:#1f2937;margin-bottom:6px;text-align:center;}
+.auth-card .sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:22px;line-height:1.5;}
+.auth-card label{display:block;font-size:11.5px;font-weight:600;color:#374151;margin-bottom:5px;}
+.auth-card input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:10px 12px;font-size:14px;margin-bottom:12px;font-family:inherit;}
+.auth-card input:focus{outline:none;border-color:var(--ind);box-shadow:0 0 0 3px rgba(79,70,229,.15);}
+.auth-card .btn-auth{width:100%;background:var(--ind);color:#fff;border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+.auth-card .btn-auth:hover{background:var(--ind-d);}.auth-card .btn-auth:disabled{opacity:.6;cursor:wait;}
+.auth-card .msg{padding:9px 12px;border-radius:7px;font-size:12px;margin-bottom:10px;}
+.auth-card .msg.err{background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;}
+/* ===== Frame ===== */
+.wrap{max-width:920px;margin:0 auto;padding:22px;}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.brand{font-size:20px;font-weight:700;color:#1f2937;letter-spacing:-.4px;}
+.brand .accent{color:var(--ind);}
+.brand-sub{display:block;font-size:11.5px;color:#9ca3af;font-weight:500;margin-top:2px;}
+.top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.back-link{font-size:12.5px;color:#6b7280;text-decoration:none;padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;cursor:pointer;}
+.back-link:hover{background:#f9fafb;color:var(--ind);border-color:#c7d2fe;}
+.user-pill{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;background:#ede9fe;color:#6d28d9;border-radius:18px;font-size:12.5px;font-weight:600;}
+.user-pill .dot{width:8px;height:8px;border-radius:50%;background:#10b981;}
+.btn-logout{background:#fff;border:1px solid #e5e7eb;color:#6b7280;padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
+.btn-logout:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.btn{padding:9px 15px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;}
+.btn-primary{background:var(--ind);color:#fff;}.btn-primary:hover{background:var(--ind-d);}
+.btn-ghost{background:#fff;border:1px solid #e5e7eb;color:#374151;}.btn-ghost:hover{background:#f9fafb;}
+.btn:disabled{opacity:.55;cursor:wait;}
+.banner{border-radius:9px;padding:11px 14px;font-size:12.5px;line-height:1.55;margin-bottom:14px;}
+.banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
+.banner.warn{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;}
+.banner.err{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+.banner.ok{background:#dcfce7;border:1px solid #86efac;color:#166534;}
+/* ===== Dashboard-kaarten ===== */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.card{background:#fff;border-radius:13px;padding:18px;border:1px solid #e0e7ff;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.card h3{font-size:15px;font-weight:700;color:#1f2937;margin-bottom:4px;display:flex;align-items:center;gap:8px;}
+.card .card-sub{font-size:12px;color:#6b7280;margin-bottom:13px;line-height:1.45;}
+.card .acts{display:flex;gap:8px;flex-wrap:wrap;}
+.card .acts .btn{font-size:12.5px;padding:8px 12px;}
+.linkbox{background:#fff;border-radius:13px;padding:16px 18px;border:1px solid #e0e7ff;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:16px;}
+.linkbox h3{font-size:14px;font-weight:700;color:#1f2937;margin-bottom:8px;}
+.linkbox p{font-size:12.5px;color:#6b7280;margin-bottom:10px;line-height:1.5;}
+.linkbox input{border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;font-size:13.5px;font-family:inherit;width:100%;max-width:340px;}
+.linkbox input:focus{outline:none;border-color:var(--ind);}
+.mailpanel{background:#fff;border-radius:13px;padding:16px 18px;border:1px solid #c7d2fe;box-shadow:0 1px 4px rgba(0,0,0,.05);margin-bottom:16px;}
+.mailpanel h3{font-size:14px;font-weight:700;color:#1f2937;margin-bottom:8px;}
+.mailpanel label{display:block;font-size:12px;color:#6b7280;margin:8px 0 4px;}
+.mailpanel input{border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;font-size:13.5px;font-family:inherit;width:100%;}
+.mailpanel input:focus{outline:none;border-color:var(--ind);}
+.mailpanel textarea{min-height:230px;background:#fff;}
+.mailpanel .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;}
+.mailpanel .klein{font-size:11.5px;color:#6b7280;}
+.linkurl{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+.linkurl code{font-size:11px;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:7px;padding:8px 10px;word-break:break-all;flex:1;min-width:220px;color:#374151;}
+/* ===== Formulier ===== */
+.fcard{background:#fff;border-radius:13px;border:1px solid #e5e7eb;box-shadow:0 1px 4px rgba(0,0,0,.05);padding:20px;margin-bottom:16px;}
+.f-title{font-size:19px;font-weight:800;color:#1f2937;letter-spacing:-.3px;margin-bottom:2px;}
+.f-praktijk{font-size:12.5px;color:#6b7280;margin-bottom:16px;}
+.kop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.kop-grid .veld.breed{grid-column:1/-1;}
+.veld label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;}
+.veld label .req{color:#dc2626;}
+.veld input{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fafafa;}
+.veld input:focus{outline:none;border-color:var(--ind);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.12);}
+.veld.missend input{border-color:#f87171;background:#fef2f2;}
+.instructies{background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:13px 15px;font-size:13px;line-height:1.6;color:#3730a3;margin:16px 0;}
+.instructies b{color:#312e81;}
+/* medicatievraag */
+.medvraag{border:2px solid #fbbf24;background:#fffbeb;border-radius:10px;padding:14px 16px;margin-bottom:16px;}
+.medvraag.missend{border-color:#f87171;background:#fef2f2;}
+.medvraag .mv-q{font-weight:700;font-size:13.5px;color:#78350f;margin-bottom:9px;}
+.medvraag .mv-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.medvraag label{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #e5e7eb;border-radius:9px;padding:8px 13px;font-size:13px;cursor:pointer;user-select:none;}
+.medvraag label:has(input:checked){border-color:var(--ind);background:#eef2ff;color:#3730a3;font-weight:600;}
+.medvraag input{accent-color:var(--ind);}
+/* items */
+.sectie-kop{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:22px 0 4px;flex-wrap:wrap;}
+.sectie-kop h2{font-size:15px;font-weight:800;color:#1f2937;}
+.sectie-kop .schaal-uitleg{font-size:11.5px;color:#6b7280;}
+.subsectie{font-size:12.5px;font-weight:700;color:#6d28d9;margin:14px 0 2px;font-style:italic;}
+.kolomkop{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--ncols,4),74px);gap:6px;padding:6px 10px 4px;font-size:10.5px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:#f0f2f5;z-index:5;}
+.kolomkop span{text-align:center;line-height:1.25;}
+.item{display:grid;grid-template-columns:minmax(0,1fr) repeat(var(--ncols,4),74px);gap:6px;align-items:center;background:#fff;border:1px solid #eef0f4;border-radius:10px;padding:9px 10px;margin-bottom:6px;}
+.item.beantwoord{border-color:#bbf7d0;background:#fbfefc;}
+.item.missend{border-color:#f87171;background:#fef2f2;}
+.item .itxt{font-size:13.2px;line-height:1.45;color:#1f2937;}
+.item .itxt .inr{font-weight:700;color:#6b7280;margin-right:5px;}
+.opt{display:flex;flex-direction:column;align-items:center;gap:3px;border:1.5px solid #e5e7eb;border-radius:8px;padding:6px 2px 5px;cursor:pointer;user-select:none;background:#fafafa;min-height:46px;justify-content:center;}
+.opt:hover{border-color:#c7d2fe;background:#fff;}
+.opt input{accent-color:var(--ind);margin:0;}
+.opt .olbl{font-size:9.5px;color:#6b7280;line-height:1.1;text-align:center;}
+.opt .onr{font-size:11px;font-weight:700;color:#374151;line-height:1;}
+.opt:has(input:checked){border-color:var(--ind);background:#eef2ff;}
+.opt:has(input:checked) .onr,.opt:has(input:checked) .olbl{color:#3730a3;}
+/* bijwerkingen */
+.bw-kop{font-weight:700;font-size:13.5px;color:#1f2937;margin:4px 0 2px;}
+.bw-kolomvraag{font-size:12px;color:#6b7280;margin-bottom:8px;}
+textarea{width:100%;border:1px solid #e5e7eb;border-radius:9px;padding:10px 12px;font-size:13.5px;font-family:inherit;background:#fafafa;resize:vertical;min-height:84px;}
+textarea:focus{outline:none;border-color:var(--ind);background:#fff;}
+/* score */
+.scoreblok{background:#fff;border:2px solid var(--ind);border-radius:13px;padding:18px 20px;margin:18px 0;}
+.scoreblok h2{font-size:15px;font-weight:800;color:#312e81;margin-bottom:3px;}
+.scoreblok .sb-sub{font-size:11.5px;color:#6b7280;margin-bottom:13px;}
+.sb-tabel{width:100%;border-collapse:collapse;font-size:12.8px;margin-bottom:13px;}
+.sb-tabel td{padding:6px 8px;border-bottom:1px solid #f3f4f6;}
+.sb-tabel td:last-child{text-align:right;font-weight:700;color:#1f2937;white-space:nowrap;}
+.crit{display:flex;gap:9px;align-items:flex-start;padding:7px 9px;border-radius:8px;margin-bottom:5px;font-size:12.8px;}
+.crit.ja{background:#fef3c7;border:1px solid #fcd34d;}
+.crit.nee{background:#f9fafb;border:1px solid #eef0f4;color:#6b7280;}
+.crit .cv{font-weight:800;white-space:nowrap;}
+.crit.ja .cv{color:#92400e;}.crit.nee .cv{color:#9ca3af;}
+.crit .cd{font-size:11px;color:#9ca3af;display:block;margin-top:1px;}
+.score-noot{font-size:11.5px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:9px 11px;line-height:1.5;}
+/* verzendbalk */
+.verzendbalk{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:20px 0;}
+.verzendbalk .btn-verzend{font-size:14.5px;padding:12px 22px;}
+.klein{font-size:11.5px;color:#9ca3af;line-height:1.55;}
+.footer-teksten{margin-top:26px;border-top:1px solid #e5e7eb;padding-top:14px;display:flex;flex-direction:column;gap:8px;}
+/* bevestiging */
+.done-card{background:#fff;border-radius:14px;padding:38px 30px;text-align:center;max-width:520px;margin:60px auto;box-shadow:0 8px 30px rgba(0,0,0,.08);}
+.done-card .big{font-size:44px;margin-bottom:12px;}
+.done-card h2{font-size:19px;color:#1f2937;margin-bottom:9px;}
+.done-card p{font-size:13.5px;color:#6b7280;line-height:1.6;}
+@media(max-width:680px){
+  .cards{grid-template-columns:1fr;}
+  .kop-grid{grid-template-columns:1fr;}
+  .kolomkop{display:none;}
+  .item{grid-template-columns:1fr;gap:8px;}
+  .item .opts-rij{display:grid;grid-template-columns:repeat(var(--ncols,4),1fr);gap:6px;}
+  .opt{min-height:44px;}
+}
+@media(min-width:681px){.item .opts-rij{display:contents;}}
+/* ===== PRINT ===== */
+#print-area{display:none;}
+@media print{
+  body{background:#fff;}
+  body.printing > :not(#print-area){display:none !important;}
+  body.printing #print-area{display:block;}
+  @page{size:A4;margin:12mm 13mm;}
+  #print-area{font-family:Georgia,'Times New Roman',serif;color:#000;font-size:10.2pt;line-height:1.3;}
+  .p-band{background:#000;color:#fff;font-family:-apple-system,'Segoe UI',sans-serif;font-weight:700;text-align:center;padding:4pt 8pt;font-size:11pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .p-kop{margin:7pt 0 4pt;font-size:10pt;}
+  .p-kop .p-veld{display:inline-block;margin-right:14pt;margin-bottom:3pt;}
+  .p-kop .p-lijn{display:inline-block;border-bottom:1px solid #000;min-width:110pt;padding:0 3pt;font-weight:700;}
+  .p-instr{margin:5pt 0;font-size:9.6pt;}
+  .p-med{margin:5pt 0 7pt;font-weight:700;font-size:9.8pt;}
+  .p-med .p-chk{font-family:'Segoe UI Symbol',sans-serif;margin:0 3pt 0 10pt;}
+  table.p-items{width:100%;border-collapse:collapse;margin-top:4pt;}
+  table.p-items th{border-bottom:1.5pt solid #000;font-size:8.6pt;text-align:center;padding:2pt 3pt;font-family:-apple-system,'Segoe UI',sans-serif;}
+  table.p-items th:first-child{text-align:left;font-size:9.5pt;}
+  table.p-items td{border-bottom:.5pt solid #999;padding:2.6pt 3pt;vertical-align:top;}
+  table.p-items td.p-c{text-align:center;width:34pt;font-size:9.5pt;}
+  table.p-items td.p-c .sel{display:inline-block;background:#000;color:#fff;border-radius:50%;width:12pt;height:12pt;line-height:12pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .p-sectie{font-style:italic;font-weight:700;padding-top:5pt;}
+  .p-office{border:1.5pt solid #000;padding:7pt 10pt;margin-top:9pt;page-break-inside:avoid;}
+  .p-office h4{font-family:-apple-system,'Segoe UI',sans-serif;font-size:10pt;margin-bottom:4pt;}
+  .p-office div{margin:3pt 0;font-size:9.6pt;}
+  .p-office .p-l{display:inline-block;border-bottom:1px solid #000;min-width:70pt;padding:0 4pt;font-weight:700;}
+  .p-voet{margin-top:8pt;font-size:7.8pt;color:#333;}
+  .p-opm{margin-top:6pt;font-size:9.6pt;}
+  .p-opm .p-schrijf{border-bottom:.5pt solid #999;height:13pt;margin-top:5pt;}
+  .p-breek{page-break-before:always;}
+}
+.opt.nvt{background:#f3f4f6;}
+.opt.nvt:has(input:checked){border-color:#6b7280;background:#e5e7eb;}
+.opt.nvt:has(input:checked) .olbl{color:#374151;}
+.werkvraag{border:2px solid #93c5fd;background:#eff6ff;border-radius:10px;padding:14px 16px;margin:16px 0;}
+.werkvraag.missend{border-color:#f87171;background:#fef2f2;}
+.werkvraag .mv-q{font-weight:700;font-size:13.5px;color:#1e3a8a;margin-bottom:6px;}
+.werkvraag .mv-u{font-size:12.5px;color:#1e40af;margin-bottom:9px;line-height:1.5;}
+.werkvraag .mv-opts{display:flex;gap:8px;flex-wrap:wrap;}
+.werkvraag label{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #e5e7eb;border-radius:9px;padding:8px 13px;font-size:13px;cursor:pointer;user-select:none;}
+.werkvraag label:has(input:checked){border-color:var(--ind);background:#eef2ff;color:#3730a3;font-weight:600;}
+.werkvraag input{accent-color:var(--ind);}
+.stam{font-size:13px;font-weight:600;color:#374151;margin:14px 0 6px;font-style:italic;}
+.dagen-rij{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:10px;align-items:center;background:#fff;border:1px solid #eef0f4;border-radius:10px;padding:10px 12px;margin-bottom:6px;}
+.dagen-rij.beantwoord{border-color:#bbf7d0;background:#fbfefc;}
+.dagen-rij.missend{border-color:#f87171;background:#fef2f2;}
+.dagen-rij .dtxt{font-size:13.2px;line-height:1.45;color:#1f2937;}
+.dagen-rij .dtxt .inr{font-weight:700;color:#6b7280;margin-right:5px;}
+.dagen-rij .dinp{display:flex;align-items:center;gap:6px;font-size:12.5px;color:#6b7280;}
+.dagen-rij input{width:70px;border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;font-size:14px;font-family:inherit;text-align:center;}
+.dagen-rij input:focus{outline:none;border-color:var(--ind);}
+.veld select{width:100%;border:1px solid #e5e7eb;border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;background:#fafafa;}
+.veld select:focus{outline:none;border-color:var(--ind);background:#fff;}
+.sectie-intro{font-size:13px;color:#4b5563;line-height:1.55;margin:4px 0 10px;}
+@media(max-width:680px){.dagen-rij{grid-template-columns:1fr;}}
+@media print{
+  table.p-items td.p-c{width:30pt;font-size:8.5pt;}
+  .p-dagen div{margin:3pt 0;font-size:9.6pt;}
+  .p-dagen .p-l{display:inline-block;border-bottom:1px solid #000;min-width:40pt;padding:0 4pt;font-weight:700;}
+}
+</style>
+</head>
+<body>
+
+<!-- Aanmelden -->
+<div class="auth-overlay" id="auth-overlay" style="display:none">
+  <div class="auth-card">
+    <h1>&#129517; Vragenlijsten functioneren</h1>
+    <p class="sub">Praktijk Dr. F. Van Steenkiste — neurologie</p>
+    <div id="auth-msg"></div>
+    <div id="auth-invuller">
+      <p style="font-size:13px;color:#374151;line-height:1.55;margin-bottom:14px">Werd u door de praktijk gevraagd een <b>vragenlijst over uw functioneren</b> in te vullen? Meld u eenmalig aan met uw e-mailadres — u ontvangt meteen een persoonlijke aanmeldlink, zonder wachtwoord.</p>
+      <label>Uw e-mailadres</label>
+      <input type="email" id="auth-email" placeholder="naam@voorbeeld.be" autocomplete="email" onkeypress="if(event.key==='Enter')stuurMagicLink()">
+      <button class="btn-auth" id="auth-btn" onclick="stuurMagicLink()">Stuur mij een aanmeldlink</button>
+      <p style="text-align:center;margin-top:16px"><a style="font-size:12px;color:#6b7280;cursor:pointer;text-decoration:underline" onclick="toonPraktijkLogin(true)">Aanmelden als praktijk</a></p>
+    </div>
+    <div id="auth-praktijk" style="display:none">
+      <label>Email</label>
+      <input type="email" id="auth-p-email" placeholder="naam@praktijk.be" autocomplete="email">
+      <label>Wachtwoord</label>
+      <input type="password" id="auth-p-pw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()">
+      <button class="btn-auth" id="auth-p-btn" onclick="doLogin()">Inloggen</button>
+      <p style="text-align:center;margin-top:16px"><a style="font-size:12px;color:#6b7280;cursor:pointer;text-decoration:underline" onclick="toonPraktijkLogin(false)">&larr; Terug: aanmelden als cliënt</a></p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none"></div>
+
+<div id="print-area" aria-hidden="true"></div>
+
+<script>
+"use strict";
+const SUPABASE_URL='https://zxkwkvihskufwahvonml.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp4a3drdmloc2t1ZndhaHZvbm1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NzQ5ODQsImV4cCI6MjA5NTQ1MDk4NH0.bW1TCA6vIPUQHr8XWY7x6RBW18J-UcGz5KxcjGBQIes';
+const TOOL_ID='functioneren-vragenlijsten';
+const FN_URL=SUPABASE_URL+'/functions/v1/functioneren-submit';
+const FN_UITNODIGING=SUPABASE_URL+'/functions/v1/functioneren-uitnodiging';
+
+/* Itembank — gegenereerd uit bank.json (bron: 02_Wetenschap_en_Evidentie/Vragenlijsten_bronnen/wfirs_whodas). Ook in bank.ts van de Edge Function: altijd samen aanpassen. */
+const BANK = {"teksten":{"disclaimer":"Deze vragenlijst mag nooit op zichzelf gebruikt worden om een diagnose te stellen. De beoordeling gebeurt door de behandelend arts, die informatie uit meerdere bronnen samenlegt.","privacy":"Uw antwoorden worden via een beveiligde verbinding rechtstreeks naar Dr. Van Steenkiste gestuurd en uitsluitend gebruikt in het kader van uw zorg. Er worden geen antwoorden op deze website bewaard. Vragen? neurologie@drvansteenkiste.be"},"formulieren":{"wfirs-s":{"titel":"Functioneren in het dagelijks leven — zelfrapportage (WFIRS-S)","kort":"WFIRS-S (zelfrapportage)","icoon":"🧭","doelgroep":"Jongeren en volwassenen","bron":"Weiss Functional Impairment Rating Scale – Self Report (WFIRS-S), versie oktober 2011 (CADDRA) / © Margaret D. Weiss MD PhD, University of British Columbia. Nederlandse vertaling voor klinisch gebruik, praktijk Dr. F. Van Steenkiste (2026); het instrument is inhoudelijk onveranderd overgenomen.","instructies":"Kruis voor elk punt het antwoord aan dat het best beschrijft in welke mate uw emotionele of gedragsproblemen in de afgelopen maand invloed hebben gehad op dat punt.","velden":[{"id":"naam","label":"Naam","type":"text","verplicht":true},{"id":"datum","label":"Datum van vandaag","type":"date","verplicht":true},{"id":"geboortedatum","label":"Geboortedatum","type":"date","verplicht":true},{"id":"geslacht","label":"Geslacht","type":"keuze","opties":["Man","Vrouw","Anders"],"verplicht":false},{"id":"werk","label":"Werk","type":"keuze","opties":["Voltijds","Deeltijds","Anders","Geen"],"verplicht":false},{"id":"school","label":"School / studie","type":"keuze","opties":["Voltijds","Deeltijds","Geen"],"verplicht":false},{"id":"emailInvuller","label":"Uw e-mailadres (optioneel, voor eventuele vragen)","type":"email","verplicht":false}],"schaal":{"labels":["Nooit of helemaal niet","Soms of enigszins","Vaak of veel","Zeer vaak of heel veel"],"scores":[0,1,2,3],"nvt":true,"nvtLabel":"n.v.t."},"secties":[{"id":"A","titel":"A. Gezin","kortLabel":"Gezin","items":[{"id":"A1","nr":1,"tekst":"Problemen hebben met uw gezin of familie"},{"id":"A2","nr":2,"tekst":"Problemen hebben met uw partner"},{"id":"A3","nr":3,"tekst":"Op anderen moeten rekenen om dingen voor u te doen"},{"id":"A4","nr":4,"tekst":"Ruzie veroorzaken in het gezin"},{"id":"A5","nr":5,"tekst":"Het voor het gezin moeilijk maken om samen plezier te hebben"},{"id":"A6","nr":6,"tekst":"Problemen met het zorgen voor uw gezin"},{"id":"A7","nr":7,"tekst":"Problemen om uw eigen behoeften af te wegen tegen die van uw gezin"},{"id":"A8","nr":8,"tekst":"Problemen met het verliezen van uw zelfbeheersing tegenover uw gezin"}]},{"id":"B","titel":"B. Werk","kortLabel":"Werk","items":[{"id":"B1","nr":1,"tekst":"Problemen met het uitvoeren van de vereiste taken"},{"id":"B2","nr":2,"tekst":"Problemen om uw werk efficiënt gedaan te krijgen"},{"id":"B3","nr":3,"tekst":"Problemen met uw leidinggevende"},{"id":"B4","nr":4,"tekst":"Problemen om een job te behouden"},{"id":"B5","nr":5,"tekst":"Ontslagen worden"},{"id":"B6","nr":6,"tekst":"Problemen met werken in team"},{"id":"B7","nr":7,"tekst":"Problemen met uw aanwezigheid op het werk"},{"id":"B8","nr":8,"tekst":"Problemen met te laat komen"},{"id":"B9","nr":9,"tekst":"Problemen met het opnemen van nieuwe taken"},{"id":"B10","nr":10,"tekst":"Problemen om te presteren naar uw mogelijkheden"},{"id":"B11","nr":11,"tekst":"Slechte prestatiebeoordelingen (evaluaties)"}]},{"id":"C","titel":"C. School","kortLabel":"School","items":[{"id":"C1","nr":1,"tekst":"Problemen met het nemen van notities"},{"id":"C2","nr":2,"tekst":"Problemen met het afwerken van opdrachten"},{"id":"C3","nr":3,"tekst":"Problemen om uw schoolwerk efficiënt gedaan te krijgen"},{"id":"C4","nr":4,"tekst":"Problemen met leerkrachten of docenten"},{"id":"C5","nr":5,"tekst":"Problemen met de schooldirectie of -administratie"},{"id":"C6","nr":6,"tekst":"Problemen om aan de minimumvereisten te voldoen om op school te mogen blijven"},{"id":"C7","nr":7,"tekst":"Problemen met aanwezigheid"},{"id":"C8","nr":8,"tekst":"Problemen met te laat komen"},{"id":"C9","nr":9,"tekst":"Problemen om te presteren naar uw mogelijkheden"},{"id":"C10","nr":10,"tekst":"Problemen met wisselende (onregelmatige) schoolresultaten"}]},{"id":"D","titel":"D. Vaardigheden in het dagelijks leven","kortLabel":"Dagelijks leven","items":[{"id":"D1","nr":1,"tekst":"Overmatig of ongepast gebruik van internet, videogames of tv"},{"id":"D2","nr":2,"tekst":"Problemen om een verzorgd, aanvaardbaar uiterlijk te behouden"},{"id":"D3","nr":3,"tekst":"Problemen om klaar te geraken om het huis te verlaten"},{"id":"D4","nr":4,"tekst":"Problemen om naar bed te gaan"},{"id":"D5","nr":5,"tekst":"Problemen met voeding"},{"id":"D6","nr":6,"tekst":"Problemen met seks"},{"id":"D7","nr":7,"tekst":"Problemen met slapen"},{"id":"D8","nr":8,"tekst":"Gekwetst of gewond raken"},{"id":"D9","nr":9,"tekst":"Lichaamsbeweging vermijden"},{"id":"D10","nr":10,"tekst":"Problemen met het nakomen van regelmatige afspraken bij de arts of tandarts"},{"id":"D11","nr":11,"tekst":"Problemen om de huishoudelijke taken bij te houden"},{"id":"D12","nr":12,"tekst":"Problemen met het beheren van geld"}]},{"id":"E","titel":"E. Zelfbeeld","kortLabel":"Zelfbeeld","items":[{"id":"E1","nr":1,"tekst":"Zich slecht voelen over uzelf"},{"id":"E2","nr":2,"tekst":"Zich gefrustreerd voelen over uzelf"},{"id":"E3","nr":3,"tekst":"Zich ontmoedigd voelen"},{"id":"E4","nr":4,"tekst":"Zich niet gelukkig voelen met uw leven"},{"id":"E5","nr":5,"tekst":"Zich onbekwaam voelen"}]},{"id":"F","titel":"F. Sociaal","kortLabel":"Sociaal","items":[{"id":"F1","nr":1,"tekst":"In ruzies of discussies verzeild raken"},{"id":"F2","nr":2,"tekst":"Moeite met samenwerken"},{"id":"F3","nr":3,"tekst":"Moeite om met mensen overweg te kunnen"},{"id":"F4","nr":4,"tekst":"Problemen om plezier te hebben met andere mensen"},{"id":"F5","nr":5,"tekst":"Problemen om deel te nemen aan hobby's"},{"id":"F6","nr":6,"tekst":"Problemen om vrienden te maken"},{"id":"F7","nr":7,"tekst":"Problemen om vrienden te houden"},{"id":"F8","nr":8,"tekst":"Ongepaste dingen zeggen"},{"id":"F9","nr":9,"tekst":"Klachten van buren"}]},{"id":"G","titel":"G. Risico","kortLabel":"Risico","items":[{"id":"G1","nr":1,"tekst":"Agressief rijgedrag"},{"id":"G2","nr":2,"tekst":"Andere dingen doen tijdens het rijden"},{"id":"G3","nr":3,"tekst":"Woede-uitbarstingen in het verkeer"},{"id":"G4","nr":4,"tekst":"Dingen kapotmaken of beschadigen"},{"id":"G5","nr":5,"tekst":"Dingen doen die illegaal zijn"},{"id":"G6","nr":6,"tekst":"In aanraking komen met de politie"},{"id":"G7","nr":7,"tekst":"Sigaretten roken"},{"id":"G8","nr":8,"tekst":"Cannabis (marihuana) roken"},{"id":"G9","nr":9,"tekst":"Alcohol drinken"},{"id":"G10","nr":10,"tekst":"“Straatdrugs” gebruiken"},{"id":"G11","nr":11,"tekst":"Seks zonder bescherming (anticonceptie, condoom)"},{"id":"G12","nr":12,"tekst":"Seksueel ongepast gedrag"},{"id":"G13","nr":13,"tekst":"Lichamelijk agressief zijn"},{"id":"G14","nr":14,"tekst":"Verbaal agressief zijn"}]}],"scoring":{"type":"wfirs"},"scoreNoot":"Weiss (2011): elk item met score 2 of 3 geldt als klinisch beperkt. Een domein geldt als beperkt bij minstens twee items met score 2, één item met score 3, of een gemiddelde score > 1,5 (n.v.t.-items tellen niet mee). Elk schaalpunt ≈ 1 standaarddeviatie; een verandering van de totaalscore met 13 punten ≈ een betekenisvolle verbetering (± ½ SD). Gemiddelde Risico-score: kinderen 0,5, adolescenten 1. Hulpmiddel — nooit op zichzelf diagnostisch."},"whodas-36":{"titel":"WHODAS 2.0 — 36 items, zelfinvulversie","kort":"WHODAS 2.0 (36 items)","icoon":"🌍","doelgroep":"Volwassenen","bron":"WHO Disability Assessment Schedule 2.0 (WHODAS 2.0), 36-item zelfinvulversie — officiële Nederlandse vertaling, © World Health Organization 2010 (Üstün, Kostanjsek, Chatterji & Rehm, Measuring Health and Disability: Manual for WHO Disability Assessment Schedule). Door de WHO vrij ter beschikking gesteld; tekst onveranderd overgenomen. Scoring volgens hoofdstuk 6 en 8 van de handleiding.","intro":"Deze vragenlijst gaat over moeilijkheden ten gevolge van gezondheidsproblemen. Gezondheidsproblemen zijn ziektes, aandoeningen en andere gezondheidsklachten van kortere of langere duur, verwondingen, psychische of emotionele problemen en problemen met alcohol of drugs.","instructies":"Denk terug aan de afgelopen 30 dagen, en beantwoord de vragen terwijl u voor ogen houdt hoeveel moeite u had met het verrichten van de volgende activiteiten. Kies voor elke vraag slechts één antwoord.","velden":[{"id":"naam","label":"Naam","type":"text","verplicht":true},{"id":"datum","label":"Datum van vandaag","type":"date","verplicht":true},{"id":"geboortedatum","label":"Geboortedatum","type":"date","verplicht":true},{"id":"emailInvuller","label":"Uw e-mailadres (optioneel, voor eventuele vragen)","type":"email","verplicht":false}],"schaal":{"labels":["Geen / Niet","Enigszins","Nogal","Veel","Heel veel / Kan niet"],"scores":[1,2,3,4,5],"nvt":false},"stam":"Hoeveel moeite had u ten gevolge van uw gezondheidstoestand, in de afgelopen 30 dagen met","werkvraag":{"id":"werkt","tekst":"Werkt u (betaald, onbetaald of als zelfstandige) of gaat u naar school of studeert u?","uitleg":"Als u werkt (betaald, onbetaald of als zelfstandige) of naar school gaat of studeert, vult u ook de vragen D5.5–D5.8 in. Als dit niet het geval is, gaat u verder met vraag D6.1.","opties":[{"id":"ja","label":"Ja"},{"id":"nee","label":"Nee"}]},"secties":[{"id":"D1","titel":"Begrijpen en communiceren","kortLabel":"Begrijpen en communiceren","items":[{"id":"D1.1","tekst":"Concentreren op het doen van iets gedurende tien minuten?"},{"id":"D1.2","tekst":"Onthouden om belangrijke dingen te doen?"},{"id":"D1.3","tekst":"Analyseren en vinden van oplossingen voor moeilijkheden in het dagelijks leven?"},{"id":"D1.4","tekst":"Leren van een nieuwe taak, bijvoorbeeld de weg naar een nieuwe plaats?"},{"id":"D1.5","tekst":"Over het algemeen begrijpen wat mensen zeggen?"},{"id":"D1.6","tekst":"Een gesprek beginnen of gaande houden?"}]},{"id":"D2","titel":"Bewegen en zich verplaatsen","kortLabel":"Bewegen en zich verplaatsen","items":[{"id":"D2.1","tekst":"Staan gedurende lange tijd zoals 30 minuten?"},{"id":"D2.2","tekst":"Opstaan vanuit zithouding?"},{"id":"D2.3","tekst":"Het zich verplaatsen binnen uw woning?"},{"id":"D2.4","tekst":"Uit uw huis komen?"},{"id":"D2.5","tekst":"Een lange afstand lopen, bijvoorbeeld een kilometer?"}]},{"id":"D3","titel":"Zelfverzorging","kortLabel":"Zelfverzorging","items":[{"id":"D3.1","tekst":"Het wassen van uw hele lichaam?"},{"id":"D3.2","tekst":"Het uzelf aankleden?"},{"id":"D3.3","tekst":"Eten?"},{"id":"D3.4","tekst":"Alleen zijn gedurende enkele dagen?"}]},{"id":"D4","titel":"Omgaan met mensen","kortLabel":"Omgaan met mensen","items":[{"id":"D4.1","tekst":"Het omgaan met mensen die u niet kent?"},{"id":"D4.2","tekst":"Het onderhouden van een vriendschap?"},{"id":"D4.3","tekst":"Het kunnen opschieten met mensen die u nabij zijn?"},{"id":"D4.4","tekst":"Het maken van nieuwe vrienden?"},{"id":"D4.5","tekst":"Seksuele activiteiten?"}]},{"id":"D5a","titel":"Activiteiten — huishouden","kortLabel":"Activiteiten: huishouden","items":[{"id":"D5.1","tekst":"Het vervullen van uw huishoudelijke verantwoordelijkheden?"},{"id":"D5.2","tekst":"Het op goede wijze uitvoeren van uw belangrijkste huishoudelijke taken?"},{"id":"D5.3","tekst":"Het afkrijgen van al het huishoudelijk werk wat u moest doen?"},{"id":"D5.4","tekst":"Het zo snel als nodig doen van uw huishoudelijk werk?"}]},{"id":"D5b","titel":"Activiteiten — werk of studie","kortLabel":"Activiteiten: werk/studie","conditie":"werkt","items":[{"id":"D5.5","tekst":"Uw dagelijks werk of studie?"},{"id":"D5.6","tekst":"Het goed uitvoeren van uw belangrijkste werk- of studietaken?"},{"id":"D5.7","tekst":"Het afkrijgen van al het werk dat u moest doen?"},{"id":"D5.8","tekst":"Het zo snel als nodig afkrijgen van uw werk?"}]},{"id":"D6","titel":"Deelname aan de samenleving","kortLabel":"Deelname aan de samenleving","stam":"In de afgelopen 30 dagen:","items":[{"id":"D6.1","tekst":"Hoeveel moeite had u met het net als anderen deelnemen aan gemeenschapsactiviteiten (zoals feestelijkheden, religieuze en andere activiteiten)?"},{"id":"D6.2","tekst":"Hoeveel moeite had u als gevolg van hindernissen of belemmeringen in de wereld om u heen?"},{"id":"D6.3","tekst":"Hoeveel moeite had u om een waardig leven te leiden vanwege de houding of handelingen van anderen?"},{"id":"D6.4","tekst":"Hoeveel tijd heeft u aan uw gezondheidstoestand of de gevolgen ervan besteed?"},{"id":"D6.5","tekst":"In welke mate is uw stemming door uw gezondheid beïnvloed?"},{"id":"D6.6","tekst":"Hoeveel heeft uw gezondheidstoestand de financiële mogelijkheden van u en uw familie aangetast?"},{"id":"D6.7","tekst":"Hoeveel moeite had uw familie vanwege uw gezondheidstoestand?"},{"id":"D6.8","tekst":"Hoeveel moeite had u met het in uw eentje doen van dingen voor uw plezier of ontspanning?"}]}],"dagen":[{"id":"H1","tekst":"Alles tezamen genomen, op hoeveel van de afgelopen 30 dagen waren deze moeilijkheden aanwezig?"},{"id":"H2","tekst":"Op hoeveel van de afgelopen 30 dagen was u totaal niet in staat om uw gebruikelijke activiteiten of werkzaamheden uit te voeren als gevolg van uw gezondheidstoestand?"},{"id":"H3","tekst":"Op hoeveel van de afgelopen 30 dagen, de dagen dat u niets kon doen niet meegeteld, moest u uw gebruikelijke activiteiten of werkzaamheden beperken of verminderen vanwege een gezondheidsprobleem?"}],"slot":"Dit waren de vragen. Bedankt voor uw medewerking.","scoring":{"type":"whodas36"},"scoreNoot":"Eenvoudige score = som van de itemscores (1 = Geen … 5 = Heel veel/Kan niet). Complexe (IRT-gebaseerde) score volgens de SPSS-syntaxis van de WHO-handleiding: hercodering per item, som per domein en omrekening naar 0–100 (0 = geen beperking, 100 = volledige beperking); 32 items zonder de werk-/studie-items. Bevolkingspercentielen uit tabel 6.1 van de handleiding (WHO Multi-Country Survey Study 2000–2001). Ontbrekende items: max. twee uit verschillende domeinen worden ingevuld met het domeingemiddelde; anders wordt de complexe score niet berekend."},"whodas-12":{"titel":"WHODAS 2.0 — 12 items, zelfinvulversie","kort":"WHODAS 2.0 (12 items)","icoon":"🧩","doelgroep":"Volwassenen","bron":"WHO Disability Assessment Schedule 2.0 (WHODAS 2.0), 12-item zelfinvulversie, © World Health Organization 2010. Itemteksten overgenomen uit de officiële Nederlandse vertaling van de 36-item zelfinvulversie (de 12 items zijn een vaste deelverzameling daarvan, S1–S12 volgens de WHO-handleiding). Door de WHO vrij ter beschikking gesteld.","intro":"Deze vragenlijst gaat over moeilijkheden ten gevolge van gezondheidsproblemen. Gezondheidsproblemen zijn ziektes, aandoeningen en andere gezondheidsklachten van kortere of langere duur, verwondingen, psychische of emotionele problemen en problemen met alcohol of drugs.","instructies":"Denk terug aan de afgelopen 30 dagen, en beantwoord de vragen terwijl u voor ogen houdt hoeveel moeite u had met het verrichten van de volgende activiteiten. Kies voor elke vraag slechts één antwoord.","velden":[{"id":"naam","label":"Naam","type":"text","verplicht":true},{"id":"datum","label":"Datum van vandaag","type":"date","verplicht":true},{"id":"geboortedatum","label":"Geboortedatum","type":"date","verplicht":true},{"id":"emailInvuller","label":"Uw e-mailadres (optioneel, voor eventuele vragen)","type":"email","verplicht":false}],"schaal":{"labels":["Geen / Niet","Enigszins","Nogal","Veel","Heel veel / Kan niet"],"scores":[1,2,3,4,5],"nvt":false},"stam":"Hoeveel moeite had u ten gevolge van uw gezondheidstoestand, in de afgelopen 30 dagen met","secties":[{"id":"S","titel":"Vragen","kortLabel":"12 items","items":[{"id":"S1","tekst":"Staan gedurende lange tijd zoals 30 minuten?","bron36":"D2.1"},{"id":"S2","tekst":"Het vervullen van uw huishoudelijke verantwoordelijkheden?","bron36":"D5.1"},{"id":"S3","tekst":"Leren van een nieuwe taak, bijvoorbeeld de weg naar een nieuwe plaats?","bron36":"D1.4"},{"id":"S4","tekst":"Hoeveel moeite had u met het net als anderen deelnemen aan gemeenschapsactiviteiten (zoals feestelijkheden, religieuze en andere activiteiten)?","bron36":"D6.1"},{"id":"S5","tekst":"In welke mate is uw stemming door uw gezondheid beïnvloed?","bron36":"D6.5"},{"id":"S6","tekst":"Concentreren op het doen van iets gedurende tien minuten?","bron36":"D1.1"},{"id":"S7","tekst":"Een lange afstand lopen, bijvoorbeeld een kilometer?","bron36":"D2.5"},{"id":"S8","tekst":"Het wassen van uw hele lichaam?","bron36":"D3.1"},{"id":"S9","tekst":"Het uzelf aankleden?","bron36":"D3.2"},{"id":"S10","tekst":"Het omgaan met mensen die u niet kent?","bron36":"D4.1"},{"id":"S11","tekst":"Het onderhouden van een vriendschap?","bron36":"D4.2"},{"id":"S12","tekst":"Uw dagelijks werk of studie?","bron36":"D5.5"}]}],"dagen":[{"id":"H1","tekst":"Alles tezamen genomen, op hoeveel van de afgelopen 30 dagen waren deze moeilijkheden aanwezig?"},{"id":"H2","tekst":"Op hoeveel van de afgelopen 30 dagen was u totaal niet in staat om uw gebruikelijke activiteiten of werkzaamheden uit te voeren als gevolg van uw gezondheidstoestand?"},{"id":"H3","tekst":"Op hoeveel van de afgelopen 30 dagen, de dagen dat u niets kon doen niet meegeteld, moest u uw gebruikelijke activiteiten of werkzaamheden beperken of verminderen vanwege een gezondheidsprobleem?"}],"slot":"Dit waren de vragen. Bedankt voor uw medewerking.","scoring":{"type":"whodas12"},"scoreNoot":"Eenvoudige score = som van de itemscores (12–60). Korte-versiescore 0–100 volgens de WHO-handleiding (tabel 6.2, polytome/IRT-gebaseerde scoring): items hergecodeerd zoals in de 36-itemversie (hoofdstuk 8), som gedeeld door het maximum 36 × 100; bevolkingspercentiel uit diezelfde tabel. Eén ontbrekend item wordt ingevuld met het gemiddelde van de overige; bij meer ontbrekende items wordt de score niet berekend. De 12-itemversie verklaart 81 % van de variantie van de 36-itemversie en geeft geen domeinscores."}}};
+
+/* Functioneren-vragenlijsten — gedeelde, pure scoringslogica (identiek in HTML en Edge Function).
+   antwoorden: { "<itemId>": 0..3 | "nvt" }  (WFIRS-S)   of   { "<itemId>": 1..5 } (WHODAS)
+   extra:      { werkt: "ja"|"nee", H1, H2, H3 }  (WHODAS)
+   Onbeantwoorde items tellen NOOIT mee als positief. */
+
+/* ---------- WHODAS 2.0: hercodering per item (SPSS-syntaxis, handleiding hoofdstuk 8) ----------
+   "vol"  = (1=0)(2=1)(3=2)(4=3)(5=4)   "half" = (1=0)(2=1)(3=1)(4=2)(5=2)
+   Nummering = zelfinvulversie (D5.1–D5.8); de syntaxis gebruikt D5_2–D5_5 en D5_8–D5_11 voor dezelfde items. */
+var WHODAS_HERCODERING = {
+  "D1.1":"vol","D1.2":"vol","D1.3":"vol","D1.4":"vol","D1.5":"half","D1.6":"half",
+  "D2.1":"vol","D2.2":"half","D2.3":"half","D2.4":"vol","D2.5":"vol",
+  "D3.1":"half","D3.2":"vol","D3.3":"half","D3.4":"half",
+  "D4.1":"half","D4.2":"half","D4.3":"half","D4.4":"vol","D4.5":"half",
+  "D5.1":"half","D5.2":"half","D5.3":"vol","D5.4":"half",
+  "D5.5":"half","D5.6":"vol","D5.7":"vol","D5.8":"vol",
+  "D6.1":"half","D6.2":"vol","D6.3":"half","D6.4":"vol","D6.5":"vol","D6.6":"half","D6.7":"vol","D6.8":"half"
+};
+/* Domeinen met maximum van de hergecodeerde som (deler in de syntaxis: *100/max) */
+var WHODAS_DOMEINEN = [
+  { id:"Do1", label:"Begrijpen en communiceren", items:["D1.1","D1.2","D1.3","D1.4","D1.5","D1.6"], max:20 },
+  { id:"Do2", label:"Bewegen en zich verplaatsen", items:["D2.1","D2.2","D2.3","D2.4","D2.5"], max:16 },
+  { id:"Do3", label:"Zelfverzorging", items:["D3.1","D3.2","D3.3","D3.4"], max:10 },
+  { id:"Do4", label:"Omgaan met mensen", items:["D4.1","D4.2","D4.3","D4.4","D4.5"], max:12 },
+  { id:"Do51", label:"Activiteiten: huishouden", items:["D5.1","D5.2","D5.3","D5.4"], max:10 },
+  { id:"Do52", label:"Activiteiten: werk/studie", items:["D5.5","D5.6","D5.7","D5.8"], max:14, werk:true },
+  { id:"Do6", label:"Deelname aan de samenleving", items:["D6.1","D6.2","D6.3","D6.4","D6.5","D6.6","D6.7","D6.8"], max:24 }
+];
+/* Bevolkingsnormen (handleiding tabel 6.1 en 6.2): [score, percentiel] */
+var WHODAS_NORM36 = [[0,40.00],[1,46.83],[2,52.08],[3,56.20],[4,59.58],[5,62.46],[6,64.94],[7,67.12],[8,69.05],[9,70.78],[10,72.35],[15,78.42],[20,82.66],[25,85.85],[30,88.35],[35,90.38],[50,94.69],[70,98.14],[90,99.90],[100,100.00]];
+var WHODAS_NORM12 = [[0.0,50.0],[2.8,63.2],[5.6,73.3],[8.3,78.1],[11.1,82.0],[13.9,86.5],[16.7,89.6],[19.4,92.4],[22.2,93.0],[25.0,93.8],[27.8,94.7],[30.6,94.9],[41.7,97.2],[58.3,99.7],[100.0,100.0]];
+
+function fiNum(obj, id) {
+  if (!obj) return undefined;
+  var v = obj[id];
+  if (v === null || v === undefined || v === "") return undefined;
+  if (v === "nvt") return "nvt";
+  var n = Number(v);
+  return isNaN(n) ? undefined : n;
+}
+function fiRound(x, d) { var f = Math.pow(10, d || 0); return Math.round(x * f) / f; }
+function whodasHercodeer(id, raw) {
+  var t = WHODAS_HERCODERING[id];
+  if (!t || raw === undefined) return undefined;
+  return t === "vol" ? raw - 1 : [0, 1, 1, 2, 2][raw - 1];
+}
+/* Lineaire interpolatie in de normtabel → percentiel (afgerond op 1 decimaal) */
+function fiPercentiel(tabel, score) {
+  if (score === null || score === undefined) return null;
+  if (score <= tabel[0][0]) return tabel[0][1];
+  for (var i = 1; i < tabel.length; i++) {
+    if (score <= tabel[i][0]) {
+      var a = tabel[i - 1], b = tabel[i];
+      var p = a[1] + (b[1] - a[1]) * (score - a[0]) / (b[0] - a[0]);
+      return fiRound(p, 1);
+    }
+  }
+  return 100;
+}
+
+/* ===================== WFIRS-S ===================== */
+function fiScoreWfirs(F, antwoorden) {
+  var domeinen = [], totSom = 0, totN23 = 0, totBeantwoord = 0, totNvt = 0, onbeantwoord = [];
+  F.secties.forEach(function (sec) {
+    var som = 0, n = 0, n23 = 0, n2 = 0, n3 = 0, nvt = 0, items = sec.items.length;
+    sec.items.forEach(function (it) {
+      var v = fiNum(antwoorden, it.id);
+      if (v === undefined) { onbeantwoord.push(it.id); return; }
+      if (v === "nvt") { nvt++; return; }
+      n++; som += v;
+      if (v >= 2) n23++;
+      if (v === 2) n2++;
+      if (v === 3) n3++;
+    });
+    var gem = n ? fiRound(som / n, 2) : null;
+    var beperkt = (n2 >= 2) || (n3 >= 1) || (gem !== null && gem > 1.5);
+    var waarom = [];
+    if (n2 >= 2) waarom.push(n2 + " items met score 2");
+    if (n3 >= 1) waarom.push(n3 + " item(s) met score 3");
+    if (gem !== null && gem > 1.5) waarom.push("gemiddelde " + gem.toFixed(2) + " > 1,5");
+    domeinen.push({ id: sec.id, label: sec.kortLabel || sec.titel, items: items, beantwoord: n, nvt: nvt,
+      n23: n23, som: som, gemiddelde: gem, beperkt: beperkt, detail: waarom.join("; ") });
+    totSom += som; totN23 += n23; totBeantwoord += n; totNvt += nvt;
+  });
+  return { type: "wfirs", domeinen: domeinen, totaal: totSom, totaalN23: totN23, beantwoord: totBeantwoord, nvt: totNvt,
+    gemiddelde: totBeantwoord ? fiRound(totSom / totBeantwoord, 2) : null,
+    beperkteDomeinen: domeinen.filter(function (d) { return d.beperkt; }).map(function (d) { return d.label; }),
+    onbeantwoord: onbeantwoord };
+}
+
+/* ===================== WHODAS 2.0 — 36 items ===================== */
+function fiScoreWhodas36(F, antwoorden, extra) {
+  var werkt = (extra && extra.werkt === "ja");
+  var alleItems = [];
+  F.secties.forEach(function (sec) { if (sec.conditie === "werkt" && !werkt) return; sec.items.forEach(function (it) { alleItems.push(it.id); }); });
+  var onbeantwoord = [], simpel = 0, simpelN = 0, metMoeite = 0;
+  alleItems.forEach(function (id) {
+    var v = fiNum(antwoorden, id);
+    if (v === undefined) { onbeantwoord.push(id); return; }
+    simpelN++; simpel += v; if (v >= 2) metMoeite++;
+  });
+  // complexe score: hercoderen, ontbrekende items (max 2, uit verschillende domeinen) = domeingemiddelde
+  var domeinen = [], complexOk = onbeantwoord.length <= 2, somTot = 0, maxTot = 0;
+  var dom = WHODAS_DOMEINEN.filter(function (d) { return !(d.werk && !werkt); });
+  dom.forEach(function (d) {
+    var vals = [], miss = 0;
+    d.items.forEach(function (id) { var v = fiNum(antwoorden, id); if (v === undefined) miss++; else vals.push(whodasHercodeer(id, v)); });
+    var som = vals.reduce(function (a, b) { return a + b; }, 0);
+    var domOk = (miss === 0) || (miss === 1 && vals.length > 0);
+    if (miss === 1 && vals.length) som += som / vals.length; // imputatie met domeingemiddelde (hergecodeerd)
+    if (miss > 1) complexOk = false;
+    var score = domOk ? fiRound(som * 100 / d.max, 1) : null;
+    domeinen.push({ id: d.id, label: d.label, items: d.items.length, ontbrekend: miss, score: score, max: d.max });
+    if (domOk) { somTot += som; maxTot += d.max; }
+  });
+  var totaalMax = werkt ? 106 : 92;
+  var complex = (complexOk && maxTot === totaalMax) ? fiRound(somTot * 100 / totaalMax, 1) : null;
+  var dagen = {};
+  ["H1", "H2", "H3"].forEach(function (k) { var v = extra ? fiNum(extra, k) : undefined; dagen[k] = (v === undefined || v === "nvt") ? null : v; });
+  return { type: "whodas36", werkt: werkt, aantalItems: alleItems.length, beantwoord: simpelN, simpel: simpel, simpelMax: alleItems.length * 5,
+    metMoeite: metMoeite, domeinen: domeinen, complex: complex, complexMax: totaalMax,
+    percentiel: complex === null ? null : fiPercentiel(WHODAS_NORM36, complex),
+    geimputeerd: onbeantwoord.length > 0 && complex !== null, onbeantwoord: onbeantwoord, dagen: dagen };
+}
+
+/* ===================== WHODAS 2.0 — 12 items ===================== */
+function fiScoreWhodas12(F, antwoorden, extra) {
+  /* Hercodering zoals in de 36-itemversie (via bron36): 6 items 0–4 ("vol") + 6 items 0–2 ("half") → max. 36,
+     wat exact overeenkomt met de stappen van 100/36 in tabel 6.2 van de handleiding. */
+  var items = F.secties[0].items;
+  var onbeantwoord = [], simpel = 0, n = 0, somRec = 0, metMoeite = 0;
+  items.forEach(function (it) {
+    var v = fiNum(antwoorden, it.id);
+    if (v === undefined) { onbeantwoord.push(it.id); return; }
+    n++; simpel += v; somRec += whodasHercodeer(it.bron36, v); if (v >= 2) metMoeite++;
+  });
+  var score = null;
+  if (n === 12) score = fiRound(somRec * 100 / 36, 1);
+  else if (n === 11) score = fiRound((somRec + somRec / 11) * 100 / 36, 1); // één ontbrekend item = gemiddelde (hergecodeerd) van de overige
+  var dagen = {};
+  ["H1", "H2", "H3"].forEach(function (k) { var v = extra ? fiNum(extra, k) : undefined; dagen[k] = (v === undefined || v === "nvt") ? null : v; });
+  return { type: "whodas12", beantwoord: n, simpel: simpel, simpelMax: 60, metMoeite: metMoeite, score: score,
+    percentiel: score === null ? null : fiPercentiel(WHODAS_NORM12, score), geimputeerd: n === 11, onbeantwoord: onbeantwoord, dagen: dagen };
+}
+
+function fiComputeScores(F, antwoorden, extra) {
+  var t = F.scoring && F.scoring.type;
+  if (t === "wfirs") return fiScoreWfirs(F, antwoorden || {});
+  if (t === "whodas36") return fiScoreWhodas36(F, antwoorden || {}, extra || {});
+  if (t === "whodas12") return fiScoreWhodas12(F, antwoorden || {}, extra || {});
+  throw new Error("Onbekend scoringstype");
+}
+
+/* Scoreregels voor weergave (arts-scherm, mail, afdruk): [{label, waarde, nadruk?}] + flags */
+function fiScoreRegels(F, r) {
+  var regels = [], flags = [];
+  var pct = function (p) { return p === null ? "—" : "≈ P" + p.toFixed(0); };
+  if (r.type === "wfirs") {
+    r.domeinen.forEach(function (d) {
+      regels.push({ label: d.label + " — items met score 2–3 / totaal / gemiddelde", waarde: d.n23 + " van " + d.beantwoord + " · " + d.som + " · " + (d.gemiddelde === null ? "—" : d.gemiddelde.toFixed(2)) + (d.nvt ? " (" + d.nvt + "× n.v.t.)" : ""), nadruk: d.beperkt });
+    });
+    regels.push({ label: "Totaal — items met score 2–3", waarde: r.totaalN23 + " van " + r.beantwoord });
+    regels.push({ label: "Totaalscore (som, n.v.t. niet meegeteld)", waarde: String(r.totaal) + " (" + r.beantwoord + " beantwoorde items)" });
+    regels.push({ label: "Gemiddelde score over alle beantwoorde items", waarde: r.gemiddelde === null ? "—" : r.gemiddelde.toFixed(2) });
+    r.domeinen.forEach(function (d) { flags.push({ label: "Domein " + d.label + " beperkt", voldaan: d.beperkt, detail: d.beperkt ? d.detail : "geen van de criteria (≥2 items score 2, ≥1 item score 3, gemiddelde > 1,5)" }); });
+  } else if (r.type === "whodas36") {
+    regels.push({ label: "Versie", waarde: r.werkt ? "36 items (werkt/studeert: items D5.5–D5.8 meegeteld)" : "32 items (werkt/studeert niet: zonder D5.5–D5.8)" });
+    regels.push({ label: "Eenvoudige score (som 1–5)", waarde: r.simpel + " van max. " + r.simpelMax + " (" + r.beantwoord + "/" + r.aantalItems + " beantwoord)" });
+    regels.push({ label: "Items met enige moeite (score ≥ 2)", waarde: r.metMoeite + " van " + r.beantwoord });
+    r.domeinen.forEach(function (d) { regels.push({ label: "Domein " + d.label + " (0–100)", waarde: d.score === null ? "— (te veel ontbrekend)" : d.score.toFixed(1) }); });
+    regels.push({ label: "Complexe (IRT-gebaseerde) totaalscore 0–100", waarde: r.complex === null ? "— (niet berekenbaar: te veel ontbrekende items)" : r.complex.toFixed(1) + (r.geimputeerd ? " (met imputatie)" : ""), nadruk: true });
+    regels.push({ label: "Bevolkingspercentiel (tabel 6.1)", waarde: pct(r.percentiel) });
+    regels.push({ label: "H1 dagen met moeilijkheden / H2 dagen volledig niet in staat / H3 dagen verminderd", waarde: [r.dagen.H1, r.dagen.H2, r.dagen.H3].map(function (v) { return v === null ? "—" : v; }).join(" / ") });
+  } else if (r.type === "whodas12") {
+    regels.push({ label: "Eenvoudige score (som 1–5)", waarde: r.simpel + " van max. 60 (" + r.beantwoord + "/12 beantwoord)" });
+    regels.push({ label: "Items met enige moeite (score ≥ 2)", waarde: r.metMoeite + " van " + r.beantwoord });
+    regels.push({ label: "Korte-versiescore 0–100 (handleiding tabel 6.2)", waarde: r.score === null ? "— (niet berekenbaar: meer dan 1 ontbrekend item)" : r.score.toFixed(1) + (r.geimputeerd ? " (1 item ingevuld met gemiddelde)" : ""), nadruk: true });
+    regels.push({ label: "Bevolkingspercentiel (tabel 6.2)", waarde: pct(r.percentiel) });
+    regels.push({ label: "H1 dagen met moeilijkheden / H2 dagen volledig niet in staat / H3 dagen verminderd", waarde: [r.dagen.H1, r.dagen.H2, r.dagen.H3].map(function (v) { return v === null ? "—" : v; }).join(" / ") });
+  }
+  if (r.onbeantwoord.length) regels.push({ label: "Onbeantwoord", waarde: r.onbeantwoord.join(", "), waarschuwing: true });
+  return { regels: regels, flags: flags };
+}
+if (typeof module !== "undefined" && module.exports) { module.exports = { fiComputeScores, fiScoreRegels, fiPercentiel, WHODAS_HERCODERING, WHODAS_DOMEINEN }; }
+
+/* ===================== gemeenschappelijk ===================== */
+const params=new URLSearchParams(location.search);
+const VORM=params.get('vorm');
+const NAAM_PREFILL=params.get('naam')||'';
+const FRANK_ID='107fcf92-1034-4e82-9993-f9a8fb72e235';
+const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+let ARTS_ID=params.get('arts');
+try{ if(ARTS_ID&&UUID_RE.test(ARTS_ID)) sessionStorage.setItem('fi_arts',ARTS_ID); else ARTS_ID=sessionStorage.getItem('fi_arts'); }catch(_){ if(!(ARTS_ID&&UUID_RE.test(ARTS_ID))) ARTS_ID=null; }
+if(ARTS_ID&&!UUID_RE.test(ARTS_ID)) ARTS_ID=null;
+function behandelaarId(){ return (typeof MODE!=='undefined'&&MODE==='arts'&&currentUser)?currentUser.id:ARTS_ID; }
+function isFrank(){ const id=behandelaarId(); return !id||id===FRANK_ID; }
+function privacyTekst(){ return isFrank()?BANK.teksten.privacy:BANK.teksten.privacy.replace('rechtstreeks naar Dr. Van Steenkiste gestuurd','rechtstreeks naar uw behandelaar gestuurd').replace(' Vragen? neurologie@drvansteenkiste.be',''); }
+function behNaam(){ return isFrank()?'Dr. Van Steenkiste':'uw behandelaar'; }
+function praktijkNaam(){ return isFrank()?'Praktijk Dr. F. Van Steenkiste — neurologie':'Praktijk — vragenlijsten'; }
+let sb=null,currentUser=null,IS_ARTS=false,MODE='invuller';
+let state=leegState(null);
+let laatsteInzending=null;
+function leegState(vorm){return {vorm,startedAt:Date.now(),antwoorden:{},extra:{},velden:{},opmerkingen:''};}
+
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function el(id){return document.getElementById(id);}
+function vandaagISO(){const d=new Date();return d.toISOString().slice(0,10);}
+function fmtDatumNL(iso){if(!iso||!/^\d{4}-\d{2}-\d{2}/.test(iso))return iso||'';const [y,m,dd]=iso.split('-');return dd+'/'+m+'/'+y;}
+function sid(s){return String(s).replace(/[^A-Za-z0-9]/g,'_');}
+function zichtbareSecties(F){return F.secties.filter(s=>!s.conditie||state.extra[s.conditie]==='ja');}
+function alleItems(F){const r=[];zichtbareSecties(F).forEach(s=>s.items.forEach(it=>r.push(it)));return r;}
+
+/* sessionStorage autosave (géén localStorage: geen gezondheidsgegevens laten staan) */
+function saveDraft(){
+  if(!state.vorm)return;
+  try{sessionStorage.setItem('fi-'+state.vorm,JSON.stringify({startedAt:state.startedAt,velden:state.velden,antwoorden:state.antwoorden,extra:state.extra,opmerkingen:state.opmerkingen}));}catch(_){}
+}
+function loadDraft(vorm){try{const r=sessionStorage.getItem('fi-'+vorm);return r?JSON.parse(r):null;}catch(_){return null;}}
+function clearDraft(vorm){try{sessionStorage.removeItem('fi-'+vorm);}catch(_){}}
+
+/* ===================== formulier renderen ===================== */
+function renderForm(vorm,modus){
+  const artsMode=(modus==='arts');
+  MODE=modus;
+  const F=BANK.formulieren[vorm];
+  if(!F){el('app').innerHTML='<div class="banner err">Onbekend formulier. Controleer de link.</div>';return;}
+  state=leegState(vorm);
+  const draft=loadDraft(vorm);
+  if(draft){const t0=draft.startedAt||Date.now();Object.assign(state,draft,{vorm,startedAt:t0});}
+  if(!state.velden.datum)state.velden.datum=vandaagISO();
+  if(NAAM_PREFILL&&!state.velden.naam)state.velden.naam=NAAM_PREFILL;
+  if(!artsMode&&currentUser&&currentUser.email)state.velden.emailInvuller=currentUser.email;
+
+  let h='';
+  h+='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
+    +'<span class="brand-sub">'+praktijkNaam()+'</span></div>';
+  if(artsMode){h+='<div class="top-right"><a class="back-link" onclick="renderDashboard()">&larr; Dashboard</a>'
+    +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span></div>';}
+  else{h+='<div class="top-right"><span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
+    +'<button class="btn-logout" onclick="doLogout()">Afmelden</button></div>';}
+  h+='</div>';
+
+  h+='<div class="fcard"><div class="f-title">'+esc(F.titel)+'</div>'
+    +'<div class="f-praktijk">In te vullen voor '+(isFrank()?'de praktijk van Dr. Van Steenkiste':'uw behandelaar')+'. Kruis telkens het best passende antwoord aan.</div>'
+    +'<div class="kop-grid">';
+  F.velden.forEach(v=>{
+    const val=state.velden[v.id]||'';
+    const vast=(!artsMode&&v.id==='emailInvuller');
+    const lbl=vast?'Uw e-mailadres (automatisch ingevuld via uw aanmelding)':v.label;
+    h+='<div class="veld" id="veld-'+v.id+'"><label for="in-'+v.id+'">'+esc(lbl)+(v.verplicht?' <span class="req">*</span>':'')+'</label>';
+    if(v.type==='keuze'){
+      h+='<select id="in-'+v.id+'" onchange="onVeld(\''+v.id+'\',this.value)"><option value="">— kies —</option>'
+        +v.opties.map(o=>'<option value="'+esc(o)+'"'+(val===o?' selected':'')+'>'+esc(o)+'</option>').join('')+'</select>';
+    }else{
+      h+='<input id="in-'+v.id+'" type="'+v.type+'" value="'+esc(val)+'"'+(vast?' readonly style="background:#f3f4f6;color:#6b7280"':'')+' oninput="onVeld(\''+v.id+'\',this.value)">';
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+  if(F.intro)h+='<div class="sectie-intro" style="margin-top:14px">'+esc(F.intro)+'</div>';
+  h+='<div class="instructies"><b>Instructies:</b> '+esc(F.instructies)+'</div>';
+
+  if(F.werkvraag){
+    const w=F.werkvraag;
+    h+='<div class="werkvraag" id="werkvraag"><div class="mv-q">'+esc(w.tekst)+' <span class="req">*</span></div><div class="mv-u">'+esc(w.uitleg)+'</div><div class="mv-opts">';
+    w.opties.forEach(o=>{h+='<label><input type="radio" name="werkt" value="'+o.id+'" '+(state.extra.werkt===o.id?'checked':'')+' onchange="onWerkt(this.value)"> '+esc(o.label)+'</label>';});
+    h+='</div></div>';
+  }
+
+  const sLbl=F.schaal.labels,sVal=F.schaal.scores,ncols=sVal.length+(F.schaal.nvt?1:0);
+  const schaalUitleg=sVal.map((v,i)=>v+' = '+sLbl[i]).join(' &middot; ')+(F.schaal.nvt?' &middot; '+F.schaal.nvtLabel+' = niet van toepassing':'');
+  h+='<div class="sectie-kop"><h2>Vragen</h2>'+(artsMode?'<span class="schaal-uitleg">'+schaalUitleg+'</span>':'')+'</div>';
+  if(F.stam&&!F.secties.some(s=>s.stam))h+='<div class="stam">'+esc(F.stam)+'</div>';
+  F.secties.forEach(sec=>{
+    const verborgen=(sec.conditie&&state.extra[sec.conditie]!=='ja');
+    h+='<div id="sectie-'+sid(sec.id)+'" style="'+(verborgen?'display:none':'')+'">';
+    h+='<div class="subsectie">'+esc(sec.titel)+'</div>';
+    if(sec.stam)h+='<div class="stam">'+esc(sec.stam)+'</div>';
+    h+='<div class="kolomkop" style="--ncols:'+ncols+'"><span style="text-align:left">Vraag</span>'+sLbl.map((l,i)=>'<span>'+esc(l)+(artsMode?'<br>('+sVal[i]+')':'')+'</span>').join('')+(F.schaal.nvt?'<span>'+esc(F.schaal.nvtLabel)+'</span>':'')+'</div>';
+    sec.items.forEach(it=>{h+=itemRij(F,it,state.antwoorden[it.id],artsMode);});
+    h+='</div>';
+  });
+
+  if(F.dagen){
+    h+='<div class="sectie-kop"><h2>Aantal dagen</h2><span class="schaal-uitleg">Vul een getal in van 0 tot 30</span></div>';
+    F.dagen.forEach(d=>{
+      const v=state.extra[d.id];const ok=(v!==undefined&&v!=='');
+      h+='<div class="dagen-rij'+(ok?' beantwoord':'')+'" id="dag-'+d.id+'"><div class="dtxt"><span class="inr">'+d.id+'</span>'+esc(d.tekst)+'</div>'
+        +'<div class="dinp"><input type="number" min="0" max="30" step="1" inputmode="numeric" id="in-'+d.id+'" value="'+esc(ok?v:'')+'" oninput="onDagen(\''+d.id+'\',this.value)"> dagen</div></div>';
+    });
+  }
+
+  h+='<div style="margin-top:14px" class="veld"><label for="in-opmerkingen">Opmerkingen (optioneel)</label>'
+    +'<textarea id="in-opmerkingen" oninput="state.opmerkingen=this.value;saveDraft()">'+esc(state.opmerkingen)+'</textarea></div>';
+  h+='<div style="position:absolute;left:-9999px" aria-hidden="true"><label>Laat dit veld leeg</label><input type="text" id="hp-veld" tabindex="-1" autocomplete="off"></div>';
+
+  h+='<div id="valideer-msg"></div><div id="scorepaneel"></div>';
+  h+='<div class="verzendbalk">';
+  if(artsMode){
+    h+='<button class="btn btn-primary" onclick="artsScore()">Bereken score</button>'
+      +'<button class="btn btn-ghost" onclick="printForm(\''+vorm+'\',\'ingevuld\')">&#128424; Afdrukken (ingevuld)</button>'
+      +'<button class="btn btn-ghost" onclick="printForm(\''+vorm+'\',\'blanco\')">&#128424; Afdrukken (blanco)</button>'
+      +'<button class="btn btn-ghost" onclick="verzend(\'arts\')" id="btn-verzend">&#9993; Ook naar mijn mailbox sturen</button>'
+      +'<button class="btn btn-ghost" onclick="wisForm()">Wissen</button>';
+  }else{
+    h+='<button class="btn btn-primary btn-verzend" id="btn-verzend" onclick="verzend(\'invuller\')">Vragenlijst afwerken</button>'
+      +'<span class="klein">Bij het afwerken wordt uw ingevulde vragenlijst automatisch en beveiligd naar '+behNaam()+' gestuurd.</span>';
+  }
+  h+='</div>';
+  h+='<div class="footer-teksten">'
+    +'<div class="klein">'+esc(BANK.teksten.disclaimer)+'</div>'
+    +(artsMode?'':'<div class="klein">'+esc(privacyTekst())+'</div>')
+    +'<div class="klein">'+esc(F.bron)+'</div>'
+    +'</div>';
+  h+='</div>';
+  el('app').innerHTML=h;
+  el('app').style.display='block';
+  document.title=F.kort+' — vragenlijst';
+  window.scrollTo(0,0);
+}
+
+function itemRij(F,it,huidig,artsMode){
+  const sLbl=F.schaal.labels,sVal=F.schaal.scores,ncols=sVal.length+(F.schaal.nvt?1:0);
+  const beantwoord=(huidig!==undefined&&huidig!==''&&huidig!==null);
+  const nr=(it.nr!==undefined?it.nr:it.id);
+  let h='<div class="item'+(beantwoord?' beantwoord':'')+'" style="--ncols:'+ncols+'" id="item-'+sid(it.id)+'">'
+    +'<div class="itxt"><span class="inr">'+esc(nr)+'.</span>'+esc(it.tekst)+'</div><div class="opts-rij">';
+  sVal.forEach((w,i)=>{
+    const checked=(String(huidig)===String(w))?' checked':'';
+    h+='<label class="opt"><input type="radio" name="it-'+sid(it.id)+'" value="'+w+'"'+checked+' onchange="onItem(\''+esc(it.id)+'\',this.value)">'
+      +(artsMode?'<span class="onr">'+w+'</span>':'')+'<span class="olbl">'+esc(sLbl[i])+'</span></label>';
+  });
+  if(F.schaal.nvt){
+    const checked=(huidig==='nvt')?' checked':'';
+    h+='<label class="opt nvt"><input type="radio" name="it-'+sid(it.id)+'" value="nvt"'+checked+' onchange="onItem(\''+esc(it.id)+'\',this.value)"><span class="olbl">'+esc(F.schaal.nvtLabel)+'</span></label>';
+  }
+  h+='</div></div>';
+  return h;
+}
+function onItem(id,waarde){
+  state.antwoorden[id]=(waarde==='nvt')?'nvt':Number(waarde);
+  const e=el('item-'+sid(id));if(e){e.classList.add('beantwoord');e.classList.remove('missend');}
+  saveDraft();
+}
+function onVeld(id,waarde){state.velden[id]=waarde;const e=el('veld-'+id);if(e&&waarde)e.classList.remove('missend');saveDraft();}
+function onWerkt(v){
+  state.extra.werkt=v;el('werkvraag').classList.remove('missend');
+  const F=BANK.formulieren[state.vorm];
+  F.secties.forEach(sec=>{if(sec.conditie){const e=el('sectie-'+sid(sec.id));if(e)e.style.display=(state.extra[sec.conditie]==='ja')?'':'none';}});
+  saveDraft();
+}
+function onDagen(id,waarde){
+  const e=el('dag-'+id);
+  if(waarde===''){delete state.extra[id];if(e)e.classList.remove('beantwoord');}
+  else{let n=Math.round(Number(waarde));if(isNaN(n))n=0;if(n<0)n=0;if(n>30)n=30;state.extra[id]=n;if(String(n)!==String(waarde))el('in-'+id).value=n;if(e){e.classList.add('beantwoord');e.classList.remove('missend');}}
+  saveDraft();
+}
+function wisForm(){if(!state.vorm)return;clearDraft(state.vorm);const v=state.vorm;renderForm(v,MODE);}
+
+/* ===================== validatie & verzending ===================== */
+function valideer(){
+  const F=BANK.formulieren[state.vorm];
+  const missendVeld=[],missendItem=[];
+  F.velden.forEach(v=>{
+    const ok=(state.velden[v.id]||'').trim()!=='';
+    const e=el('veld-'+v.id);
+    if(v.verplicht&&!ok){missendVeld.push(v.label);if(e)e.classList.add('missend');}
+  });
+  let werkOk=true;
+  if(F.werkvraag&&!state.extra.werkt){werkOk=false;el('werkvraag').classList.add('missend');}
+  alleItems(F).forEach(it=>{if(state.antwoorden[it.id]===undefined)missendItem.push(it.id);});
+  (F.dagen||[]).forEach(d=>{if(state.extra[d.id]===undefined)missendItem.push(d.id);});
+  return {missendVeld,missendItem,werkOk};
+}
+function toonValidatie(v,magToch){
+  let h='';
+  if(v.missendVeld.length||!v.werkOk){
+    h+='<div class="banner err">Vul eerst de verplichte velden in'
+      +(v.missendVeld.length?': <b>'+v.missendVeld.map(esc).join(', ')+'</b>':'')
+      +(!v.werkOk?(v.missendVeld.length?' en ':': ')+'de <b>vraag over werk of studie</b>':'')+'.</div>';
+  }else if(v.missendItem.length){
+    h+='<div class="banner warn">Nog <b>'+v.missendItem.length+'</b> vraag/vragen onbeantwoord ('
+      +v.missendItem.slice(0,25).map(esc).join(', ')+(v.missendItem.length>25?'…':'')+'). '
+      +'U kan terugkeren en aanvullen, of toch verzenden — onbeantwoorde vragen worden dan als “onbeantwoord” doorgestuurd.'
+      +(magToch?'<div style="margin-top:9px"><button class="btn btn-ghost" onclick="scrollNaarEerste()">Terug naar eerste open vraag</button> '
+      +'<button class="btn btn-primary" onclick="verzend(\''+MODE+'\',true)">Toch verzenden</button></div>':'')+'</div>';
+  }
+  el('valideer-msg').innerHTML=h;
+  if(h)el('valideer-msg').scrollIntoView({behavior:'smooth',block:'center'});
+  return !h;
+}
+function scrollNaarEerste(){
+  const v=valideer();
+  if(v.missendItem.length){
+    const id=v.missendItem[0];
+    const e=el('item-'+sid(id))||el('dag-'+id);
+    if(e){e.classList.add('missend');e.scrollIntoView({behavior:'smooth',block:'center'});}
+  }
+  el('valideer-msg').innerHTML='';
+}
+function bouwPayload(){
+  return {
+    action:'submit',
+    vorm:state.vorm,
+    meta:Object.assign({},state.velden,{bron:MODE==='arts'?'arts':'invuller-login'}),
+    antwoorden:state.antwoorden,
+    extra:state.extra,
+    opmerkingen:state.opmerkingen||'',
+    hp:(el('hp-veld')&&el('hp-veld').value)||'',
+    verstrekenMs:Date.now()-state.startedAt,
+    arts:(MODE==='arts'?null:ARTS_ID)
+  };
+}
+async function verzend(modus,forceer){
+  const artsMode=(modus==='arts');
+  const v=valideer();
+  if(v.missendVeld.length||!v.werkOk){toonValidatie(v,false);return;}
+  if(v.missendItem.length&&!forceer){toonValidatie(v,true);return;}
+  el('valideer-msg').innerHTML='';
+  const btn=el('btn-verzend');const oud=btn.textContent;
+  btn.disabled=true;btn.textContent='Bezig met verzenden…';
+  try{
+    const headers={'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY};
+    if(sb){const {data:{session}}=await sb.auth.getSession();if(session)headers['Authorization']='Bearer '+session.access_token;}
+    const res=await fetch(FN_URL,{method:'POST',headers,body:JSON.stringify(bouwPayload())});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||data.error)throw new Error(data.error||('HTTP '+res.status));
+    clearDraft(state.vorm);
+    if(artsMode){
+      el('valideer-msg').innerHTML='<div class="banner ok">Verzonden naar je mailbox &#10003;</div>';
+      btn.disabled=false;btn.textContent=oud;
+    }else{
+      laatsteInzending={vorm:state.vorm,state:JSON.parse(JSON.stringify(state))};
+      toonBevestiging();
+    }
+  }catch(e){
+    el('valideer-msg').innerHTML='<div class="banner err"><b>Verzenden is niet gelukt.</b> '+esc(e.message||'Onbekende fout')
+      +'<br>Uw antwoorden staan nog steeds in het formulier — probeer het zo dadelijk opnieuw. Blijft het misgaan, neem dan contact op met '+(isFrank()?'de praktijk: neurologie@drvansteenkiste.be':'uw behandelaar')+'</div>';
+    el('valideer-msg').scrollIntoView({behavior:'smooth',block:'center'});
+    btn.disabled=false;btn.textContent=oud;
+  }
+}
+function toonBevestiging(){
+  el('app').innerHTML='<div class="done-card"><div class="big">&#9989;</div>'
+    +'<h2>Bedankt!</h2><p>Uw ingevulde vragenlijst werd automatisch en beveiligd naar '+esc(behNaam())+' gestuurd.<br>'
+    +'Er worden geen antwoorden op deze website bewaard.</p>'
+    +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px">'
+    +'<button class="btn btn-ghost" onclick="printAfwerking()">&#128424; Afdrukken (ingevulde versie)</button>'
+    +'<button class="btn btn-primary" onclick="doLogout()">Afmelden</button>'
+    +'</div></div>';
+  window.scrollTo(0,0);
+}
+function printAfwerking(){
+  if(!laatsteInzending)return;
+  const bewaar=state;state=laatsteInzending.state;printForm(laatsteInzending.vorm,'ingevuld');state=bewaar;
+}
+
+/* ===================== score (arts) ===================== */
+function artsScore(){
+  const F=BANK.formulieren[state.vorm];
+  const r=fiComputeScores(F,state.antwoorden,state.extra);
+  el('scorepaneel').innerHTML=scoreHTML(F,r);
+  el('scorepaneel').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function scoreHTML(F,r){
+  const sr=fiScoreRegels(F,r);
+  let h='<div class="scoreblok"><h2>Enkel voor de arts — automatische scoring</h2>'
+    +'<div class="sb-sub">'+esc(F.titel)+'</div><table class="sb-tabel">';
+  sr.regels.forEach(g=>{
+    const st=g.waarschuwing?' style="color:#b45309"':(g.nadruk?' style="color:#312e81;font-weight:700"':'');
+    h+='<tr><td'+st+'>'+esc(g.label)+'</td><td'+st+'>'+esc(g.waarde)+'</td></tr>';
+  });
+  h+='</table>';
+  if(sr.flags.length){
+    h+='<div style="font-weight:700;font-size:12.5px;margin:4px 0 7px;color:#374151">Beperkte domeinen (criteria Weiss)</div>';
+    sr.flags.forEach(c=>{
+      h+='<div class="crit '+(c.voldaan?'ja':'nee')+'"><span class="cv">'+(c.voldaan?'&#9679; BEPERKT':'&#9675; niet beperkt')+'</span>'
+        +'<span>'+esc(c.label)+'<span class="cd">'+esc(c.detail)+'</span></span></div>';
+    });
+  }
+  h+='<div class="score-noot" style="margin-top:10px">'+esc(F.scoreNoot)+'</div></div>';
+  return h;
+}
+
+/* ===================== print ===================== */
+function printForm(vorm,modus){
+  const F=BANK.formulieren[vorm];
+  el('print-area').innerHTML=printHTML(F,modus);
+  document.body.classList.add('printing');
+  const klaar=()=>{document.body.classList.remove('printing');window.removeEventListener('afterprint',klaar);};
+  window.addEventListener('afterprint',klaar);
+  window.print();
+  setTimeout(klaar,1500);
+}
+function pLijn(waarde,minb){return '<span class="p-lijn" style="min-width:'+(minb||110)+'pt">'+(waarde?esc(waarde):'&nbsp;')+'</span>';}
+function printHTML(F,modus){
+  const ingevuld=(modus==='ingevuld');
+  const g=id=>ingevuld?(state.velden[id]||''):'';
+  const sLbl=F.schaal.labels,sVal=F.schaal.scores;
+  let h='<div class="p-band">'+esc(F.titel)+'</div><div class="p-kop">';
+  F.velden.forEach(v=>{
+    if(v.id==='emailInvuller'&&!ingevuld)return;
+    const val=v.type==='date'?fmtDatumNL(g(v.id)):g(v.id);
+    h+='<span class="p-veld">'+esc(v.label.replace(/ \(optioneel.*\)$/,''))+': '+pLijn(val,v.type==='date'?70:120)+'</span>';
+  });
+  h+='</div>';
+  if(F.intro)h+='<div class="p-instr">'+esc(F.intro)+'</div>';
+  h+='<div class="p-instr"><b>Instructies:</b> '+esc(F.instructies)+'</div>';
+  if(F.werkvraag){
+    const w=state.extra.werkt;
+    h+='<div class="p-med">'+esc(F.werkvraag.tekst)+' '+F.werkvraag.opties.map(o=>'<span class="p-chk">'+((ingevuld&&w===o.id)?'&#9746;':'&#9744;')+'</span> '+esc(o.label)).join('')+'</div>';
+  }
+  const secties=ingevuld?zichtbareSecties(F):F.secties;
+  h+='<table class="p-items"><tr><th>'+esc(F.stam||'Vraag')+'</th>'+sLbl.map(l=>'<th>'+esc(l)+'</th>').join('')+(F.schaal.nvt?'<th>'+esc(F.schaal.nvtLabel)+'</th>':'')+'</tr>';
+  secties.forEach(sec=>{
+    h+='<tr><td class="p-sectie" colspan="'+(sVal.length+1+(F.schaal.nvt?1:0))+'">'+esc(sec.titel)+(sec.stam?' — '+esc(sec.stam):'')+'</td></tr>';
+    sec.items.forEach(it=>{
+      const v=ingevuld?state.antwoorden[it.id]:undefined;
+      h+='<tr><td>'+esc(it.nr!==undefined?it.nr:it.id)+'. '+esc(it.tekst)+'</td>';
+      sVal.forEach(w=>{h+='<td class="p-c">'+((v!==undefined&&String(v)===String(w))?'<span class="sel">'+w+'</span>':w)+'</td>';});
+      if(F.schaal.nvt)h+='<td class="p-c">'+(v==='nvt'?'<span class="sel">&#10003;</span>':'&#9675;')+'</td>';
+      h+='</tr>';
+    });
+  });
+  h+='</table>';
+  if(F.dagen){
+    h+='<div class="p-dagen" style="margin-top:7pt">';
+    F.dagen.forEach(d=>{const v=ingevuld?state.extra[d.id]:undefined;h+='<div>'+esc(d.id)+' '+esc(d.tekst)+' <span class="p-l">'+(v===undefined||v===''?'&nbsp;':esc(v))+'</span> dagen</div>';});
+    h+='</div>';
+  }
+  if(F.slot)h+='<div class="p-instr">'+esc(F.slot)+'</div>';
+  h+='<div class="p-opm">Opmerkingen:'+(ingevuld&&state.opmerkingen?' '+esc(state.opmerkingen):'<div class="p-schrijf"></div><div class="p-schrijf"></div>')+'</div>';
+  h+='<div class="p-office"><h4>Enkel voor de arts — scoring</h4>';
+  if(ingevuld&&MODE==='arts'){
+    const sr=fiScoreRegels(F,fiComputeScores(F,state.antwoorden,state.extra));
+    sr.regels.forEach(g=>{h+='<div>'+esc(g.label)+': <span class="p-l">'+esc(g.waarde)+'</span></div>';});
+    sr.flags.forEach(c=>{h+='<div>'+esc(c.label)+': <span class="p-l">'+(c.voldaan?'BEPERKT':'niet beperkt')+'</span></div>';});
+  }else{
+    const sr=fiScoreRegels(F,fiComputeScores(F,{},{}));
+    sr.regels.filter(g=>!g.waarschuwing).forEach(g=>{h+='<div>'+esc(g.label)+': <span class="p-l">&nbsp;</span></div>';});
+  }
+  h+='</div>';
+  h+='<div class="p-voet">'+esc(BANK.teksten.disclaimer)+'<br>'+esc(F.bron)+'</div>';
+  return h;
+}
+
+/* ===================== arts-dashboard ===================== */
+function renderDashboard(){
+  MODE='arts';
+  let h='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
+    +'<span class="brand-sub">Vragenlijsten functioneren (WFIRS-S, WHODAS 2.0) &middot; '+(isFrank()?'praktijk Dr. Van Steenkiste':'praktijk')+'</span></div>'
+    +'<div class="top-right"><a class="back-link" href="vragenlijsten.html">&larr; Vragenlijsten</a>'
+    +'<span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
+    +'<button class="btn-logout" onclick="doLogout()">Uitloggen</button></div></div>';
+  h+='<div class="banner info">Kies een vragenlijst: <b>nu invullen</b> (score meteen zichtbaar), <b>afdrukken</b> als blanco papieren versie, of <b>een invullink delen</b> om naar een cliënt te sturen. De cliënt meldt zich op die pagina eerst aan met zijn/haar e-mailadres (aanmeldlink, geen wachtwoord) en ziet enkel de invulblokjes — géén scores en niets anders van de site. Ingevulde lijsten komen automatisch in je mailbox, inclusief scoring en het geverifieerde e-mailadres van de invuller.</div>';
+  h+='<div class="linkbox"><h3>&#128279; Invullinks delen</h3>'
+    +'<p>Vul (optioneel) de naam van de cliënt in — die wordt dan al ingevuld in het formulier. Kies daarna bij de vragenlijst “Link kopiëren” of “Mail de link”. Bij “Mail de link” verstuurt het dashboard de uitnodiging zelf (afzender: de praktijkmailbox, antwoorden komen bij jou terecht).</p>'
+    +'<input type="text" id="link-naam" placeholder="Naam van de cliënt (optioneel)" oninput="linknaamGewijzigd()">'
+    +'<div id="link-status" style="margin-top:8px;font-size:12px;color:#6b7280"></div></div>'
+    +'<div id="mail-panel"></div>';
+  h+='<div class="cards">';
+  Object.entries(BANK.formulieren).forEach(([code,F])=>{
+    const n=F.secties.reduce((a,s)=>a+s.items.length,0);
+    const aant=n+' items'+(F.dagen?' + '+F.dagen.length+' vragen over aantal dagen':'')+' &middot; '+esc(F.doelgroep);
+    h+='<div class="card"><h3>'+F.icoon+' '+esc(F.kort)+'</h3><div class="card-sub">'+esc(F.titel)+'<br>'+aant+'</div>'
+      +'<div class="acts">'
+      +'<button class="btn btn-primary" onclick="openArtsForm(\''+code+'\')">Nu invullen</button>'
+      +'<button class="btn btn-ghost" onclick="printBlanco(\''+code+'\')">&#128424; Blanco afdruk</button>'
+      +'<button class="btn btn-ghost" onclick="kopieerLink(\''+code+'\')">&#128279; Link kopiëren</button>'
+      +'<button class="btn btn-ghost" onclick="mailLink(\''+code+'\')">&#9993; Mail de link</button>'
+      +'</div></div>';
+  });
+  h+='</div>';
+  h+='<div class="footer-teksten"><div class="klein">'+Object.values(BANK.formulieren).map(F=>esc(F.bron)).join('<br>')+'</div>'
+    +'<div class="klein">Beveiligd via Supabase &middot; inzendingen via jouw invullinks gaan rechtstreeks naar '+esc(currentUser&&currentUser.email||'jouw e-mailadres')+' &middot; er wordt niets op de server bewaard.</div></div>';
+  el('app').innerHTML=h;
+  el('app').style.display='block';
+  document.title='Vragenlijsten functioneren';
+  window.scrollTo(0,0);
+}
+function openArtsForm(code){renderForm(code,'arts');}
+function printBlanco(code){
+  const F=BANK.formulieren[code];
+  const bewaar=state;state=leegState(code);
+  el('print-area').innerHTML=printHTML(F,'blanco');
+  state=bewaar;
+  document.body.classList.add('printing');
+  const klaar=()=>{document.body.classList.remove('printing');window.removeEventListener('afterprint',klaar);};
+  window.addEventListener('afterprint',klaar);window.print();setTimeout(klaar,1500);
+}
+function bouwLink(code){
+  const naam=(el('link-naam')&&el('link-naam').value.trim())||'';
+  const base=location.origin+location.pathname;
+  return base+'?vorm='+encodeURIComponent(code)+(naam?'&naam='+encodeURIComponent(naam):'')+(currentUser&&currentUser.id?'&arts='+encodeURIComponent(currentUser.id):'');
+}
+function linknaamGewijzigd(){el('link-status').textContent='';}
+async function kopieerLink(code){
+  const url=bouwLink(code);
+  try{await navigator.clipboard.writeText(url);}catch(_){window.prompt('Kopieer deze link:',url);return;}
+  el('link-status').innerHTML='Link voor <b>'+esc(BANK.formulieren[code].kort)+'</b> gekopieerd &#10003; <code style="font-size:10.5px">'+esc(url)+'</code>';
+}
+function mailTekst(code){
+  const url=bouwLink(code);
+  const F=BANK.formulieren[code];
+  const naam=(el('link-naam')&&el('link-naam').value.trim())||'';
+  const aanhef='Beste'+(naam?' '+naam:'');
+  const groet=isFrank()?'Praktijk Dr. F. Van Steenkiste — neurologie':(currentUser&&currentUser.email||'');
+  const duur=(code==='whodas-12')?'5 minuten':'10 à 15 minuten';
+  const body=aanhef+',\n\nIn het kader van uw begeleiding door '+(isFrank()?'de praktijk van Dr. Van Steenkiste':'onze praktijk')+' willen wij u vragen een vragenlijst in te vullen over uw functioneren in het dagelijks leven ('+F.kort+').\n\nDat kan online via deze beveiligde pagina (ongeveer '+duur+'):\n'+url+'\n\nU meldt zich daar eerst eenmalig aan met uw e-mailadres — u ontvangt dan meteen een persoonlijke aanmeldlink, zonder wachtwoord. Daarna vult u de vragenlijst in en klikt u op “Vragenlijst afwerken”.\n\nUw antwoorden komen rechtstreeks en vertrouwelijk bij '+(isFrank()?'Dr. Van Steenkiste':'uw behandelaar')+' terecht; er wordt niets op de website bewaard.\n\nAlvast hartelijk bedankt!\n\nMet vriendelijke groeten,\n'+groet;
+  return {url,onderwerp:(isFrank()?'Vragenlijst voor de praktijk van Dr. Van Steenkiste':'Vragenlijst')+' — '+F.kort,body};
+}
+function mailLink(code){
+  const F=BANK.formulieren[code];
+  const m=mailTekst(code);
+  const oudAan=(el('mail-aan')&&el('mail-aan').value)||'';
+  el('mail-panel').innerHTML='<div class="mailpanel"><h3>&#9993; Uitnodiging mailen — '+esc(F.kort)+'</h3>'
+    +'<label for="mail-aan">Aan (e-mailadres van de cliënt; meerdere adressen scheiden met een komma)</label>'
+    +'<input type="text" id="mail-aan" placeholder="naam@voorbeeld.be" value="'+esc(oudAan)+'" autocomplete="off">'
+    +'<label for="mail-onderwerp">Onderwerp</label><input type="text" id="mail-onderwerp" value="'+esc(m.onderwerp)+'">'
+    +'<label for="mail-tekst">Tekst (mag je aanpassen; laat de invullink staan)</label>'
+    +'<textarea id="mail-tekst">'+esc(m.body)+'</textarea>'
+    +'<div class="acts"><button class="btn btn-primary" id="btn-mail-verstuur" onclick="verstuurUitnodiging(\''+code+'\')">Versturen</button>'
+    +'<button class="btn btn-ghost" onclick="el(\'mail-panel\').innerHTML=\'\'">Annuleren</button>'
+    +'<a class="klein" href="mailto:?subject='+encodeURIComponent(m.onderwerp)+'&body='+encodeURIComponent(m.body)+'">of open in je eigen mailprogramma</a></div>'
+    +'<div class="klein" style="margin-top:8px">Afzender: de praktijkmailbox. Antwoorden komen bij <b>'+esc(currentUser&&currentUser.email||'jou')+'</b> terecht. Er wordt niets bewaard.</div>'
+    +'<div id="mail-status" style="margin-top:8px;font-size:12.5px"></div></div>';
+  el('mail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+  el('mail-aan').focus();
+}
+async function verstuurUitnodiging(code){
+  const aan=el('mail-aan').value.split(/[,;\s]+/).map(a=>a.trim()).filter(Boolean);
+  const onderwerp=el('mail-onderwerp').value.trim();
+  const tekst=el('mail-tekst').value;
+  const st=el('mail-status');
+  if(!aan.length){st.innerHTML='<span style="color:#b91c1c">Vul eerst het e-mailadres van de ontvanger in.</span>';el('mail-aan').focus();return;}
+  const fout=aan.find(a=>!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(a));
+  if(fout){st.innerHTML='<span style="color:#b91c1c">Ongeldig e-mailadres: '+esc(fout)+'</span>';return;}
+  if(!tekst.includes('?vorm=')){st.innerHTML='<span style="color:#b91c1c">De invullink ontbreekt in de tekst. Klik opnieuw op “Mail de link”.</span>';return;}
+  const btn=el('btn-mail-verstuur');btn.disabled=true;btn.textContent='Bezig met versturen…';st.textContent='';
+  try{
+    const headers={'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY};
+    if(sb){const {data:{session}}=await sb.auth.getSession();if(session)headers['Authorization']='Bearer '+session.access_token;}
+    const res=await fetch(FN_UITNODIGING,{method:'POST',headers,body:JSON.stringify({aan,onderwerp,tekst,vorm:code})});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||data.error)throw new Error(data.error||('HTTP '+res.status));
+    el('mail-panel').innerHTML='<div class="banner ok">Uitnodiging voor <b>'+esc(BANK.formulieren[code].kort)+'</b> verstuurd naar '+esc((data.aan||aan).join(', '))+' &#10003;</div>';
+    el('link-status').textContent='';
+  }catch(e){
+    st.innerHTML='<span style="color:#b91c1c"><b>Versturen is niet gelukt.</b> '+esc(e.message||'Onbekende fout')+'</span>';
+    btn.disabled=false;btn.textContent='Versturen';
+  }
+}
+
+/* ===================== invuller zonder geldige link ===================== */
+function renderInvullerDashboard(){
+  MODE='invuller';
+  let h='<div class="top"><div><span class="brand">the<span class="accent">fallacy</span>machine</span>'
+    +'<span class="brand-sub">Vragenlijsten functioneren &middot; '+praktijkNaam()+'</span></div>'
+    +'<div class="top-right"><span class="user-pill"><span class="dot"></span><span>'+esc(currentUser&&currentUser.email||'')+'</span></span>'
+    +'<button class="btn-logout" onclick="doLogout()">Afmelden</button></div></div>';
+  h+='<div class="banner info"><b>Deze pagina werkt enkel via de persoonlijke link die u van de praktijk kreeg.</b><br>'
+    +'Open de link uit de e-mail of het bericht van '+esc(behNaam())+' opnieuw; u komt dan rechtstreeks bij de gevraagde vragenlijst terecht. '
+    +'Hebt u geen link ontvangen, neem dan contact op met de praktijk.</div>';
+  h+='<div class="footer-teksten"><div class="klein">'+esc(privacyTekst())+'</div></div>';
+  el('app').innerHTML=h;el('app').style.display='block';window.scrollTo(0,0);
+}
+
+/* ===================== auth & init ===================== */
+function toonPraktijkLogin(aan){
+  el('auth-invuller').style.display=aan?'none':'block';
+  el('auth-praktijk').style.display=aan?'block':'none';
+  el('auth-msg').innerHTML='';
+}
+async function stuurMagicLink(){
+  const email=el('auth-email').value.trim();
+  const btn=el('auth-btn'),msg=el('auth-msg');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.innerHTML='<div class="msg err">Vul een geldig e-mailadres in</div>';return;}
+  btn.disabled=true;btn.textContent='Bezig…';
+  const redirect=location.origin+location.pathname+location.search;
+  const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:redirect}});
+  btn.disabled=false;btn.textContent='Stuur mij een aanmeldlink';
+  if(error){msg.innerHTML='<div class="msg err">'+esc(error.message)+'</div>';return;}
+  msg.innerHTML='<div class="msg" style="background:#dcfce7;color:#166534;border:1px solid #86efac">E-mail verzonden naar <b>'+esc(email)+'</b>.<br>Open uw mailbox en klik op de aanmeldlink — u komt dan meteen op de invulpagina terecht. U mag dit venster sluiten.</div>';
+}
+async function doLogin(){
+  const email=el('auth-p-email').value.trim(),pw=el('auth-p-pw').value;
+  const btn=el('auth-p-btn'),msg=el('auth-msg');
+  if(!email||!pw){msg.innerHTML='<div class="msg err">Vul email en wachtwoord in</div>';return;}
+  btn.disabled=true;btn.textContent='Bezig…';
+  const {error}=await sb.auth.signInWithPassword({email,password:pw});
+  btn.disabled=false;btn.textContent='Inloggen';
+  if(error){msg.innerHTML='<div class="msg err">'+esc(error.message)+'</div>';return;}
+  msg.innerHTML='';onLoggedIn();
+}
+async function doLogout(){await sb.auth.signOut();currentUser=null;IS_ARTS=false;el('app').style.display='none';toonPraktijkLogin(false);el('auth-overlay').style.display='flex';}
+async function onLoggedIn(){
+  const {data:{user}}=await sb.auth.getUser();
+  currentUser=user;
+  try{
+    const {data:access}=await sb.from('user_tool_access').select('tool_id').eq('user_id',user.id).eq('tool_id',TOOL_ID).maybeSingle();
+    IS_ARTS=!!access;
+  }catch(_){IS_ARTS=false;}
+  el('auth-overlay').style.display='none';
+  if(VORM&&BANK.formulieren[VORM]){renderForm(VORM,IS_ARTS?'arts':'invuller');}
+  else if(IS_ARTS){renderDashboard();}
+  else{renderInvullerDashboard();}
+}
+(function init(){
+  try{ if(!isFrank()){ const sub=document.querySelector('#auth-overlay .sub'); if(sub) sub.textContent='Praktijk — vragenlijsten'; } }catch(_){}
+  if(!window.supabase){
+    document.body.insertAdjacentHTML('afterbegin','<div class="wrap"><div class="banner err">De pagina kon niet volledig laden. Controleer uw internetverbinding en vernieuw de pagina.</div></div>');
+    return;
+  }
+  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  sb.auth.getSession().then(({data:{session}})=>{ if(session)onLoggedIn(); else el('auth-overlay').style.display='flex'; });
+  sb.auth.onAuthStateChange((event)=>{ if(event==='SIGNED_IN'&&!currentUser){onLoggedIn();} });
+})();
+</script>
+</body>
+</html>
